@@ -12,9 +12,9 @@ Local Open Scope ring_scope.
 
 Reserved Notation "{ 'series' T }" (at level 0, format "{ 'series'  T }").
 Reserved Notation "c %:S" (at level 2, format "c %:S").
-Reserved Notation "\series_ ( i ) E"
-  (at level 36, E at level 36, i at level 50,
-   format "\series_ ( i )  E").
+Reserved Notation "\series E .X^ i"
+  (at level 36, E at level 36, i at level 50, format "\series  E  .X^ i").
+
 Reserved Notation "a ^`` ()" (at level 8, format "a ^`` ()").
 Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
                             format "s ``_ i").
@@ -74,12 +74,12 @@ Implicit Types (a b c x y z : R) (p q r d : {series R}).
 Lemma coefpsE i p : coefps i p = p``_i.
 Proof. by []. Qed.
 
-Local Notation "\series_ ( i ) E" := (@FPSeries R (fun i : nat => E)).
+Local Notation "\series E .X^ i" := (@FPSeries R (fun i : nat => E)).
 
-Lemma coefs_series E j : (\series_ ( i ) E i)``_j = E j.
+Lemma coefs_series E j : (\series E i .X^i)``_j = E j.
 Proof. by rewrite unlock. Qed.
 
-Definition seriesC c : {series R} := \series_(i) if i is _.+1 then 0 else c.
+Definition seriesC c : {series R} := \series if i is _.+1 then 0 else c .X^i.
 Local Notation "c %:S" := (seriesC c).
 
 Lemma coefsC c i : c%:S``_i = if i == 0%N then c else 0.
@@ -115,12 +115,12 @@ Local Notation "\series_ ( i ) E" := (series (fun i : nat => E)). *)
 
 
 (* Zmodule structure for Formal power series *)
-Definition add_series_def p q := \series_(i) (p``_i + q``_i).
+Definition add_series_def p q := \series p``_i + q``_i .X^i.
 Fact add_series_key : unit. Proof. by []. Qed.
 Definition add_series := locked_with add_series_key add_series_def.
 Canonical add_series_unlockable := [unlockable fun add_series].
 
-Definition opp_series_def p := \series_(i) - p``_i.
+Definition opp_series_def p := \series - p``_i .X^i.
 Fact opp_series_key : unit. Proof. by []. Qed.
 Definition opp_series := locked_with opp_series_key opp_series_def.
 Canonical opp_series_unlockable := [unlockable fun opp_series].
@@ -211,7 +211,7 @@ Proof. exact: raddfMn. Qed.
 (* Formal power series ring structure. *)
 
 Definition mul_series_def p q :=
-  \series_(i) (\sum_(j < i.+1) p``_j * q``_(i - j)).
+  \series \sum_(j < i.+1) p``_j * q``_(i - j) .X^i.
 Fact mul_series_key : unit. Proof. by []. Qed.
 Definition mul_series := locked_with mul_series_key mul_series_def.
 Canonical mul_series_unlockable := [unlockable fun mul_series].
@@ -227,6 +227,7 @@ rewrite coefs_mul_series (reindex_inj rev_ord_inj) /=.
 by apply: eq_bigr => j _; rewrite (sub_ordK j).
 Qed.
 
+(** Maybe we could reuse the result for polynomial... *)
 Fact mul_seriesA : associative mul_series.
 Proof.
 move=> p q r; apply/seriesP=> i; rewrite coefs_mul_series coefs_mul_series_rev.
@@ -326,7 +327,8 @@ Canonical coefps0_rmorphism := AddRMorphism coefps0_multiplicative.
 
 
 (* Algebra structure of formal power series. *)
-Definition scale_series_def a (p : {series R}) := \series_(i) (a * p``_i).
+Definition scale_series_def a (p : {series R}) :=
+  \series a * p``_i .X^i.
 Fact scale_series_key : unit. Proof. by []. Qed.
 Definition scale_series := locked_with scale_series_key scale_series_def.
 Canonical scale_series_unlockable := [unlockable fun scale_series].
@@ -382,7 +384,7 @@ Canonical coefp0_lrmorphism := [lrmorphism of coefps 0].
 
 
 (* The indeterminate, at last! *)
-Definition seriesX_def := \series_(i) if i == 1%N then 1 else 0 : R.
+Definition seriesX_def := \series if i == 1%N then 1 else 0 : R .X^i.
 Fact seriesX_key : unit. Proof. by []. Qed.
 Definition seriesX : {series R} := locked_with seriesX_key seriesX_def.
 Canonical seriesX_unlockable := [unlockable of seriesX].
@@ -518,7 +520,7 @@ End SeriesOverRing.
 
 (* Single derivative. *)
 
-Definition derivs p := \series_(i) (p``_i.+1 *+ i.+1).
+Definition derivs p := \series p``_i.+1 *+ i.+1 .X^i.
 
 Local Notation "a ^`` ()" := (derivs a).
 
