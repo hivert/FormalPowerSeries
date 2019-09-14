@@ -1,12 +1,16 @@
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
+From mathcomp Require Import order.
+
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Import GRing.Theory.
-Local Open Scope ring_scope.
+Import Order.Def.
+Import Order.Syntax.
+Import Order.Theory.
 
 
 
@@ -18,6 +22,140 @@ Reserved Notation "\series E .X^ i"
 Reserved Notation "a ^`` ()" (at level 8, format "a ^`` ()").
 Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
                             format "s ``_ i").
+
+
+
+
+
+(** Clone of option nat to avoid the very confusing chain of coercions *)
+(**   option -> bool -> nat                                            *)
+
+Section NatBar.
+
+Open Scope order_scope.
+
+
+Inductive natbar : Set :=  Nat of nat | Inf.
+Definition opt_natbar (v : natbar) : option nat :=
+  if v is Nat n then Some n else None.
+Definition natbar_opt (v : option nat) : natbar :=
+  if v is Some n then Nat n else Inf.
+
+Lemma opt_natbarK : cancel opt_natbar natbar_opt.
+Proof. by case. Qed.
+Lemma natbar_optK : cancel natbar_opt opt_natbar.
+Proof. by case. Qed.
+Definition natbar_eqMixin := CanEqMixin opt_natbarK.
+Canonical natbar_eqType := Eval hnf in EqType natbar natbar_eqMixin.
+Definition natbar_choiceMixin := CanChoiceMixin opt_natbarK.
+Canonical natbar_choiceType := Eval hnf in ChoiceType natbar natbar_choiceMixin.
+Definition natbar_countMixin := CanCountMixin opt_natbarK.
+Canonical natbar_countType := Eval hnf in CountType natbar natbar_countMixin.
+
+Implicit Type (m n o p : nat).
+Implicit Type (u v w x y : natbar).
+
+Lemma Nat_inj : injective Nat. Proof. by move=> m n []. Qed.
+Lemma Nat_eqE m n : (Nat m == Nat n) = (m == n).
+Proof. by apply/eqP/eqP => [/Nat_inj|<-]. Qed.
+
+Definition addbar u v : natbar :=
+  match u, v with
+  | Nat m, Nat n => Nat (m + n)
+  | _, _ => Inf
+  end.
+
+Lemma add0bar : left_id  (Nat 0) addbar. Proof. by case. Qed.
+Lemma addbar0 : right_id (Nat 0) addbar.
+Proof. by case=> //= n; rewrite addn0. Qed.
+
+Lemma addIbar : left_zero  Inf addbar. Proof. by case. Qed.
+Lemma addbarI : right_zero Inf addbar. Proof. by case. Qed.
+
+Lemma addbarCA : left_commutative addbar.
+Proof. by case=> [m|] [n|] [p|] //=; rewrite addnCA. Qed.
+
+Lemma addbarC : commutative addbar.
+Proof. by case=> [m|] [n|] //=; rewrite addnC. Qed.
+
+Lemma addbarA : associative addbar.
+Proof. by case=> [m|] [n|] [p|] //=; rewrite addnA. Qed.
+
+Lemma addbarAC : right_commutative addbar.
+Proof. by case=> [m|] [n|] [p|] //=; rewrite addnAC. Qed.
+
+Lemma addbarACA : interchange addbar addbar.
+Proof. by case=> [m|] [n|] [p|] [q|] //=; rewrite addnACA. Qed.
+
+Lemma addbar_eq0 u v : (addbar u v == Nat 0) = (u == Nat 0) && (v == Nat 0).
+Proof.
+by case: u v => [m|] [n|] //=; rewrite !Nat_eqE /= ?addn_eq0 ?andbF.
+Qed.
+
+Lemma addbar_eqI u v : (addbar u v == Inf) = (u == Inf) || (v == Inf).
+Proof. by case: u v => [m|] [n|]. Qed.
+
+Canonical natbar_monoid := Monoid.Law addbarA add0bar addbar0.
+Canonical natbar_comoid := Monoid.ComLaw addbarC.
+
+
+(** Valuation ordering *)
+Definition lebar u v :=
+  match u, v with
+  | _, Inf => true
+  | Nat m, Nat n => m <= n
+  | _, _ => false
+  end.
+Definition ltbar u v := (u != v) && (lebar u v).
+Definition lebar_display : unit. Proof. exact: tt. Qed.
+
+Lemma ltbar_def u v : (ltbar u v) = (u != v) && (lebar u v).
+Proof. by []. Qed.
+
+Lemma lebarbar : reflexive lebar. Proof. by case => /=. Qed.
+Lemma lebar_trans : transitive lebar.
+Proof. by case=> [m|] [n|] [p|] //=; apply leq_trans. Qed.
+Lemma lebar_anti : antisymmetric lebar.
+Proof. by case=> [m|] [n|] //=; rewrite -eqn_leq => /eqP ->. Qed.
+
+Definition natbar_POrderMixin :=
+  POrderMixin ltbar_def lebarbar lebar_anti lebar_trans.
+Canonical natbar_POrderType  :=
+  POrderType lebar_display natbar natbar_POrderMixin.
+
+Lemma leEnatbar (n m : nat) : (Nat n <= Nat m) = (n <= m)%N.
+Proof. by []. Qed.
+
+Lemma ltEnatbar (n m : nat) : (Nat n < Nat m) = (n < m)%N.
+Proof. by rewrite lt_neqAle leEnatbar Nat_eqE ltn_neqAle. Qed.
+
+Lemma lebar_total : total lebar.
+Proof. by case=> [m|] [n|] //=; exact: leq_total. Qed.
+
+Definition natbar_LatticeMixin := Order.TotalLattice.Mixin lebar_total.
+Canonical natbar_LatticeType := LatticeType natbar natbar_LatticeMixin.
+Canonical natbar_OrderType := OrderType natbar lebar_total.
+
+Lemma le0bar v : Nat 0 <= v. Proof. by case: v. Qed.
+
+Definition natbar_BLatticeMixin := BLatticeMixin le0bar.
+Canonical natbar_BLatticeType := BLatticeType natbar natbar_BLatticeMixin.
+
+Lemma lebarI v : v <= Inf. Proof. by case v. Qed.
+
+Definition natbar_TBLatticeMixin := TBLatticeMixin lebarI.
+Canonical natbar_TBLatticeType := TBLatticeType natbar natbar_TBLatticeMixin.
+
+Lemma ltbar0Sn n : 0 < Nat n.+1.       Proof. by []. Qed.
+Lemma ltbarS n : Nat n < Nat n.+1.     Proof. by rewrite ltEnatbar. Qed.
+Lemma lebarS n : Nat n <= Nat n.+1.    Proof. by rewrite leEnatbar. Qed.
+Hint Resolve lebarS : core.
+Lemma ltIbar v : Inf < v = false.      Proof. exact/le_gtF/lex1. Qed.
+
+End NatBar.
+
+
+Local Open Scope ring_scope.
 
 Local Notation simp := Monoid.simpm.
 
@@ -61,17 +199,17 @@ Arguments coefps_head {R} h i%N s%R.
 Arguments coef_series {R} s%R i%N.
 
 Notation "{ 'series' T }" := (fpseries_of (Phant T)).
-Notation coefps i := (coefps_head tt i).
+Notation coefs i := (coefps_head tt i).
 Notation "s ``_ i" := (coef_series s i).
 
 
-Section SymPolyRingType.
+Section FPSRing.
 
 Variable R : ringType.
 
 Implicit Types (a b c x y z : R) (p q r d : {series R}).
 
-Lemma coefpsE i p : coefps i p = p``_i.
+Lemma coefpsE i p : coefs i p = p``_i.
 Proof. by []. Qed.
 
 Local Notation "\series E .X^ i" := (@FPSeries R (fun i : nat => E)).
@@ -88,7 +226,7 @@ Proof. by rewrite coefs_series; case: i. Qed.
 Lemma coefsC0 i : 0%:S``_i = 0.
 Proof. by rewrite coefs_series; case: i. Qed.
 
-Lemma seriesCK : cancel seriesC (coefps 0).
+Lemma seriesCK : cancel seriesC (coefs 0).
 Proof. by move=> c; rewrite /= coefsC. Qed.
 
 Lemma seriesC_inj : injective seriesC.
@@ -177,7 +315,7 @@ Lemma coefsB p q i : (p - q)``_i = p``_i - q``_i.
 Proof. by rewrite coefsD coefsN. Qed.
 
 Canonical coefps_additive i :=
-  Additive ((fun p => (coefsB p)^~ i) : additive (coefps i)).
+  Additive ((fun p => (coefsB p)^~ i) : additive (coefs i)).
 
 Lemma coefsMn p n i : (p *+ n)``_i = (p``_i) *+ n.
 Proof.  exact: (raddfMn (coefps_additive i)). Qed.
@@ -317,7 +455,7 @@ Canonical seriesC_rmorphism := AddRMorphism seriesC_multiplicative.
 Lemma seriesC_exp n : {morph seriesC : c / c ^+ n}.
 Proof. exact: rmorphX. Qed.
 
-Fact coefps0_multiplicative : multiplicative (coefps 0 : {series R} -> R).
+Fact coefps0_multiplicative : multiplicative (coefs 0 : {series R} -> R).
 Proof.
 split=> [p q|]; last by rewrite seriesCK.
 by rewrite !coefpsE coefsM big_ord_recl big_ord0 addr0.
@@ -379,8 +517,8 @@ by rewrite -[*:%R]/scale_series [scale_series]unlock coefs_series.
 Qed.
 
 Canonical coefps_linear i : {scalar {series R}} :=
-  AddLinear ((fun a => (coefsZ a) ^~ i) : scalable_for *%R (coefps i)).
-Canonical coefp0_lrmorphism := [lrmorphism of coefps 0].
+  AddLinear ((fun a => (coefsZ a) ^~ i) : scalable_for *%R (coefs i)).
+Canonical coefp0_lrmorphism := [lrmorphism of coefs 0].
 
 
 (* The indeterminate, at last! *)
@@ -517,7 +655,6 @@ Canonical seriesOver_subringPred := SubringPred (seriesOver_mulr_closed kS).
 
 End SeriesOverRing.
 
-
 (* Single derivative. *)
 
 Definition derivs p := \series p``_i.+1 *+ i.+1 .X^i.
@@ -538,3 +675,270 @@ Proof. by apply/seriesP=> i; rewrite coefs_deriv coefs0 coefsC mul0rn. Qed.
 
 Lemma derivX : 'Xs^``() = 1.
 Proof. by apply/seriesP=> [[|i]]; rewrite coefs_deriv coefs1 coefsX ?mul0rn. Qed.
+
+
+Lemma inv1BcX c : (1 - c *: 'Xs) * \series c ^+ i .X^i = 1.
+Proof.
+apply/seriesP => n; rewrite coefsM big_ord_recl /=.
+rewrite coefsB coefs1 coefsZ coefsX coefs_series /= !simp /= subr0 subn0.
+case: n => [|n]; rewrite ?big_ord0 coefs1 /= ?addr0 ?expr0 ?mulr1 //.
+rewrite big_ord_recl /bump /= !simp /=.
+rewrite coefsB coefs1 coefsZ coefsX coefs_series /= !simp /=.
+rewrite subSS subn0 mulNr -exprS subrr add0r.
+rewrite /bump /=; apply big1 => [[i /= _] _].
+by rewrite !add1n coefsB coefs1 coefsZ coefsX /= !simp mulNr mul0r oppr0.
+Qed.
+
+Lemma inv1BX c :  (1 - 'Xs) * \series 1 .X^i = 1.
+Proof.
+have:= inv1BcX 1; rewrite !scale1r => {2}<-; congr (_ * _).
+by apply/seriesP => n; rewrite !coefs_series expr1n.
+Qed.
+
+Lemma inv1DX c :  (1 + 'Xs) * \series (-1)^+i .X^i = 1.
+Proof. by have:= inv1BcX (-1); rewrite !scaleN1r opprK. Qed.
+
+
+
+Definition valuat p : natbar :=
+  if pselect (exists n, p``_n != 0) is left Pf
+  then Nat (ex_minn Pf) else Inf.
+Definition slead p : R :=
+  if valuat p is Nat n then p``_n else 0.
+
+Variant valuat_spec p : natbar -> Set :=
+  | ValNat n of p``_n != 0 & (forall i, (i < n)%N -> p``_i = 0) :
+      valuat_spec p (Nat n)
+  | ValInf of p = 0 : valuat_spec p Inf.
+
+Lemma valuatP p : valuat_spec p (valuat p).
+Proof.
+rewrite /valuat; case: pselect => [Pf|NPf].
+- case: ex_minnP => v Hv vmin; apply ValNat => [|i iv]; first exact: Hv.
+  apply/eqP; move: iv; apply contraLR; rewrite -leqNgt; exact: vmin.
+- apply ValInf; apply seriesP => n; rewrite coefs0.
+  apply/eqP; rewrite -(negbK (_ == 0)); apply/negP => Hn.
+  by apply NPf; exists n.
+Qed.
+
+Lemma valuatNatP p n :
+  reflect
+    (p``_n != 0 /\ forall i, (i < n)%N -> p``_i = 0)
+    (valuat p == Nat n).
+Proof.
+case: valuatP => [v Hv vmin /= |-> //]; apply (iffP eqP).
+- by move=> [] <-{n}; split=>// i /vmin ->.
+- move=> [Hn /(_ v)/contra_neqN/(_ Hv)]; rewrite -leqNgt => nlev.
+  congr Nat; apply anti_leq; rewrite {}nlev andbT.
+  by move: vmin => /(_ n)/contra_neqN/(_ Hn); rewrite -leqNgt.
+- by [].
+- by rewrite coefs0 eq_refl => [] [].
+Qed.
+
+Lemma valuat0 : valuat 0 = Inf.
+Proof. by case: valuatP => [v | //]; rewrite coefs0 eq_refl. Qed.
+
+Lemma valuatInfE p : (p == 0) = (valuat p == Inf).
+Proof.
+apply/eqP/eqP => [-> |]; first exact: valuat0.
+by case: valuatP.
+Qed.
+
+Lemma sleadP p : (p == 0) = (slead p == 0).
+Proof.
+rewrite /slead; case: valuatP => [n Hn _|->]; last by rewrite !eqxx.
+rewrite (negbTE Hn); apply/contraNF: Hn => /eqP ->.
+by rewrite coefs0.
+Qed.
+
+Lemma valuatDr p1 p2 :
+  (valuat p1 < valuat p2)%O -> valuat (p1 + p2) = valuat p1.
+Proof.
+case: (valuatP p2) => [v2 _   v2min|-> _]; last by rewrite addr0.
+case: (valuatP p1) => [v1 Hv1 v1min|->]; last by rewrite ltIbar.
+rewrite ltEnatbar => v12; apply/eqP/valuatNatP.
+split=> [|n nv1]; rewrite coefsD v2min ?addr0 // ?v1min //.
+exact: ltn_trans nv1 v12.
+Qed.
+
+Lemma sleadDr p1 p2 :
+  (valuat p1 < valuat p2)%O -> slead (p1 + p2) = slead p1.
+Proof.
+rewrite /slead => H; rewrite (valuatDr H).
+move: H; case: (valuat p1) => // v.
+case: (valuatP p2) => [v2 _ v2min | -> _]; last by rewrite addr0.
+by rewrite coefsD ltEnatbar => /v2min ->; rewrite addr0.
+Qed.
+
+Lemma valuatMge p1 p2 :
+  (addbar (valuat p1) (valuat p2) <= valuat (p1 * p2))%O.
+Proof.
+case: (valuatP p2)=> [v2 _ v2min|->]; last by rewrite mulr0 addbarI valuat0.
+case: (valuatP p1)=> [v1 _ v1min|->]; last by rewrite mul0r addIbar valuat0.
+case: valuatP => [v Hv _|]//=.
+move: Hv; rewrite coefsM; apply contraR; rewrite -ltnNge => Hv.
+apply/eqP/big1 => /= [[n]]; rewrite /= ltnS => Hn _.
+case: (ltnP n v1) => [/v1min ->|v1n]; first by rewrite mul0r.
+suffices {v1min v2min} /v2min -> : (v - n < v2)%N by rewrite mulr0.
+by rewrite -(ltn_add2r n) subnK // addnC (leq_trans Hv) // leq_add2r.
+Qed.
+
+End FPSRing.
+
+Local Notation "\series E .X^ i" := (@FPSeries _ (fun i : nat => E)).
+
+
+Section FPSComRing.
+
+Variable R : comRingType.
+
+Implicit Types (a b c x y z : R) (p q r d : {series R}).
+
+Lemma mul_series_comm : @commutative {series R} {series R} *%R.
+Proof.
+move=> u v.
+apply/seriesP=> i; rewrite coefsM coefsMr.
+by apply: eq_bigr => j _; rewrite mulrC.
+Qed.
+
+Canonical series_comRingType :=
+  Eval hnf in ComRingType {series R} mul_series_comm.
+Canonical fpseries_comRingType :=
+  Eval hnf in ComRingType (fpseries R) mul_series_comm.
+Canonical series_algType := Eval hnf in CommAlgType R {series R}.
+Canonical pfseries_algType :=
+  Eval hnf in [algType R of fpseries R for series_algType].
+
+End FPSComRing.
+
+
+Section FPSComUnitRing.
+
+Variable R : comUnitRingType.
+
+Implicit Types (a b c x y z : R) (p q r d : {series R}).
+
+
+Definition unit_series : pred {series R} := fun p => (p``_0 \in GRing.unit).
+
+Fixpoint inv_series_rec p bound n :=
+  if bound is b.+1 then
+    if (n <= b)%N then inv_series_rec p b n
+    else - p``_0^-1 * \sum_(i < n) (inv_series_rec p b i) * p``_(n - i)
+  else p``_0^-1.
+Definition inv_series p : {series R} :=
+  if unit_series p then \series inv_series_rec p i i .X^i else p.
+
+Lemma coefs0_inv_series p : unit_series p -> (inv_series p)``_0 = p``_0^-1.
+Proof. by rewrite /inv_series=> ->; rewrite /= coefs_series. Qed.
+
+Lemma coefsS_inv_series p n :
+  unit_series p ->
+  (inv_series p)``_n.+1 =
+  - p``_0^-1 * \sum_(i < n.+1) (inv_series p)``_i * p``_(n.+1 - i).
+Proof.
+move=> punit; rewrite /inv_series punit coefs_series /= ltnn; congr (- _ * _).
+apply: eq_bigr => [[i]/=]; rewrite ltnS => Hi _.
+rewrite coefs_series; congr (_ * _).
+move: Hi => /subnKC <-; elim: (n - i)%N => [|{n} n IHn]; first by rewrite addn0.
+by rewrite addnS /= leq_addr.
+Qed.
+
+Lemma mul_seriesVr : {in unit_series, left_inverse 1 inv_series *%R}.
+Proof.
+move=> p p_unit; have:= p_unit; rewrite /= unfold_in => p0_unit.
+apply/seriesP => n; elim: n {1 3 4}n (leqnn n) => [| n IHn] i.
+  rewrite leqn0 => /eqP ->.
+  rewrite coefsM big_ord_recr /= big_ord0.
+  by rewrite add0r subnn coefs0_inv_series // mulVr // coefsC.
+move=> Hi; case: (leqP i n) => [|Hni]; first exact: IHn.
+have {Hi Hni i} -> : i = n.+1 by apply anti_leq; rewrite Hi Hni.
+rewrite coefs1 /= coefsM big_ord_recr /= subnn mulrC coefsS_inv_series //.
+by rewrite mulrA mulrN // mulrV // mulN1r subrr.
+Qed.
+
+Lemma unit_seriesP p q : q * p = 1 -> unit_series p.
+Proof.
+move/(congr1 (coefs 0)); rewrite /= coefs1 /= coefsM.
+rewrite big_ord_recr big_ord0 /= add0r subnn mulrC => Heq.
+rewrite /unit_series; apply/unitrPr; by exists q``_0.
+Qed.
+
+Lemma inv_series0id : {in [predC unit_series], inv_series =1 id}.
+Proof.
+by move=> p; rewrite inE /= /inv_series unfold_in /unit_series => /negbTE ->.
+Qed.
+
+Definition series_comUnitMixin :=
+  ComUnitRingMixin mul_seriesVr unit_seriesP inv_series0id.
+
+Canonical series_unitRingType :=
+  Eval hnf in UnitRingType {series R} series_comUnitMixin.
+Canonical fpseries_unitRingType :=
+  Eval hnf in [unitRingType of fpseries R for series_unitRingType].
+
+Canonical series_unitAlgType := Eval hnf in [unitAlgType R of {series R}].
+Canonical fpseries_unitAlgType := Eval hnf in [unitAlgType R of fpseries R].
+
+Canonical series_comUnitRingType :=
+  Eval hnf in [comUnitRingType of {series R}].
+Canonical fpseries_comUnitRingType :=
+  Eval hnf in [comUnitRingType of fpseries R].
+
+Lemma coefsV0 p : unit_series p -> p^-1``_0 = p``_0^-1.
+Proof. exact: coefs0_inv_series. Qed.
+
+
+End FPSComUnitRing.
+
+
+Section FPSIDomain.
+
+Variable R : idomainType.
+
+Implicit Types (a b c x y z : R) (p q r d : {series R}).
+
+
+Lemma slead_valuatM p1 p2 :
+  slead (p1 * p2) = slead p1 * slead p2 /\
+  valuat (p1 * p2) = addbar (valuat p1) (valuat p2).
+Proof.
+have:= valuatMge p1 p2; rewrite /slead.
+case: (valuatP p2)=> [v2 Hv2 v2min|->]; last by rewrite !mulr0 valuat0 addbarI.
+case: (valuatP p1)=> [v1 Hv1 v1min|->]; last by rewrite !mul0r valuat0 addIbar.
+have coefspv : (p1 * p2)``_(v1 + v2)%N = p1``_v1 * p2``_v2.
+  rewrite coefsM (bigD1 (inord v1)); rewrite //= inordK ?ltnS ?leq_addr // addKn.
+  rewrite (bigID (fun i => nat_of_ord i < v1)%N) /=.
+  rewrite big1 => [|i /andP[_ /v1min]->]; rewrite ?mul0r // add0r.
+  rewrite big1 => [|[i]/= Hi /andP[]]; first by rewrite addr0.
+  rewrite -leqNgt /eq_op /= inordK ?ltnS ?leq_addr // => Hneq Hleq.
+  suffices {v1min v2min} /v2min -> : (v1 + v2 - i < v2)%N by rewrite mulr0.
+  have {Hneq Hleq} v1i : (v1 < i)%N by rewrite ltn_neqAle eq_sym Hneq Hleq.
+  by rewrite ltnS in Hi; rewrite -(ltn_add2r i) subnK // addnC ltn_add2l.
+case: (valuatP (p1 * p2)) => [v Hv vmin | Heq _] /=; first last.
+- exfalso; move: Heq => /(congr1 (coefs (v1 + v2))).
+  rewrite /= coefspv coefs0 => /eqP.
+  by rewrite mulf_eq0 (negbTE Hv1) (negbTE Hv2).
+- rewrite /= leEnatbar => lev.
+  suffices -> : v = (v1 + v2)%N by rewrite coefspv.
+  apply anti_leq; rewrite lev andbT leqNgt.
+  apply: (contra_neqN (vmin (v1 + v2)%N)); rewrite coefspv.
+  by rewrite mulf_eq0 negb_or Hv1 Hv2.
+Qed.
+
+Lemma valuatM p1 p2 : valuat (p1 * p2) = addbar (valuat p1) (valuat p2).
+Proof. by have [_ ->] := slead_valuatM p1 p2. Qed.
+
+Lemma sleadM p1 p2 : slead (p1 * p2) = slead p1 * slead p2.
+Proof. by have [] := slead_valuatM p1 p2. Qed.
+
+
+Fact series_idomainAxiom p q : p * q = 0 -> (p == 0) || (q == 0).
+Proof. by move/eqP; rewrite !valuatInfE valuatM addbar_eqI. Qed.
+
+Canonical series_idomainType :=
+  Eval hnf in IdomainType {series R} series_idomainAxiom.
+Canonical fpseries_idomainType :=
+  Eval hnf in [idomainType of fpseries R for series_idomainType].
+
+End FPSIDomain.
