@@ -219,11 +219,11 @@ Notation coefs i := (coefps_head tt i).
 Notation "s ``_ i" := (coef_series s i).
 
 
-Section FPSRing.
+Section FPSDef.
 
 Variable R : ringType.
 
-Implicit Types (a b c x y z : R) (s t u v : {series R}).
+Implicit Types (a b c: R) (s t u : {series R}) (p q : {poly R}).
 
 Lemma coefpsE i s : coefs i s = s``_i.
 Proof. by []. Qed.
@@ -260,13 +260,67 @@ Qed.
 Lemma seriesfunK s : FPSeries (seriesfun s) = s.
 Proof. exact: seriesfun_inj. Qed.
 
-(* Build a series from a function: Is the following useful ?
-Definition series_expanded_def E := @FPSeries R E.
-Fact series_key : unit. Proof. by []. Qed.
-Definition series := locked_with series_key series_expanded_def.
-Canonical series_unlockable := [unlockable fun series].
-Local Notation "\series_ ( i ) E" := (series (fun i : nat => E)). *)
 
+Definition series_poly (p : polynomial R) : fpseries R := \series p`_i .X^i.
+Definition poly_series n s : {poly R} := \poly_(i < n) s``_i.
+
+Local Notation SP p := (series_poly p).
+Local Notation PS s := (poly_series s).
+
+Lemma coefs_series_poly p i : (SP p)``_i = p`_i.
+Proof. by rewrite coefs_series. Qed.
+
+Lemma coefs_poly_series n s i : (PS n s)`_i = if (i < n)%N then s``_i else 0.
+Proof. by rewrite coef_poly. Qed.
+
+Lemma series_polyK n p : (n >= size p)%N -> PS n (SP p) = p.
+Proof.
+move=> /leq_sizeP Hn; apply/polyP => i.
+rewrite coefs_poly_series coefs_series_poly.
+by case: ltnP => //= ni; rewrite Hn.
+Qed.
+
+Lemma poly_series_eqP s t :
+  reflect (forall n, PS n s = PS n t) (s == t).
+Proof.
+apply (iffP eqP) => [->//| Heq]; apply/seriesP => i.
+have cps u : u``_i = (PS i.+1 u)`_i by rewrite coefs_poly_series ltnSn.
+by rewrite !cps Heq.
+Qed.
+
+Lemma poly_seriesP s t :
+  reflect (forall n, (PS n.+1 s)`_n = (PS n.+1 t)`_n) (s == t).
+Proof.
+apply (iffP eqP) => [->//| Heq]; apply/seriesP => i.
+have cps u : u``_i = (PS i.+1 u)`_i by rewrite coefs_poly_series ltnSn.
+by rewrite !cps Heq.
+Qed.
+
+Lemma poly_seriesC n c : PS n.+1 c%:S = c%:P.
+Proof.
+apply/polyP => i; rewrite coefs_poly_series coefC coefsC.
+by case: i => //= i; rewrite if_same.
+Qed.
+
+End FPSDef.
+
+Coercion series_poly : polynomial >-> fpseries.
+
+Arguments seriesC {R}.
+Arguments series_poly {R}.
+Arguments poly_series {R}.
+Notation "c %:S" := (seriesC c).
+Notation "\series E .X^ i" := (@FPSeries _ (fun i : nat => E)).
+
+
+Section FPSRing.
+
+Variable R : ringType.
+
+Local Notation SP p := (series_poly p).
+Local Notation PS s := (poly_series s).
+
+Implicit Types (a b c x y z : R) (s t u v : {series R}) (p q : {poly R}).
 
 (* Zmodule structure for Formal power series *)
 Definition add_series_def s t := \series s``_i + t``_i .X^i.
@@ -361,6 +415,21 @@ Canonical seriesC_additive := Additive seriesC_sub.
 Lemma seriesC_muln n : {morph seriesC : c / c *+ n}.
 Proof. exact: raddfMn. Qed.
 
+Fact series_poly_is_additive : additive series_poly.
+Proof.
+move=> p q; apply/seriesP => n.
+by rewrite coefsB !coefs_series coefB.
+Qed.
+Canonical series_poly_additive := Additive series_poly_is_additive.
+
+Fact poly_series_is_additive d : additive (poly_series d).
+Proof.
+move=> p q; apply/polyP => n.
+by rewrite coefB !coefs_poly_series; case: ltnP => _; rewrite ?subr0 ?coefsB.
+Qed.
+Canonical poly_series_additive d := Additive (poly_series_is_additive d).
+
+
 
 (* Formal power series ring structure. *)
 
@@ -374,51 +443,46 @@ Fact coefs_mul_series s t i :
   (mul_series s t)``_i = \sum_(j < i.+1) s``_j * t``_(i - j).
 Proof. by rewrite !unlock. Qed.
 
-Fact coefs_mul_series_rev s t i :
-  (mul_series s t)``_i = \sum_(j < i.+1) s``_(i - j) * t``_j.
+Lemma poly_mul_series i n :
+  (i < n)%N -> forall s t, (mul_series s t)``_i = ((PS n s) * (PS n t))`_i.
 Proof.
-rewrite coefs_mul_series (reindex_inj rev_ord_inj) /=.
-by apply: eq_bigr => j _; rewrite (sub_ordK j).
+move=> Hi s t; rewrite coefs_mul_series coefM; apply eq_bigr => [j] _ /=.
+by rewrite !coefs_poly_series !(leq_trans _ Hi) // ltnS leq_subr.
 Qed.
 
-(** Maybe we could reuse the result for polynomial... *)
 Fact mul_seriesA : associative mul_series.
 Proof.
-move=> s t u; apply/seriesP=> i; rewrite coefs_mul_series coefs_mul_series_rev.
-pose coef3 j k := s``_j * (t``_(i - j - k) * u``_k).
-transitivity (\sum_(j < i.+1) \sum_(k < i.+1 | (k <= i - j)%N) coef3 j k).
-  apply: eq_bigr => /= j _; rewrite coefs_mul_series_rev big_distrr /=.
-  by rewrite (big_ord_narrow_leq (leq_subr _ _)).
-rewrite (exchange_big_dep predT) //=; apply: eq_bigr => k _.
-transitivity (\sum_(j < i.+1 | (j <= i - k)%N) coef3 j k).
-  apply: eq_bigl => j; rewrite -ltnS -(ltnS j) -!subSn ?leq_ord //.
-  by rewrite -subn_gt0 -(subn_gt0 j) -!subnDA addnC.
-rewrite (big_ord_narrow_leq (leq_subr _ _)) coefs_mul_series big_distrl /=.
-by apply: eq_bigr => j _; rewrite /coef3 -!subnDA addnC mulrA.
+move=> s t u; apply/seriesP=> n; rewrite !(poly_mul_series (ltnSn n)).
+transitivity ((PS n.+1) s * (PS n.+1) t * (PS n.+1) u)`_n.
+  rewrite -mulrA !coefM; apply eq_bigr => [[i Hi] /=] _; congr (_ * _).
+  rewrite -poly_mul_series ?ltnS ?leq_subr //.
+  by rewrite coefs_poly_series ?ltnS ?leq_subr.
+rewrite !coefM; apply eq_bigr => [[i Hi] /=] _; congr (_ * _).
+by rewrite -poly_mul_series // coefs_poly_series Hi.
 Qed.
 
 Fact mul_1series : left_id 1%:S mul_series.
 Proof.
-move=> s; apply/seriesP => i; rewrite coefs_mul_series big_ord_recl subn0.
-by rewrite big1 => [|j _]; rewrite coefsC /= !simp.
+move=> s; apply/seriesP => n; rewrite !(poly_mul_series (ltnSn n)).
+by rewrite poly_seriesC mul1r coefs_poly_series ltnSn.
 Qed.
 
 Fact mul_series1 : right_id 1%:S mul_series.
 Proof.
-move=> s; apply/seriesP => i; rewrite coefs_mul_series_rev big_ord_recl subn0.
-by rewrite big1 => [|j _]; rewrite coefsC !simp.
+move=> s; apply/seriesP => n; rewrite !(poly_mul_series (ltnSn n)).
+by rewrite poly_seriesC mulr1 coefs_poly_series ltnSn.
 Qed.
 
 Fact mul_seriesDl : left_distributive mul_series +%R.
 Proof.
-move=> s t u; apply/seriesP=> i; rewrite coefsD !coefs_mul_series -big_split.
-by apply: eq_bigr => j _; rewrite coefsD mulrDl.
+move=> s t u; apply/seriesP=> n.
+by rewrite coefsD !(poly_mul_series (ltnSn n)) -coefD raddfD /= -mulrDl.
 Qed.
 
 Fact mul_seriesDr : right_distributive mul_series +%R.
 Proof.
-move=> s t u; apply/seriesP=> i; rewrite coefsD !coefs_mul_series -big_split.
-by apply: eq_bigr => j _; rewrite coefsD mulrDr.
+move=> s t u; apply/seriesP=> n.
+by rewrite coefsD !(poly_mul_series (ltnSn n)) -coefD raddfD /= -mulrDr.
 Qed.
 
 Fact series1_neq0 : 1%:S != 0 :> {series R}.
@@ -438,14 +502,17 @@ Lemma seriesseq1 :
   seriesfun (1 : {series R}) = (fun i : nat => if i == 0%N then 1%R else 0%R).
 Proof. by rewrite /= funeqE; case. Qed.
 
-Lemma coefs1 i : (1 : {series R})``_i = (i == 0%N)%:R.
-Proof. by rewrite unlock; case: i. Qed.
+Lemma coefs1 n : (1 : {series R})``_n = (n == 0%N)%:R.
+Proof. by rewrite unlock; case: n. Qed.
 
-Lemma coefsM s t i : (s * t)``_i = \sum_(j < i.+1) s``_j * t``_(i - j).
+Lemma coefsM s t n : (s * t)``_n = \sum_(j < n.+1) s``_j * t``_(n - j).
 Proof. exact: coefs_mul_series. Qed.
 
-Lemma coefsMr s t i : (s * t)``_i = \sum_(j < i.+1) s``_(i - j) * t``_j.
-Proof. exact: coefs_mul_series_rev. Qed.
+Lemma coefsMr s t n : (s * t)``_n = \sum_(j < n.+1) s``_(n - j) * t``_j.
+Proof.
+rewrite !(poly_mul_series (ltnSn n)) coef_mul_poly_rev.
+by apply eq_bigr => [[i Hi]] _ /=; rewrite !coefs_poly_series Hi ltnS leq_subr.
+Qed.
 
 Lemma coefsCM c s i : (c%:S * s)``_i = c * (s``_i).
 Proof.
@@ -478,6 +545,16 @@ by rewrite !coefpsE coefsM big_ord_recl big_ord0 addr0.
 Qed.
 
 Canonical coefps0_rmorphism := AddRMorphism coefps0_multiplicative.
+
+Fact series_poly_is_rmorphism : rmorphism series_poly.
+Proof.
+split; first exact: series_poly_is_additive.
+split=> [p q|]; apply/seriesP=> i; last first.
+  by rewrite coefs_series coef1 coefs1.
+rewrite coefsM !coefs_series coefM; apply: eq_bigr => j _.
+by rewrite !coefs_series.
+Qed.
+Canonical series_poly_rmorphism := RMorphism series_poly_is_rmorphism.
 
 
 (* Algebra structure of formal power series. *)
@@ -535,6 +612,42 @@ Qed.
 Canonical coefps_linear i : {scalar {series R}} :=
   AddLinear ((fun a => (coefsZ a) ^~ i) : scalable_for *%R (coefs i)).
 Canonical coefp0_lrmorphism := [lrmorphism of coefs 0].
+
+Fact series_poly_is_linear : linear series_poly.
+Proof.
+move=> i p q; apply/seriesP => n.
+by rewrite coefsD coefsZ !coefs_series coefD coefZ.
+Qed.
+
+Canonical series_poly_linear := Linear series_poly_is_linear.
+Canonical series_poly_lrmorphism := [lrmorphism of series_poly].
+
+Lemma series_polyD p q : SP (p + q) = SP p + SP q.
+Proof. exact: linearD. Qed.
+
+Lemma series_polyN p : SP (- p) = - SP p.
+Proof. exact: linearN. Qed.
+
+Lemma series_polyB p q : SP (p - q) = SP p - SP q.
+Proof. exact: linearB. Qed.
+
+Lemma series_polyMn p n : SP (p *+ n) = (SP p) *+ n.
+Proof. exact: raddfMn. Qed.
+
+Lemma series_polyfMNn p n i : (p *- n)`_i = p`_i *- n.
+Proof. by rewrite coefN coefMn. Qed.
+
+Lemma series_poly_sum I (r : seq I) (s : pred I) (F : I -> {poly R}) :
+  SP (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) SP (F i).
+Proof. exact: raddf_sum. Qed.
+
+Fact poly_series_is_linear d : linear (poly_series d).
+Proof.
+move=> i s t; apply/polyP => n.
+rewrite coefD coefZ !coefs_poly_series.
+by case: ltnP => _; rewrite ?mulr0 ?addr0 // coefsD coefsZ.
+Qed.
+Canonical poly_series_linear d := Linear (poly_series_is_linear d).
 
 
 (* The indeterminate, at last! *)
@@ -838,60 +951,7 @@ Qed.
 Lemma inv1DX c :  (1 + 'Xs) * \series (-1)^+i .X^i = 1.
 Proof. by have:= inv1BcX (-1); rewrite !scaleN1r opprK. Qed.
 
-
-Section Polynomials.
-
-Implicit Type (p q : {poly R}).
-Definition series_poly (p : polynomial R) : fpseries R := \series p`_i .X^i.
-
-Local Notation SP p := (series_poly p).
-
-Fact series_poly_is_linear : linear series_poly.
-Proof.
-move=> i p q; apply/seriesP => n.
-by rewrite coefsD coefsZ !coefs_series coefD coefZ.
-Qed.
-
-Canonical series_poly_additive := Additive series_poly_is_linear.
-Canonical series_poly_linear := Linear series_poly_is_linear.
-
-Lemma series_polyD p q : SP (p + q) = SP p + SP q.
-Proof. exact: linearD. Qed.
-
-Lemma series_polyN p : SP (- p) = - SP p.
-Proof. exact: linearN. Qed.
-
-Lemma series_polyB p q : SP (p - q) = SP p - SP q.
-Proof. exact: linearB. Qed.
-
-Lemma series_polyMn p n : SP (p *+ n) = (SP p) *+ n.
-Proof. exact: raddfMn. Qed.
-
-Lemma series_polyfMNn p n i : (p *- n)`_i = p`_i *- n.
-Proof. by rewrite coefN coefMn. Qed.
-
-Lemma series_poly_sum I (r : seq I) (s : pred I) (F : I -> {poly R}) :
-  SP (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) SP (F i).
-Proof. exact: raddf_sum. Qed.
-
-Fact series_poly_is_rmorphism : rmorphism series_poly.
-Proof.
-split; first exact: series_poly_is_linear.
-split=> [p q|]; apply/seriesP=> i; last first.
-  by rewrite coefs_series coef1 coefs1.
-rewrite coefsM !coefs_series coefM; apply: eq_bigr => j _.
-by rewrite !coefs_series.
-Qed.
-Canonical series_poly_rmorphism := RMorphism series_poly_is_rmorphism.
-Canonical series_poly_lrmorphism := [lrmorphism of series_poly].
-
-End Polynomials.
-
 End FPSRing.
-Coercion series_poly : polynomial >-> fpseries.
-
-Notation "\series E .X^ i" := (@FPSeries _ (fun i : nat => E)).
-Notation "c %:S" := (seriesC c).
 
 
 Section FPSComRing.
