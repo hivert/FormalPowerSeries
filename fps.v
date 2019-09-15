@@ -18,7 +18,7 @@ Reserved Notation "{ 'series' T }" (at level 0, format "{ 'series'  T }").
 Reserved Notation "c %:S" (at level 2, format "c %:S").
 Reserved Notation "\series E .X^ i"
   (at level 36, E at level 36, i at level 50, format "\series  E  .X^ i").
-
+Reserved Notation "'Xs" (at level 0).
 Reserved Notation "a ^`` ()" (at level 8, format "a ^`` ()").
 Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
                             format "s ``_ i").
@@ -381,9 +381,6 @@ Proof. by rewrite /= funeqE; case. Qed.
 Lemma coefs0 i : (0 : {series R})``_i = 0.
 Proof. by rewrite coefsC if_same. Qed.
 
-Lemma seriesC_eq0 (c : R) : (c%:S == 0) = (c == 0).
-Proof. by apply/eqP/eqP => [/seriesfunP/(_ 0%N) | ->]. Qed.
-
 Lemma coefsD s t i : (s + t)``_i = s``_i + t``_i.
 Proof. exact: coefs_add_series. Qed.
 
@@ -397,7 +394,7 @@ Canonical coefps_additive i :=
   Additive ((fun s => (coefsB s)^~ i) : additive (coefs i)).
 
 Lemma coefsMn s n i : (s *+ n)``_i = (s``_i) *+ n.
-Proof.  exact: (raddfMn (coefps_additive i)). Qed.
+Proof. exact: (raddfMn (coefps_additive i)). Qed.
 
 Lemma coefsMNn s n i : (s *- n)``_i = (s``_i) *- n.
 Proof. by rewrite coefsN coefsMn. Qed.
@@ -406,23 +403,33 @@ Lemma coefs_sum I (r : seq I) (s : pred I) (F : I -> {series R}) k :
   (\sum_(i <- r | s i) F i)``_k = \sum_(i <- r | s i) (F i)``_k.
 Proof. exact: (raddf_sum (coefps_additive k)). Qed.
 
-Lemma seriesC_add : {morph seriesC : a b / a + b}.
+
+Lemma seriesC_eq0 (c : R) : (c%:S == 0) = (c == 0).
+Proof. by apply/eqP/eqP => [/seriesfunP/(_ 0%N) | ->]. Qed.
+
+Lemma seriesCB : {morph seriesC : a b / a + b}.
 Proof.
 by move=> a b; apply/seriesP=> [[|i]]; rewrite coefsD !coefsC ?addr0.
 Qed.
 
-Lemma seriesC_opp : {morph seriesC : c / - c}.
+Lemma seriesCN : {morph seriesC : c / - c}.
 Proof.
 by move=> c; apply/seriesP=> [[|i]]; rewrite coefsN !coefsC ?oppr0.
 Qed.
 
-Lemma seriesC_sub : {morph seriesC : a b / a - b}.
-Proof. by move=> a b; rewrite seriesC_add seriesC_opp. Qed.
+Lemma seriesCD : {morph seriesC : a b / a - b}.
+Proof. by move=> a b; rewrite seriesCB seriesCN. Qed.
 
-Canonical seriesC_additive := Additive seriesC_sub.
+Canonical seriesC_additive := Additive seriesCD.
 
-Lemma seriesC_muln n : {morph seriesC : c / c *+ n}.
+Lemma seriesCMn n : {morph seriesC : c / c *+ n}.
 Proof. exact: raddfMn. Qed.
+Lemma seriesCMNn n : {morph seriesC : c / c *- n}.
+Proof. exact: raddfMNn. Qed.
+Lemma seriesC_sum I (r : seq I) (s : pred I) (F : I -> R) :
+  (\sum_(i <- r | s i) F i)%:S = \sum_(i <- r | s i) (F i)%:S.
+Proof. exact: raddf_sum. Qed.
+
 
 Fact series_poly_is_additive : additive series_poly.
 Proof.
@@ -544,8 +551,9 @@ Fact seriesC_multiplicative : multiplicative seriesC.
 Proof. by split; first apply: seriesC_mul. Qed.
 Canonical seriesC_rmorphism := AddRMorphism seriesC_multiplicative.
 
-Lemma seriesC_exp n : {morph seriesC : c / c ^+ n}.
-Proof. exact: rmorphX. Qed.
+Lemma seriesCX n : {morph seriesC : c / c ^+ n}. Proof. exact: rmorphX. Qed.
+Lemma seriesC1 : seriesC 1 = 1.                  Proof. exact: rmorph1. Qed.
+Lemma seriesCM : {morph seriesC : x y  / x * y}. Proof. exact: rmorphM. Qed.
 
 Fact coefps0_multiplicative : multiplicative (coefs 0 : {series R} -> R).
 Proof.
@@ -565,6 +573,12 @@ by rewrite !coefs_series.
 Qed.
 Canonical series_poly_rmorphism := RMorphism series_poly_is_rmorphism.
 
+Lemma series_polyX n : {morph series_poly : p / p ^+ n}.
+Proof. exact: rmorphX. Qed.
+Lemma series_poly1 : series_poly 1 = 1.
+Proof. exact: rmorph1. Qed.
+Lemma series_polyM : {morph series_poly : x y  / x * y}.
+Proof. exact: rmorphM. Qed.
 
 (* Algebra structure of formal power series. *)
 Definition scale_series_def a (s : {series R}) :=
@@ -639,14 +653,14 @@ Lemma series_polyB p q : SP (p - q) = SP p - SP q.
 Proof. exact: linearB. Qed.
 
 Lemma series_polyMn p n : SP (p *+ n) = (SP p) *+ n.
-Proof. exact: raddfMn. Qed.
+Proof. exact: linearMn. Qed.
 
 Lemma series_polyMNn p n : SP (p *- n) = (SP p) *- n.
-Proof. exact: raddfMNn. Qed.
+Proof. exact: linearMNn. Qed.
 
 Lemma series_poly_sum I (r : seq I) (s : pred I) (F : I -> {poly R}) :
   SP (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) SP (F i).
-Proof. exact: raddf_sum. Qed.
+Proof. exact: linear_sum. Qed.
 
 Fact poly_series_is_linear d : linear (poly_series d).
 Proof.
@@ -677,30 +691,29 @@ Proof. exact: raddf_sum. Qed.
 
 
 (* The indeterminate, at last! *)
-Definition seriesX_def := \series if i == 1%N then 1 else 0 : R .X^i.
-Fact seriesX_key : unit. Proof. by []. Qed.
-Definition seriesX : {series R} := locked_with seriesX_key seriesX_def.
-Canonical seriesX_unlockable := [unlockable of seriesX].
-Local Notation "'Xs" := seriesX.
+Local Notation "'Xs" := (@series_poly R 'X).
 
-Lemma seriesfunX :
-  seriesfun 'Xs = (fun i => if i == 1%N then 1 else 0 : R).
-Proof. by rewrite unlock. Qed.
+Lemma coefsX i : ('X ``_i) = (i == 1%N)%:R :> R.
+Proof. by rewrite coefs_series_poly coefX. Qed.
 
-Lemma seriesX_eq0 : ('Xs == 0) = false.
+Lemma coefsXn n i : ('X^n ``_i) = (i == n)%:R :> R.
+Proof. by rewrite coefs_series_poly coefXn. Qed.
+
+Lemma seriesX_eq0 : ('X == 0 :> {series R}) = false.
 Proof.
-apply/negP=> /eqP; apply/seriesfunP => /(_ 1%N)/eqP.
-by rewrite seriesfunX /= oner_eq0.
+apply/negP => /eqP/seriesP/(_ 1%N)/eqP.
+by rewrite coefsX coefs0 /= oner_eq0.
 Qed.
 
-Lemma coefsX i : 'Xs``_i = (i == 1%N)%:R.
-Proof. by case: i => [|[|i]]; rewrite [seriesX]unlock /= coefs_series. Qed.
-
-Lemma commr_seriesX s : GRing.comm s 'Xs.
+Lemma commr_seriesX s : GRing.comm s 'X.
 Proof.
 apply/seriesP=> i; rewrite coefsMr coefsM.
 by apply: eq_bigr => j _; rewrite coefsX commr_nat.
 Qed.
+
+Lemma commr_seriesXn n s : GRing.comm s 'X^n.
+Proof. by rewrite series_polyX /=; apply/commrX/commr_seriesX. Qed.
+
 
 Lemma coefsMX s i : (s * 'Xs)``_i = (if (i == 0)%N then 0 else s``_i.-1).
 Proof.
@@ -709,8 +722,25 @@ case: i => [|i]; rewrite ?big_ord0 //= big_ord_recl  /= !coefsX subn1 /=.
 by rewrite big1 ?simp // => j _; rewrite coefsX /= !simp.
 Qed.
 
-Lemma coefXM s i : ('Xs * s)``_i = (if (i == 0)%N then 0 else s``_i.-1).
+Lemma coefsXM s i : ('Xs * s)``_i = (if (i == 0)%N then 0 else s``_i.-1).
 Proof. by rewrite -commr_seriesX coefsMX. Qed.
+
+Lemma coefsMXn s n i :
+  (s * 'X^n)``_i = (if (i < n)%N then 0 else s``_(i - n)).
+Proof.
+rewrite coefsMr; case: (ltnP i n) => [iltn|].
+- apply big1 => [[j /= Hj]] _; rewrite coefsXn.
+  by rewrite (ltn_eqF (leq_trans Hj iltn)) mulr0.
+- rewrite -ltnS => nlti1.
+  rewrite (bigD1 (Ordinal nlti1)) //= coefsXn eqxx mulr1.
+  rewrite big1 ?addr0 // => [[j Hj]]/= /negbTE.
+  rewrite coefsXn {1}/eq_op /= => ->.
+  by rewrite mulr0.
+Qed.
+
+Lemma coefsXnM s n i :
+  (SP 'X^n * s)``_i = (if (i < n)%N then 0 else s``_(i - n)).
+Proof. by rewrite -commr_seriesXn coefsMXn. Qed.
 
 Lemma lreg_seriesZ_eq0 c s : GRing.lreg c -> (c *: s == 0) = (s == 0).
 Proof.
@@ -812,28 +842,6 @@ Canonical seriesOver_subringPred := SubringPred (seriesOver_mulr_closed kS).
 End SeriesOverRing.
 
 
-(* Single derivative. *)
-
-Definition derivs s := \series s``_i.+1 *+ i.+1 .X^i.
-
-Local Notation "a ^`` ()" := (derivs a).
-
-Lemma coefs_deriv s i : s^``()``_i = s``_i.+1 *+ i.+1.
-Proof. by rewrite coefs_series. Qed.
-
-Lemma seriesOver_deriv S (ringS : semiringPred S) (kS : keyed_pred ringS) :
-  {in seriesOver kS, forall s, s^``() \is a seriesOver kS}.
-Proof.
-by move=> s /seriesOverP Ks; apply/seriesOverP=> i; rewrite coefs_deriv rpredMn.
-Qed.
-
-Lemma derivC c : c%:S^``() = 0.
-Proof. by apply/seriesP=> i; rewrite coefs_deriv coefs0 coefsC mul0rn. Qed.
-
-Lemma derivX : 'Xs^``() = 1.
-Proof. by apply/seriesP=> [[|i]]; rewrite coefs_deriv coefs1 coefsX ?mul0rn. Qed.
-
-
 Definition valuat s : natbar :=
   if pselect (exists n, s``_n != 0) is left Pf
   then Nat (ex_minn Pf) else Inf.
@@ -855,18 +863,44 @@ rewrite /valuat; case: pselect => [Pf|NPf].
   by apply NPf; exists n.
 Qed.
 
-Lemma valuatNatP s n :
-  reflect
-    (s``_n != 0 /\ forall i, (i < n)%N -> s``_i = 0)
-    (valuat s == Nat n).
+Lemma valuatNatE s n :
+  s``_n != 0 -> (forall i, (i < n)%N -> s``_i = 0) -> valuat s = Nat n.
 Proof.
-case: valuatP => [v Hv vmin /= |-> //]; apply (iffP eqP).
-- by move=> [] <-{n}; split=>// i /vmin ->.
-- move=> [Hn /(_ v)/contra_neqN/(_ Hv)]; rewrite -leqNgt => nlev.
-  congr Nat; apply anti_leq; rewrite {}nlev andbT.
-  by move: vmin => /(_ n)/contra_neqN/(_ Hn); rewrite -leqNgt.
-- by [].
-- by rewrite coefs0 eq_refl => [] [].
+case: valuatP => [v Hv vmin /= |-> //]; last by rewrite coefs0 eqxx.
+move=> Hn /(_ v)/contra_neqN/(_ Hv); rewrite -leqNgt => nlev.
+congr Nat; apply anti_leq; rewrite {}nlev andbT.
+by move: vmin => /(_ n)/contra_neqN/(_ Hn); rewrite -leqNgt.
+Qed.
+
+Variant valuatXn_spec s : natbar -> Type :=
+  | ValXnNat n t of t``_0 != 0 & s = (SP 'X^n) * t : valuatXn_spec s (Nat n)
+  | ValXnInf of s = 0 : valuatXn_spec s Inf.
+
+Lemma valuatXnP s : valuatXn_spec s (valuat s).
+Proof.
+case: valuatP => [v Hv vmin /= |-> //].
+- apply: (ValXnNat (t := \series s``_(v + i) .X^i)).
+  + by rewrite coefs_series addn0.
+  + apply/seriesP => n; rewrite coefsXnM; case: ltnP; first exact: vmin.
+    by rewrite coefs_series => /subnKC ->.
+- by apply ValXnInf; apply seriesP => n; rewrite coefs0.
+Qed.
+
+Lemma valuatXnE s n : s``_0 != 0 -> valuat (SP 'X^n * s) = Nat n.
+Proof.
+by move=> Hs; apply valuatNatE => [|i Hi]; rewrite coefsXnM ?ltnn ?subnn // Hi.
+Qed.
+
+Lemma valuatXn_leP s n :
+  reflect (exists t, s = (SP 'X^n) * t) (Nat n <= valuat s)%O.
+Proof.
+case: valuatXnP => [v t Ht|]->{s}; apply (iffP idP) => //=.
+- rewrite leEnatbar => nlev.
+  exists (SP 'X^(v - n) * t); rewrite mulrA.
+  by rewrite -series_polyM /= -exprD subnKC //.
+- rewrite leEnatbar => [] [s] /(congr1 (coefs v)) /=.
+  by apply contra_eqT; rewrite -ltnNge !coefsXnM /= ltnn subnn => ->.
+- by move=> _; exists 0; rewrite mulr0.
 Qed.
 
 Lemma valuat0 : valuat 0 = Inf.
@@ -876,62 +910,95 @@ Proof. by rewrite /slead valuat0. Qed.
 
 Lemma valuat_seriesC c : valuat c%:S = if c == 0 then Inf else Nat 0.
 Proof.
-case: (altP (c =P 0)) => [->|]/=; first by rewrite valuat0.
-case: valuatP => [n Hn Hmin Hc| /eqP]; last by rewrite seriesC_eq0 => ->.
-congr Nat; apply/eqP; rewrite -leqn0.
-move: Hn; apply: contra_neqT; rewrite -ltnNge => Hn.
-by rewrite coefsC -[_ == _]negbK -lt0n Hn.
+case: (altP (c =P 0)) => [->|Hc]/=; first by rewrite valuat0.
+by apply valuatNatE; rewrite // coefsC.
 Qed.
 Lemma slead_coefsC c : slead c%:S = c.
 Proof.
 by rewrite /slead valuat_seriesC; case: eqP => [->|_]; rewrite ?coefsC.
 Qed.
 
+Lemma valuat1 : valuat 1 = Nat 0.
+Proof. by rewrite valuat_seriesC oner_eq0. Qed.
+
 Lemma valuatInfE s : (s == 0) = (valuat s == Inf).
 Proof.
 apply/eqP/eqP => [-> |]; first exact: valuat0.
 by case: valuatP.
 Qed.
-
-Lemma sleadP s : (s == 0) = (slead s == 0).
+Lemma slead0E s : (s == 0) = (slead s == 0).
 Proof.
 rewrite /slead; case: valuatP => [n Hn _|->]; last by rewrite !eqxx.
 rewrite (negbTE Hn); apply/contraNF: Hn => /eqP ->.
 by rewrite coefs0.
 Qed.
 
-Lemma valuat_opp s : valuat (- s) = valuat s.
+
+Lemma valuatN s : valuat (- s) = valuat s.
 Proof.
-case: (valuatP s) => [v Hv vmin|->]; last by rewrite oppr0 valuat0.
-apply/eqP/valuatNatP; split => [|i /vmin]; first by rewrite coefsN oppr_eq0.
-by rewrite coefsN => ->; rewrite oppr0.
+case: (valuatXnP s) => [v t Ht|]->{s}; last by rewrite oppr0 valuat0.
+by rewrite -mulrN valuatXnE // coefsN oppr_eq0.
+Qed.
+Lemma sleadN s : slead (- s) = - slead s.
+Proof.
+rewrite /slead valuatN; case: (valuat s); rewrite ?oppr0 // => n.
+by rewrite coefsN.
 Qed.
 
+Lemma valuatXnM s n : valuat ((SP 'X^n) * s) = addbar (Nat n) (valuat s).
+Proof.
+case: (valuatXnP s) => [v t Ht|]->{s}; last by rewrite mulr0 valuat0.
+by rewrite /= mulrA -series_polyM -exprD valuatXnE.
+Qed.
+Lemma sleadXnM s n : slead ((SP 'X^n) * s) = slead s.
+Proof.
+rewrite /slead valuatXnM; case: (valuat s) => //= v.
+by rewrite coefsXnM ltnNge leq_addr /= addKn.
+Qed.
+
+Lemma valuatXM s : valuat ((SP 'X) * s) = addbar (Nat 1) (valuat s).
+Proof. by rewrite -valuatXnM expr1. Qed.
+Lemma sleadXM s : slead ((SP 'X) * s) = slead s.
+Proof.
+rewrite /slead valuatXM; case: (valuat s) => //= v.
+by rewrite coefsXM add1n.
+Qed.
+
+Lemma valuatXn n : valuat 'X^n = Nat n.
+Proof. by rewrite -(mulr1 (SP 'X^n)) valuatXnM valuat1 /= addn0. Qed.
+Lemma sleadXn n : slead (SP 'X^n) = 1.
+Proof. by rewrite /slead valuatXn coefsXn eqxx. Qed.
+
+Lemma valuatX : valuat 'X = Nat 1.
+Proof. by rewrite -valuatXn expr1. Qed.
+Lemma sleadX : slead (SP 'X) = 1.
+Proof. by rewrite /slead valuatX coefsX eqxx. Qed.
+
 Lemma valuatD s1 s2 :
-  ((valuat s1) `&` (valuat s2) <= valuat (s1 + s2))%O.
+  (valuat s1 `&` valuat s2 <= valuat (s1 + s2))%O.
 Proof.
 wlog v1lev2 : s1 s2 / (valuat s1 <= valuat s2)%O.
   move=> Hlog; case: (leP (valuat s1) (valuat s2)) => [|/ltW]/Hlog//.
   by rewrite addrC meetC.
 rewrite (meet_idPl v1lev2); move: v1lev2.
-case: (valuatP s2)=> [v2 _ v2min|->]; last by rewrite addr0 lexx.
-case: (valuatP s1)=> [v1 _ v1min|->]; last by rewrite leInatbar.
-case: valuatP => [v Hv _|_]; last by rewrite lex1.
-rewrite !leEnatbar => v12.
-move: Hv; rewrite coefsD leqNgt; apply: contra_neqN => Hv.
-by rewrite (v1min _ Hv) (v2min _ (leq_trans Hv v12)) addr0.
+case: (valuatXnP s1) => [v t1 Ht1|]->{s1}.
+- move/valuatXn_leP=> [t2]->{s2}; apply/valuatXn_leP.
+  by exists (t1 + t2); rewrite mulrDr.
+- by rewrite le1x -valuatInfE => /eqP ->; rewrite addr0 valuat0.
 Qed.
+Lemma valuatB s1 s2 :
+  (valuat s1 `&` valuat s2 <= valuat (s1 - s2))%O.
+Proof. by have:= valuatD s1 (-s2); rewrite valuatN. Qed.
 
 Lemma valuatDr s1 s2 :
   (valuat s1 < valuat s2)%O -> valuat (s1 + s2) = valuat s1.
 Proof.
 case: (valuatP s2) => [v2 _   v2min|-> _]; last by rewrite addr0.
 case: (valuatP s1) => [v1 Hv1 v1min|->]; last by rewrite ltIbar.
-rewrite ltEnatbar => v12; apply/eqP/valuatNatP.
-split=> [|n nv1]; rewrite coefsD v2min ?addr0 // ?v1min //.
+rewrite ltEnatbar => v12.
+apply valuatNatE=> [|n nv1]; rewrite coefsD v2min ?addr0 // ?v1min //.
 exact: ltn_trans nv1 v12.
 Qed.
-
 Lemma sleadDr s1 s2 :
   (valuat s1 < valuat s2)%O -> slead (s1 + s2) = slead s1.
 Proof.
@@ -941,25 +1008,57 @@ case: (valuatP s2) => [v2 _ v2min | -> _]; last by rewrite addr0.
 by rewrite coefsD ltEnatbar => /v2min ->; rewrite addr0.
 Qed.
 
+Lemma valuatBr s1 s2 :
+  (valuat s1 < valuat s2)%O -> valuat (s1 - s2) = valuat s1.
+Proof. by rewrite -(valuatN s2) => /valuatDr. Qed.
+Lemma sleadBr s1 s2 :
+  (valuat s1 < valuat s2)%O -> slead (s1 - s2) = slead s1.
+Proof. by rewrite -(valuatN s2); apply sleadDr. Qed.
+
+Lemma valuatBl s1 s2 :
+  (valuat s2 < valuat s1)%O -> valuat (s1 - s2) = valuat s2.
+Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
+Lemma sleadBl s1 s2 :
+  (valuat s2 < valuat s1)%O -> slead (s1 - s2) = - slead s2.
+Proof. by move/sleadBr => <-; rewrite -sleadN opprD addrC opprK. Qed.
+
 Lemma valuatMge s1 s2 :
   (addbar (valuat s1) (valuat s2) <= valuat (s1 * s2))%O.
 Proof.
-case: (valuatP s2)=> [v2 _ v2min|->]; last by rewrite mulr0 addbarI valuat0.
-case: (valuatP s1)=> [v1 _ v1min|->]; last by rewrite mul0r addIbar valuat0.
-case: valuatP => [v Hv _|]//=.
-move: Hv; rewrite coefsM; apply contraR; rewrite -ltnNge => Hv.
-apply/eqP/big1 => /= [[n]]; rewrite /= ltnS => Hn _.
-case: (ltnP n v1) => [/v1min ->|v1n]; first by rewrite mul0r.
-suffices {v1min v2min} /v2min -> : (v - n < v2)%N by rewrite mulr0.
-by rewrite -(ltn_add2r n) subnK // addnC (leq_trans Hv) // leq_add2r.
+case: (valuatXnP s1) => [v1 t1 Ht1|]->{s1}; last by rewrite mul0r valuat0.
+case: (valuatXnP s2) => [v2 t2 Ht2|]->{s2}; last by rewrite mulr0 valuat0.
+rewrite /= mulrA (commr_seriesXn v2) mulrA -series_polyM /= -exprD addnC.
+by apply/valuatXn_leP; exists (t1 * t2); rewrite mulrA.
 Qed.
 
 
+(* Single derivative. *)
+
+Definition derivs s := \series s``_i.+1 *+ i.+1 .X^i.
+
+Local Notation "a ^`` ()" := (derivs a).
+
+Lemma coefs_deriv s i : s^``()``_i = s``_i.+1 *+ i.+1.
+Proof. by rewrite coefs_series. Qed.
+
+Lemma seriesOver_deriv S (ringS : semiringPred S) (kS : keyed_pred ringS) :
+  {in seriesOver kS, forall s, s^``() \is a seriesOver kS}.
+Proof.
+by move=> s /seriesOverP Ks; apply/seriesOverP=> i; rewrite coefs_deriv rpredMn.
+Qed.
+
+Lemma derivC c : c%:S^``() = 0.
+Proof. by apply/seriesP=> i; rewrite coefs_deriv coefs0 coefsC mul0rn. Qed.
+
+Lemma derivX : 'X ^``() = 1.
+Proof. by apply/seriesP=> [[|i]]; rewrite coefs_deriv coefs1 coefsX ?mul0rn. Qed.
+
+
 (** TODO : move this elsewhere and rename *)
-Lemma inv1BcX c : (1 - c *: 'Xs) * \series c ^+ i .X^i = 1.
+Lemma inv1BcXl c : (1 - c *: 'Xs) * \series c ^+ i .X^i = 1.
 Proof.
 apply/seriesP => n; rewrite coefsM big_ord_recl /=.
-rewrite coefsB coefs1 coefsZ coefsX coefs_series /= !simp /= subr0 subn0.
+rewrite !coefsB coefs1 coefsZ coefsX coefs_series /= !simp /= subr0 subn0.
 case: n => [|n]; rewrite ?big_ord0 coefs1 /= ?addr0 ?expr0 ?mulr1 //.
 rewrite big_ord_recl /bump /= !simp /=.
 rewrite coefsB coefs1 coefsZ coefsX coefs_series /= !simp /=.
@@ -968,16 +1067,38 @@ rewrite /bump /=; apply big1 => [[i /= _] _].
 by rewrite !add1n coefsB coefs1 coefsZ coefsX /= !simp mulNr mul0r oppr0.
 Qed.
 
-Lemma inv1BX c :  (1 - 'Xs) * \series 1 .X^i = 1.
+Lemma inv1BcXr c : (\series c ^+ i .X^i) * (1 - c *: 'Xs) = 1.
 Proof.
-have:= inv1BcX 1; rewrite !scale1r => {2}<-; congr (_ * _).
+apply/seriesP => n; rewrite coefsMr big_ord_recl /=.
+rewrite !coefsB coefs1 coefsZ coefsX coefs_series /= !simp /= subr0 subn0.
+case: n => [|n]; rewrite ?big_ord0 coefs1 /= ?addr0 ?expr0 ?mulr1 //.
+rewrite big_ord_recl /bump /= !simp /=.
+rewrite coefsB coefs1 coefsZ coefsX coefs_series /= !simp /=.
+rewrite subSS subn0 mulrN -exprSr subrr add0r.
+rewrite /bump /=; apply big1 => [[i /= _] _].
+by rewrite !add1n coefsB coefs1 coefsZ coefsX /= !simp mulrN mulr0 oppr0.
+Qed.
+
+Lemma inv1BXl c : (1 - 'Xs) * \series 1 .X^i = 1.
+Proof.
+have:= inv1BcXl 1; rewrite !scale1r => {2}<-; congr (_ * _).
 by apply/seriesP => n; rewrite !coefs_series expr1n.
 Qed.
 
-Lemma inv1DX c :  (1 + 'Xs) * \series (-1)^+i .X^i = 1.
-Proof. by have:= inv1BcX (-1); rewrite !scaleN1r opprK. Qed.
+Lemma inv1BXr c : (\series 1 .X^i) * (1 - 'Xs) = 1.
+Proof.
+have:= inv1BcXr 1; rewrite !scale1r => {2}<-; congr (_ * _).
+by apply/seriesP => n; rewrite !coefs_series expr1n.
+Qed.
+
+Lemma inv1DXl c : (1 + 'Xs) * \series (-1)^+i .X^i = 1.
+Proof. by have:= inv1BcXl (-1); rewrite !scaleN1r opprK. Qed.
+
+Lemma inv1DXr c : (\series (-1)^+i .X^i) * (1 + 'Xs) = 1.
+Proof. by have:= inv1BcXr (-1); rewrite !scaleN1r opprK. Qed.
 
 End FPSRing.
+Notation "'Xs" := (@series_poly _ 'X) (only parsing).
 
 
 Section FPSComRing.
@@ -1039,12 +1160,11 @@ Lemma mul_seriesVr : {in unit_series, left_inverse 1 inv_series *%R}.
 Proof.
 move=> s s_unit; have:= s_unit; rewrite /= unfold_in => s0_unit.
 apply/seriesP => n; elim: n {1 3 4}n (leqnn n) => [| n IHn] i.
-  rewrite leqn0 => /eqP ->.
-  rewrite coefsM big_ord_recr /= big_ord0.
+  rewrite leqn0 => /eqP ->; rewrite coefsM big_ord_recr /= big_ord0.
   by rewrite add0r subnn coefs0_inv_series // mulVr // coefsC.
 move=> Hi; case: (leqP i n) => [|Hni]; first exact: IHn.
 have {Hi Hni i} -> : i = n.+1 by apply anti_leq; rewrite Hi Hni.
-rewrite coefs1 /= coefsM big_ord_recr /= subnn mulrC coefsS_inv_series //.
+rewrite coefs1 /= coefsM big_ord_recr /= subnn. mulrC coefsS_inv_series //.
 by rewrite mulrA mulrN // mulrV // mulN1r subrr.
 Qed.
 
@@ -1097,39 +1217,24 @@ Variable R : idomainType.
 
 Implicit Types (a b c x y z : R) (s t r d : {series R}).
 
-
-Lemma slead_valuatM s1 s2 :
-  slead (s1 * s2) = slead s1 * slead s2 /\
+Lemma valuatM s1 s2 :
   valuat (s1 * s2) = addbar (valuat s1) (valuat s2).
 Proof.
-have:= valuatMge s1 s2; rewrite /slead.
-case: (valuatP s2)=> [v2 Hv2 v2min|->]; last by rewrite !mulr0 valuat0 addbarI.
-case: (valuatP s1)=> [v1 Hv1 v1min|->]; last by rewrite !mul0r valuat0 addIbar.
-have coefspv : (s1 * s2)``_(v1 + v2)%N = s1``_v1 * s2``_v2.
-  rewrite coefsM (bigD1 (inord v1)); rewrite //= inordK ?ltnS ?leq_addr // addKn.
-  rewrite (bigID (fun i => nat_of_ord i < v1)%N) /=.
-  rewrite big1 => [|i /andP[_ /v1min]->]; rewrite ?mul0r // add0r.
-  rewrite big1 => [|[i]/= Hi /andP[]]; first by rewrite addr0.
-  rewrite -leqNgt /eq_op /= inordK ?ltnS ?leq_addr // => Hneq Hleq.
-  suffices {v1min v2min} /v2min -> : (v1 + v2 - i < v2)%N by rewrite mulr0.
-  have {Hneq Hleq} v1i : (v1 < i)%N by rewrite ltn_neqAle eq_sym Hneq Hleq.
-  by rewrite ltnS in Hi; rewrite -(ltn_add2r i) subnK // addnC ltn_add2l.
-case: (valuatP (s1 * s2)) => [v Hv vmin | Heq _] /=; first last.
-- exfalso; move: Heq => /(congr1 (coefs (v1 + v2))).
-  rewrite /= coefspv coefs0 => /eqP.
-  by rewrite mulf_eq0 (negbTE Hv1) (negbTE Hv2).
-- rewrite /= leEnatbar => lev.
-  suffices -> : v = (v1 + v2)%N by rewrite coefspv.
-  apply anti_leq; rewrite lev andbT leqNgt.
-  apply: (contra_neqN (vmin (v1 + v2)%N)); rewrite coefspv.
-  by rewrite mulf_eq0 negb_or Hv1 Hv2.
+case: (valuatXnP s1)=> [v1 t1 Hv1|]->{s1} /=; last by rewrite !mul0r valuat0.
+case: (valuatXnP s2)=> [v2 t2 Hv2|]->{s2} /=; last by rewrite !mulr0 valuat0.
+rewrite mulrA (commr_seriesXn v2) mulrA -series_polyM /= -exprD addnC -mulrA.
+apply: valuatXnE; rewrite coefsM big_ord_recr big_ord0 /= add0r subn0.
+by rewrite mulf_eq0 negb_or Hv1 Hv2.
 Qed.
 
-Lemma valuatM s1 s2 : valuat (s1 * s2) = addbar (valuat s1) (valuat s2).
-Proof. by have [_ ->] := slead_valuatM s1 s2. Qed.
-
 Lemma sleadM s1 s2 : slead (s1 * s2) = slead s1 * slead s2.
-Proof. by have [] := slead_valuatM s1 s2. Qed.
+Proof.
+rewrite /slead valuatM.
+case: (valuatXnP s1)=> [v1 t1 Hv1|]->{s1} /=; last by rewrite !mul0r.
+case: (valuatXnP s2)=> [v2 t2 Hv2->{s2}| _]; last by rewrite !mulr0.
+rewrite mulrA (commr_seriesXn v2) mulrA -series_polyM /= -exprD addnC -mulrA.
+by rewrite !coefsXnM !ltnn !subnn coefsM big_ord_recr big_ord0 /= add0r subn0.
+Qed.
 
 
 Fact series_idomainAxiom s t : s * t = 0 -> (s == 0) || (t == 0).
