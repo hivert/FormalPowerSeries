@@ -151,6 +151,22 @@ Lemma ltbarS n : Nat n < Nat n.+1.     Proof. by rewrite ltEnatbar. Qed.
 Lemma lebarS n : Nat n <= Nat n.+1.    Proof. by rewrite leEnatbar. Qed.
 Hint Resolve lebarS : core.
 Lemma ltIbar v : Inf < v = false.      Proof. exact/le_gtF/lex1. Qed.
+Lemma leInatbar n : Inf <= Nat n = false.
+Proof. by []. Qed.
+
+Lemma minbarE : {morph Nat : m n / minn m n >-> meet m n}.
+Proof.
+move=> m n; case: (leqP m n) => [mlen | /ltnW nlem].
+- by rewrite (minn_idPl mlen); move: mlen; rewrite -leEnatbar => /meet_idPl.
+- by rewrite (minn_idPr nlem); move: nlem; rewrite -leEnatbar => /meet_idPr.
+Qed.
+
+Lemma maxbarE : {morph Nat : m n / maxn m n >-> join m n}.
+Proof.
+move=> m n; case: (leqP m n) => [mlen | /ltnW nlem].
+- by rewrite (maxn_idPr mlen); move: mlen; rewrite -leEnatbar => /join_idPl.
+- by rewrite (maxn_idPl nlem); move: nlem; rewrite -leEnatbar => /join_idPr.
+Qed.
 
 End NatBar.
 
@@ -737,6 +753,21 @@ Qed.
 
 Lemma valuat0 : valuat 0 = Inf.
 Proof. by case: valuatP => [v | //]; rewrite coefs0 eq_refl. Qed.
+Lemma slead0 : slead 0 = 0.
+Proof. by rewrite /slead valuat0. Qed.
+
+Lemma valuat_seriesC c : valuat c%:S = if c == 0 then Inf else Nat 0.
+Proof.
+case: (altP (c =P 0)) => [->|]/=; first by rewrite valuat0.
+case: valuatP => [n Hn Hmin Hc| /eqP]; last by rewrite seriesC_eq0 => ->.
+congr Nat; apply/eqP; rewrite -leqn0.
+move: Hn; apply: contra_neqT; rewrite -ltnNge => Hn.
+by rewrite coefsC -[_ == _]negbK -lt0n Hn.
+Qed.
+Lemma slead_coefsC c : slead c%:S = c.
+Proof.
+by rewrite /slead valuat_seriesC; case: eqP => [->|_]; rewrite ?coefsC.
+Qed.
 
 Lemma valuatInfE p : (p == 0) = (valuat p == Inf).
 Proof.
@@ -749,6 +780,28 @@ Proof.
 rewrite /slead; case: valuatP => [n Hn _|->]; last by rewrite !eqxx.
 rewrite (negbTE Hn); apply/contraNF: Hn => /eqP ->.
 by rewrite coefs0.
+Qed.
+
+Lemma valuat_opp p : valuat (- p) = valuat p.
+Proof.
+case: (valuatP p) => [v Hv vmin|->]; last by rewrite oppr0 valuat0.
+apply/eqP/valuatNatP; split => [|i /vmin]; first by rewrite coefsN oppr_eq0.
+by rewrite coefsN => ->; rewrite oppr0.
+Qed.
+
+Lemma valuatD p1 p2 :
+  ((valuat p1) `&` (valuat p2) <= valuat (p1 + p2))%O.
+Proof.
+wlog v1lev2 : p1 p2 / (valuat p1 <= valuat p2)%O.
+  move=> Hlog; case: (leP (valuat p1) (valuat p2)) => [|/ltW]/Hlog//.
+  by rewrite addrC meetC.
+rewrite (meet_idPl v1lev2); move: v1lev2.
+case: (valuatP p2)=> [v2 _ v2min|->]; last by rewrite addr0 lexx.
+case: (valuatP p1)=> [v1 _ v1min|->]; last by rewrite leInatbar.
+case: valuatP => [v Hv _|_]; last by rewrite lex1.
+rewrite !leEnatbar => v12.
+move: Hv; rewrite coefsD leqNgt; apply: contra_neqN => Hv.
+by rewrite (v1min _ Hv) (v2min _ (leq_trans Hv v12)) addr0.
 Qed.
 
 Lemma valuatDr p1 p2 :
@@ -785,8 +838,8 @@ Qed.
 
 End FPSRing.
 
-Local Notation "\series E .X^ i" := (@FPSeries _ (fun i : nat => E)).
-
+Notation "\series E .X^ i" := (@FPSeries _ (fun i : nat => E)).
+Notation "c %:S" := (seriesC c).
 
 Section FPSComRing.
 
@@ -887,6 +940,15 @@ Canonical fpseries_comUnitRingType :=
 
 Lemma coefsV0 p : unit_series p -> p^-1``_0 = p``_0^-1.
 Proof. exact: coefs0_inv_series. Qed.
+
+Lemma series_unitE p : (p \in GRing.unit) = (p``_0 \in GRing.unit).
+Proof. by []. Qed.
+
+Lemma seriesC_inv c : c%:S^-1 = (c^-1)%:S.
+Proof.
+have [/rmorphV-> // | nUc] := boolP (c \in GRing.unit).
+by rewrite !invr_out // series_unitE coefsC /= (negbTE nUc).
+Qed.
 
 
 End FPSComUnitRing.
