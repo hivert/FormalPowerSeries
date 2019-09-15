@@ -280,6 +280,12 @@ rewrite coefs_poly_series coefs_series_poly.
 by case: ltnP => //= ni; rewrite Hn.
 Qed.
 
+Lemma series_poly_inj : injective series_poly.
+Proof.
+move=> p q /(congr1 (PS (maxn (size p) (size q)))).
+by rewrite !series_polyK ?leq_maxr ?leq_maxl.
+Qed.
+
 Lemma poly_series_eqP s t :
   reflect (forall n, PS n s = PS n t) (s == t).
 Proof.
@@ -301,6 +307,9 @@ Proof.
 apply/polyP => i; rewrite coefs_poly_series coefC coefsC.
 by case: i => //= i; rewrite if_same.
 Qed.
+
+Lemma series_polyC c : SP c%:P = c%:S.
+Proof. by apply/seriesP => n; rewrite coefs_series_poly coefC coefsC. Qed.
 
 End FPSDef.
 
@@ -605,9 +614,7 @@ Lemma alg_seriesC a : a%:A = a%:S :> {series R}.
 Proof. by rewrite -mul_seriesC mulr1. Qed.
 
 Lemma coefsZ a s i : (a *: s)``_i = a * s``_i.
-Proof.
-by rewrite -[*:%R]/scale_series [scale_series]unlock coefs_series.
-Qed.
+Proof. by rewrite -[*:%R]/scale_series [scale_series]unlock coefs_series. Qed.
 
 Canonical coefps_linear i : {scalar {series R}} :=
   AddLinear ((fun a => (coefsZ a) ^~ i) : scalable_for *%R (coefs i)).
@@ -634,8 +641,8 @@ Proof. exact: linearB. Qed.
 Lemma series_polyMn p n : SP (p *+ n) = (SP p) *+ n.
 Proof. exact: raddfMn. Qed.
 
-Lemma series_polyfMNn p n i : (p *- n)`_i = p`_i *- n.
-Proof. by rewrite coefN coefMn. Qed.
+Lemma series_polyMNn p n : SP (p *- n) = (SP p) *- n.
+Proof. exact: raddfMNn. Qed.
 
 Lemma series_poly_sum I (r : seq I) (s : pred I) (F : I -> {poly R}) :
   SP (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) SP (F i).
@@ -648,6 +655,25 @@ rewrite coefD coefZ !coefs_poly_series.
 by case: ltnP => _; rewrite ?mulr0 ?addr0 // coefsD coefsZ.
 Qed.
 Canonical poly_series_linear d := Linear (poly_series_is_linear d).
+
+Lemma poly_seriesD d s t : PS d (s + t) = PS d s + PS d t.
+Proof. exact: linearD. Qed.
+
+Lemma poly_seriesN d s : PS d (- s) = - PS d s.
+Proof. exact: linearN. Qed.
+
+Lemma poly_seriesB d s t : PS d (s - t) = PS d s - PS d t.
+Proof. exact: linearB. Qed.
+
+Lemma poly_seriesMn d s n : PS d (s *+ n) = (PS d s) *+ n.
+Proof. exact: raddfMn. Qed.
+
+Lemma poly_seriesfMNn d s n : PS d (s *- n) = (PS d s) *- n.
+Proof. exact: raddfMNn. Qed.
+
+Lemma poly_series_sum d I (r : seq I) (s : pred I) (F : I -> {series R}) :
+  PS d (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) PS d (F i).
+Proof. exact: raddf_sum. Qed.
 
 
 (* The indeterminate, at last! *)
