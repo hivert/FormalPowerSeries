@@ -381,12 +381,13 @@ Proof. by rewrite /= funeqE; case. Qed.
 Lemma coefs0 i : (0 : {series R})``_i = 0.
 Proof. by rewrite coefsC if_same. Qed.
 
+Lemma coefs_is_additive i : additive (coefs i).
+Proof. by move=> s t; rewrite -coefs_opp_series -coefs_add_series. Qed.
+
 Lemma coefsD s t i : (s + t)``_i = s``_i + t``_i.
 Proof. exact: coefs_add_series. Qed.
-
 Lemma coefsN s i : (- s)``_i = - (s``_i).
 Proof. exact: coefs_opp_series. Qed.
-
 Lemma coefsB s t i : (s - t)``_i = s``_i - t``_i.
 Proof. by rewrite coefsD coefsN. Qed.
 
@@ -395,10 +396,8 @@ Canonical coefps_additive i :=
 
 Lemma coefsMn s n i : (s *+ n)``_i = (s``_i) *+ n.
 Proof. exact: (raddfMn (coefps_additive i)). Qed.
-
 Lemma coefsMNn s n i : (s *- n)``_i = (s``_i) *- n.
 Proof. by rewrite coefsN coefsMn. Qed.
-
 Lemma coefs_sum I (r : seq I) (s : pred I) (F : I -> {series R}) k :
   (\sum_(i <- r | s i) F i)``_k = \sum_(i <- r | s i) (F i)``_k.
 Proof. exact: (raddf_sum (coefps_additive k)). Qed.
@@ -408,15 +407,9 @@ Lemma seriesC_eq0 (c : R) : (c%:S == 0) = (c == 0).
 Proof. by apply/eqP/eqP => [/seriesfunP/(_ 0%N) | ->]. Qed.
 
 Lemma seriesCB : {morph seriesC : a b / a + b}.
-Proof.
-by move=> a b; apply/seriesP=> [[|i]]; rewrite coefsD !coefsC ?addr0.
-Qed.
-
+Proof. by move=> a b; apply/seriesP=>[[|i]]; rewrite coefsD !coefsC ?addr0. Qed.
 Lemma seriesCN : {morph seriesC : c / - c}.
-Proof.
-by move=> c; apply/seriesP=> [[|i]]; rewrite coefsN !coefsC ?oppr0.
-Qed.
-
+Proof. by move=> c; apply/seriesP=> [[|i]]; rewrite coefsN !coefsC ?oppr0. Qed.
 Lemma seriesCD : {morph seriesC : a b / a - b}.
 Proof. by move=> a b; rewrite seriesCB seriesCN. Qed.
 
@@ -438,12 +431,40 @@ by rewrite coefsB !coefs_series coefB.
 Qed.
 Canonical series_poly_additive := Additive series_poly_is_additive.
 
+Lemma series_polyD p q : SP (p + q) = SP p + SP q.
+Proof. exact: raddfD. Qed.
+Lemma series_polyN p : SP (- p) = - SP p.
+Proof. exact: raddfN. Qed.
+Lemma series_polyB p q : SP (p - q) = SP p - SP q.
+Proof. exact: raddfB. Qed.
+Lemma series_polyMn p n : SP (p *+ n) = (SP p) *+ n.
+Proof. exact: raddfMn. Qed.
+Lemma series_polyMNn p n : SP (p *- n) = (SP p) *- n.
+Proof. exact: raddfMNn. Qed.
+Lemma series_poly_sum I (r : seq I) (s : pred I) (F : I -> {poly R}) :
+  SP (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) SP (F i).
+Proof. exact: raddf_sum. Qed.
+
 Fact poly_series_is_additive d : additive (poly_series d).
 Proof.
 move=> p q; apply/polyP => n.
 by rewrite coefB !coefs_poly_series; case: ltnP => _; rewrite ?subr0 ?coefsB.
 Qed.
 Canonical poly_series_additive d := Additive (poly_series_is_additive d).
+
+Lemma poly_seriesD d s t : PS d (s + t) = PS d s + PS d t.
+Proof. exact: raddfD. Qed.
+Lemma poly_seriesN d s : PS d (- s) = - PS d s.
+Proof. exact: raddfN. Qed.
+Lemma poly_seriesB d s t : PS d (s - t) = PS d s - PS d t.
+Proof. exact: raddfB. Qed.
+Lemma poly_seriesMn d s n : PS d (s *+ n) = (PS d s) *+ n.
+Proof. exact: raddfMn. Qed.
+Lemma poly_seriesfMNn d s n : PS d (s *- n) = (PS d s) *- n.
+Proof. exact: raddfMNn. Qed.
+Lemma poly_series_sum d I (r : seq I) (s : pred I) (F : I -> {series R}) :
+  PS d (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) PS d (F i).
+Proof. exact: raddf_sum. Qed.
 
 
 
@@ -465,7 +486,7 @@ Proof.
 move=> Hi s t; rewrite coefs_mul_series coefM; apply eq_bigr => [j] _ /=.
 by rewrite !coefs_poly_series !(leq_trans _ Hi) // ltnS leq_subr.
 Qed.
-
+(* Get associativity from polynomials *)
 Fact mul_seriesA : associative mul_series.
 Proof.
 move=> s t u; apply/seriesP=> n; rewrite !(poly_mul_series (ltnSn n)).
@@ -580,6 +601,8 @@ Proof. exact: rmorph1. Qed.
 Lemma series_polyM : {morph series_poly : x y  / x * y}.
 Proof. exact: rmorphM. Qed.
 
+
+
 (* Algebra structure of formal power series. *)
 Definition scale_series_def a (s : {series R}) :=
   \series a * s``_i .X^i.
@@ -634,6 +657,7 @@ Canonical coefps_linear i : {scalar {series R}} :=
   AddLinear ((fun a => (coefsZ a) ^~ i) : scalable_for *%R (coefs i)).
 Canonical coefp0_lrmorphism := [lrmorphism of coefs 0].
 
+
 Fact series_poly_is_linear : linear series_poly.
 Proof.
 move=> i p q; apply/seriesP => n.
@@ -643,25 +667,6 @@ Qed.
 Canonical series_poly_linear := Linear series_poly_is_linear.
 Canonical series_poly_lrmorphism := [lrmorphism of series_poly].
 
-Lemma series_polyD p q : SP (p + q) = SP p + SP q.
-Proof. exact: linearD. Qed.
-
-Lemma series_polyN p : SP (- p) = - SP p.
-Proof. exact: linearN. Qed.
-
-Lemma series_polyB p q : SP (p - q) = SP p - SP q.
-Proof. exact: linearB. Qed.
-
-Lemma series_polyMn p n : SP (p *+ n) = (SP p) *+ n.
-Proof. exact: linearMn. Qed.
-
-Lemma series_polyMNn p n : SP (p *- n) = (SP p) *- n.
-Proof. exact: linearMNn. Qed.
-
-Lemma series_poly_sum I (r : seq I) (s : pred I) (F : I -> {poly R}) :
-  SP (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) SP (F i).
-Proof. exact: linear_sum. Qed.
-
 Fact poly_series_is_linear d : linear (poly_series d).
 Proof.
 move=> i s t; apply/polyP => n.
@@ -670,27 +675,9 @@ by case: ltnP => _; rewrite ?mulr0 ?addr0 // coefsD coefsZ.
 Qed.
 Canonical poly_series_linear d := Linear (poly_series_is_linear d).
 
-Lemma poly_seriesD d s t : PS d (s + t) = PS d s + PS d t.
-Proof. exact: linearD. Qed.
 
-Lemma poly_seriesN d s : PS d (- s) = - PS d s.
-Proof. exact: linearN. Qed.
-
-Lemma poly_seriesB d s t : PS d (s - t) = PS d s - PS d t.
-Proof. exact: linearB. Qed.
-
-Lemma poly_seriesMn d s n : PS d (s *+ n) = (PS d s) *+ n.
-Proof. exact: raddfMn. Qed.
-
-Lemma poly_seriesfMNn d s n : PS d (s *- n) = (PS d s) *- n.
-Proof. exact: raddfMNn. Qed.
-
-Lemma poly_series_sum d I (r : seq I) (s : pred I) (F : I -> {series R}) :
-  PS d (\sum_(i <- r | s i) F i) = \sum_(i <- r | s i) PS d (F i).
-Proof. exact: raddf_sum. Qed.
-
-
-(* The indeterminate, at last! *)
+(* The indeterminate, at last!                                 *)
+(* This is just the polynomial indeterminate coerced to series *)
 Local Notation "'Xs" := (@series_poly R 'X).
 
 Lemma coefsX i : ('X ``_i) = (i == 1%N)%:R :> R.
@@ -842,6 +829,8 @@ Canonical seriesOver_subringPred := SubringPred (seriesOver_mulr_closed kS).
 End SeriesOverRing.
 
 
+
+(** Valuation of a series *)
 Definition valuat s : natbar :=
   if pselect (exists n, s``_n != 0) is left Pf
   then Nat (ex_minn Pf) else Inf.
@@ -1124,34 +1113,59 @@ Canonical pfseries_algType :=
 End FPSComRing.
 
 
-Section FPSComUnitRing.
+Section FPSUnitRing.
 
-Variable R : comUnitRingType.
+Variable R : unitRingType.
 
 Implicit Types (a b c x y z : R) (s t r d : {series R}).
 
 
-Definition unit_series : pred {series R} := fun s => (s``_0 \in GRing.unit).
+Definition unit_series : pred {series R} := fun s => s``_0 \in GRing.unit.
 
+(* Noncommutative setting : we define a left and right inverve, getting  *)
+(* that they are equal only latter thank to general semigroup theory.    *)
 Fixpoint inv_series_rec s bound n :=
   if bound is b.+1 then
     if (n <= b)%N then inv_series_rec s b n
-    else - s``_0^-1 * \sum_(i < n) (inv_series_rec s b i) * s``_(n - i)
+    else - (\sum_(i < n) (inv_series_rec s b i) * s``_(n - i)) * s``_0^-1
   else s``_0^-1.
 Definition inv_series s : {series R} :=
   if unit_series s then \series inv_series_rec s i i .X^i else s.
 
+Fixpoint inv_seriesr_rec s bound n :=
+  if bound is b.+1 then
+    if (n <= b)%N then inv_seriesr_rec s b n
+    else - s``_0^-1 * (\sum_(i < n) s``_i.+1 * (inv_seriesr_rec s b (n - i.+1)%N))
+  else s``_0^-1.
+Definition inv_seriesr s : {series R} :=
+  if unit_series s then \series inv_seriesr_rec s i i .X^i else s.
+
 Lemma coefs0_inv_series s : unit_series s -> (inv_series s)``_0 = s``_0^-1.
 Proof. by rewrite /inv_series=> ->; rewrite /= coefs_series. Qed.
+Lemma coefs0_inv_seriesr s : unit_series s -> (inv_seriesr s)``_0 = s``_0^-1.
+Proof. by rewrite /inv_seriesr=> ->; rewrite /= coefs_series. Qed.
 
 Lemma coefsS_inv_series s n :
   unit_series s ->
   (inv_series s)``_n.+1 =
-  - s``_0^-1 * \sum_(i < n.+1) (inv_series s)``_i * s``_(n.+1 - i).
+  - (\sum_(i < n.+1) (inv_series s)``_i * s``_(n.+1 - i)) * s``_0^-1.
 Proof.
 move=> s_unit; rewrite /inv_series s_unit coefs_series /= ltnn; congr (- _ * _).
 apply: eq_bigr => [[i]/=]; rewrite ltnS => Hi _.
 rewrite coefs_series; congr (_ * _).
+move: Hi => /subnKC <-; elim: (n - i)%N => [|{n} n IHn]; first by rewrite addn0.
+by rewrite addnS /= leq_addr.
+Qed.
+Lemma coefsS_inv_seriesr s n :
+  unit_series s ->
+  (inv_seriesr s)``_n.+1 =
+  - s``_0^-1 * (\sum_(i < n.+1) s``_(i.+1) * (inv_seriesr s)``_(n - i)%N).
+Proof.
+move=> s_unit; rewrite /inv_seriesr s_unit coefs_series /= ltnn; congr (- _ * _).
+apply: eq_bigr => [[i]/=]; rewrite ltnS => Hi _.
+rewrite coefs_series; congr (_ * _).
+rewrite /bump /= subSS.
+move: (n - i)%N (leq_subr i n) {Hi} => {i} i Hi.
 move: Hi => /subnKC <-; elim: (n - i)%N => [|{n} n IHn]; first by rewrite addn0.
 by rewrite addnS /= leq_addr.
 Qed.
@@ -1164,15 +1178,38 @@ apply/seriesP => n; elim: n {1 3 4}n (leqnn n) => [| n IHn] i.
   by rewrite add0r subnn coefs0_inv_series // mulVr // coefsC.
 move=> Hi; case: (leqP i n) => [|Hni]; first exact: IHn.
 have {Hi Hni i} -> : i = n.+1 by apply anti_leq; rewrite Hi Hni.
-rewrite coefs1 /= coefsM big_ord_recr /= subnn. mulrC coefsS_inv_series //.
-by rewrite mulrA mulrN // mulrV // mulN1r subrr.
+rewrite coefs1 /= coefsM big_ord_recr /= subnn coefsS_inv_series //.
+by rewrite divrK // subrr.
 Qed.
 
-Lemma unit_seriesP s t : t * s = 1 -> unit_series s.
+Lemma mul_seriesrVr : {in unit_series, right_inverse 1 inv_seriesr *%R}.
 Proof.
-move/(congr1 (coefs 0)); rewrite /= coefs1 /= coefsM.
-rewrite big_ord_recr big_ord0 /= add0r subnn mulrC => Heq.
-rewrite /unit_series; apply/unitrPr; by exists t``_0.
+move=> s s_unit; have:= s_unit; rewrite /= unfold_in => s0_unit.
+apply/seriesP => n; elim: n {1 3 4}n (leqnn n) => [| n IHn] i.
+  rewrite leqn0 => /eqP ->; rewrite coefsM big_ord_recr /= big_ord0.
+  by rewrite add0r subnn coefs0_inv_seriesr // mulrV // coefsC.
+move=> Hi; case: (leqP i n) => [|Hni]; first exact: IHn.
+have {Hi Hni i} -> : i = n.+1 by apply anti_leq; rewrite Hi Hni.
+rewrite coefs1 /= coefsM big_ord_recl /= coefsS_inv_seriesr //.
+by rewrite mulNr mulrN mulVKr //= addrC subrr.
+Qed.
+
+(* General semi-group theory : left inverse = right inverse *)
+Lemma unit_seriesE s : unit_series s -> inv_series s = inv_seriesr s.
+Proof.
+move=> H; have:= erefl (inv_series s * s * inv_seriesr s).
+by rewrite -{1}mulrA mul_seriesVr // mul1r mul_seriesrVr // mulr1.
+Qed.
+
+Lemma mul_seriesrV : {in unit_series, right_inverse 1 inv_series *%R}.
+Proof. by move=> s Hs; rewrite unit_seriesE // mul_seriesrVr. Qed.
+
+Lemma unit_seriesP s t : t * s = 1 /\ s * t = 1 -> unit_series s.
+Proof.
+move=> [] /(congr1 (coefs 0)); rewrite /= coefs1 /= coefsM => Hl.
+move=>    /(congr1 (coefs 0)); rewrite /= coefs1 /= coefsM.
+move: Hl; rewrite !big_ord_recr !big_ord0 /= !simp subnn => Hl Hr.
+by rewrite /unit_series; apply/unitrP; exists t``_0.
 Qed.
 
 Lemma inv_series0id : {in [predC unit_series], inv_series =1 id}.
@@ -1180,21 +1217,13 @@ Proof.
 by move=> s; rewrite inE /= /inv_series unfold_in /unit_series => /negbTE ->.
 Qed.
 
-Definition series_comUnitMixin :=
-  ComUnitRingMixin mul_seriesVr unit_seriesP inv_series0id.
+Definition series_unitMixin :=
+  UnitRingMixin mul_seriesVr mul_seriesrV unit_seriesP inv_series0id.
 
 Canonical series_unitRingType :=
-  Eval hnf in UnitRingType {series R} series_comUnitMixin.
+  Eval hnf in UnitRingType {series R} series_unitMixin.
 Canonical fpseries_unitRingType :=
   Eval hnf in [unitRingType of fpseries R for series_unitRingType].
-
-Canonical series_unitAlgType := Eval hnf in [unitAlgType R of {series R}].
-Canonical fpseries_unitAlgType := Eval hnf in [unitAlgType R of fpseries R].
-
-Canonical series_comUnitRingType :=
-  Eval hnf in [comUnitRingType of {series R}].
-Canonical fpseries_comUnitRingType :=
-  Eval hnf in [comUnitRingType of fpseries R].
 
 Lemma coefsV0 s : unit_series s -> s^-1``_0 = s``_0^-1.
 Proof. exact: coefs0_inv_series. Qed.
@@ -1207,6 +1236,23 @@ Proof.
 have [/rmorphV-> // | nUc] := boolP (c \in GRing.unit).
 by rewrite !invr_out // series_unitE coefsC /= (negbTE nUc).
 Qed.
+
+End FPSUnitRing.
+
+
+Section FPSComUnitRing.
+
+Variable R : comUnitRingType.
+
+Implicit Types (a b c x y z : R) (s t r d : {series R}).
+
+Canonical series_unitAlgType := Eval hnf in [unitAlgType R of {series R}].
+Canonical fpseries_unitAlgType := Eval hnf in [unitAlgType R of fpseries R].
+
+Canonical series_comUnitRingType :=
+  Eval hnf in [comUnitRingType of {series R}].
+Canonical fpseries_comUnitRingType :=
+  Eval hnf in [comUnitRingType of fpseries R].
 
 End FPSComUnitRing.
 
@@ -1236,7 +1282,6 @@ rewrite mulrA (commr_seriesXn v2) mulrA -series_polyM /= -exprD addnC -mulrA.
 by rewrite !coefsXnM !ltnn !subnn coefsM big_ord_recr big_ord0 /= add0r subn0.
 Qed.
 
-
 Fact series_idomainAxiom s t : s * t = 0 -> (s == 0) || (t == 0).
 Proof. by move/eqP; rewrite !valuatInfE valuatM addbar_eqI. Qed.
 
@@ -1246,3 +1291,6 @@ Canonical fpseries_idomainType :=
   Eval hnf in [idomainType of fpseries R for series_idomainType].
 
 End FPSIDomain.
+
+
+
