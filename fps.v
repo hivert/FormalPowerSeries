@@ -22,6 +22,13 @@ Reserved Notation "'Xs" (at level 0).
 Reserved Notation "a ^`` ()" (at level 8, format "a ^`` ()").
 Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
                             format "s ``_ i").
+Reserved Notation "\Sum_( i : t ) F"
+         (at level 41, F at level 41, i at level 50,
+         format "\Sum_( i  :  t )  F").
+Reserved Notation "\Sum_( i ) F"
+         (at level 41, F at level 41, i at level 50,
+         format "\Sum_( i )  F").
+
 
 
 
@@ -846,16 +853,22 @@ Lemma valuatP s : valuat_spec s (valuat s).
 Proof.
 rewrite /valuat; case: pselect => [Pf|NPf].
 - case: ex_minnP => v Hv vmin; apply ValNat => [|i iv]; first exact: Hv.
-  apply/eqP; move: iv; apply contraLR; rewrite -leqNgt; exact: vmin.
+  by apply/contraTeq : iv; rewrite -leqNgt; exact: vmin.
 - apply ValInf; apply seriesP => n; rewrite coefs0.
   apply/eqP; rewrite -(negbK (_ == 0)); apply/negP => Hn.
   by apply NPf; exists n.
 Qed.
 
+Lemma coefs_le_valuat s n : (Nat n < valuat s)%O -> s``_n = 0.
+Proof.
+case: valuatP => [v Hv vmin /= |->]; last by rewrite coefs0.
+by rewrite ltEnatbar; apply: vmin.
+Qed.
+
 Lemma valuatNatE s n :
   s``_n != 0 -> (forall i, (i < n)%N -> s``_i = 0) -> valuat s = Nat n.
 Proof.
-case: valuatP => [v Hv vmin /= |-> //]; last by rewrite coefs0 eqxx.
+case: valuatP => [v Hv vmin /= |->]; last by rewrite coefs0 eqxx.
 move=> Hn /(_ v)/contra_neqN/(_ Hv); rewrite -leqNgt => nlev.
 congr Nat; apply anti_leq; rewrite {}nlev andbT.
 by move: vmin => /(_ n)/contra_neqN/(_ Hn); rewrite -leqNgt.
@@ -1068,22 +1081,22 @@ rewrite /bump /=; apply big1 => [[i /= _] _].
 by rewrite !add1n coefsB coefs1 coefsZ coefsX /= !simp mulrN mulr0 oppr0.
 Qed.
 
-Lemma inv1BXl c : (1 - 'Xs) * \series 1 .X^i = 1.
+Lemma inv1BXl : (1 - 'Xs) * \series 1 .X^i = 1.
 Proof.
 have:= inv1BcXl 1; rewrite !scale1r => {2}<-; congr (_ * _).
 by apply/seriesP => n; rewrite !coefs_series expr1n.
 Qed.
 
-Lemma inv1BXr c : (\series 1 .X^i) * (1 - 'Xs) = 1.
+Lemma inv1BXr : (\series 1 .X^i) * (1 - 'Xs) = 1.
 Proof.
 have:= inv1BcXr 1; rewrite !scale1r => {2}<-; congr (_ * _).
 by apply/seriesP => n; rewrite !coefs_series expr1n.
 Qed.
 
-Lemma inv1DXl c : (1 + 'Xs) * \series (-1)^+i .X^i = 1.
+Lemma inv1DXl : (1 + 'Xs) * \series (-1)^+i .X^i = 1.
 Proof. by have:= inv1BcXl (-1); rewrite !scaleN1r opprK. Qed.
 
-Lemma inv1DXr c : (\series (-1)^+i .X^i) * (1 + 'Xs) = 1.
+Lemma inv1DXr : (\series (-1)^+i .X^i) * (1 + 'Xs) = 1.
 Proof. by have:= inv1BcXr (-1); rewrite !scaleN1r opprK. Qed.
 
 End FPSRing.
@@ -1294,3 +1307,144 @@ End FPSIDomain.
 
 
 
+From mathcomp Require Import finmap.
+
+Section Summable.
+
+Variables (R : ringType) (T : choiceType).
+Implicit Type F : T -> {series R}.
+
+(* The following definition is here to have something in Prop / bool *)
+Definition is_fps_summable F :=
+  forall n, exists s : seq T, forall t, (F t)``_n != 0 -> t \in s.
+Lemma fps_summable_spec F :
+  is_fps_summable F ->
+  forall n : nat, { f : {fset T} | f =i [pred t : T | (F t)``_n != 0] }.
+Proof.
+move=> H n; move/(_ n): H => /cid [s Hs].
+have key : unit by [].
+exists (seq_fset key [seq t <- s | (F t)``_n != 0]) => i /=.
+rewrite seq_fsetE !inE mem_filter.
+by case: eqP => [|/eqP/Hs ->].
+Qed.
+Definition fps_summable F (sm : is_fps_summable F) n :=
+  let: exist fs _ := fps_summable_spec sm n in fs.
+
+Lemma fps_summableE F (sm : is_fps_summable F) :
+  forall n, (fps_summable sm n) =i [pred t : T | (F t)``_n != 0].
+Proof. by rewrite /fps_summable; move=> n; case: fps_summable_spec. Qed.
+
+Definition HugeSum F : {series R} :=
+  if pselect (is_fps_summable F) is left Pf
+  then \series \sum_(t <- fps_summable Pf n) (F t)``_n .X^n
+  else 0.
+
+End Summable.
+Notation "\Sum_( i : t ) F" := (HugeSum (fun i : t => F)).
+Notation "\Sum_( i ) F" := (HugeSum (fun i : nat => F)).
+
+Open Scope fset.
+
+Section Tests.
+
+Variable R : ringType.
+
+Lemma Xn_summable : is_fps_summable (fun i : nat => 'X^i : {series R}).
+Proof.
+move=> m /=; exists [:: m] => n.
+rewrite coefsXn inE (eq_sym m n); case (boolP (n == m)) => //=.
+by rewrite eqxx.
+Qed.
+
+Lemma εὕρηκα : \Sum_(n) 'X^n = \series 1 .X^n :> {series R}.
+Proof.
+rewrite /HugeSum; apply/seriesP => n.
+case pselect => [Hl | /(_ Xn_summable)//].
+rewrite !coefs_series.
+suff -> : fps_summable Hl n = [fset n] by rewrite big_seq_fset1 coefsXn eqxx.
+apply/fsetP => i; rewrite fps_summableE !inE coefsXn (eq_sym i).
+by case: (n == i); rewrite ?eqxx ?oner_eq0.
+Qed.
+
+Lemma geom_seriesM : (\Sum_(n) 'X^n) * (1 - 'X) = 1 :> {series R}.
+Proof. by rewrite εὕρηκα -(inv1BXr R) series_polyB series_poly1. Qed.
+
+End Tests.
+
+Lemma geom_series (R : unitRingType) : (1 - 'Xs)^-1 = \Sum_(n) 'X^n :> {series R}.
+Proof.
+have mdu : ((1 - 'Xs) : {series R}) \is a GRing.unit.
+  by rewrite !unfold_in /= /unit_series coefsB coefs1 coefsX /= subr0 unitr1.
+apply (mulIr mdu); rewrite -series_poly1 -series_polyB geom_seriesM mulVr //.
+by rewrite series_polyB series_poly1; exact: mdu.
+Qed.
+
+
+Lemma summable_valuat_k (R : ringType) k (F : nat -> {series R}) :
+  (forall n, (Nat (n - k) <= valuat (F n))%O) -> is_fps_summable F.
+Proof.
+move=> H; rewrite /is_fps_summable => n /=.
+exists (iota 0 (n + k).+1) => i; move/(_ i): H.
+rewrite mem_iota /= add0n ltnNge addnC -ltn_subRL => ilev.
+apply contra_neqN; rewrite -ltEnatbar => /lt_le_trans/(_ ilev).
+exact: coefs_le_valuat.
+Qed.
+
+Lemma summable_valuat (R : ringType) (F : nat -> {series R}) :
+  (forall n, (Nat n <= valuat (F n))%O) -> is_fps_summable F.
+Proof.
+move=> H; apply: (summable_valuat_k (k := 0)) => n.
+by rewrite subn0.
+Qed.
+
+
+
+
+(*
+Definition is_fps_summable F :=
+  forall n, exists s : seq T, forall t, (F t)``_n != 0 -> t \in s.
+Definition fps_summable F :=     (* summability In Type *)
+  forall n, is_finite [pred t : T | (F t)``_n != 0].
+
+
+Lemma is_fps_summableP F : is_fps_summable F -> fps_summable F.
+Proof.
+move=> H n; move/(_ n): H => /cid [s Hs].
+apply: (IsFinite (undup_uniq [seq t <- s | (F t)``_n != 0])) => t.
+rewrite mem_undup mem_filter /=.
+by case: eqP => [|/eqP/Hs ->].
+Qed.
+
+Definition HugeSum F : {series R} :=
+  if pselect (is_fps_summable F) is left Pf
+  then \series \sum_(t <- is_fps_summableP Pf n) (F t)``_n .X^n
+  else 0.
+
+End Summable.
+Notation "\Sum_( i : t ) F" := (HugeSum (fun i : t => F)).
+Notation "\Sum_( i ) F" := (HugeSum (fun i : nat => F)).
+
+Section Tests.
+
+Variable R : ringType.
+
+Lemma Xn_summable : is_fps_summable (fun i : nat => 'X^i : {series R}).
+Proof.
+move=> m /=; exists [:: m] => n.
+rewrite coefsXn inE (eq_sym m n); case (boolP (n == m)) => //=.
+by rewrite eqxx.
+Qed.
+
+Lemma εὕρηκα : \Sum_(n) 'X^n = \series 1 .X^n :> {series R}.
+Proof.
+rewrite /HugeSum; apply/seriesP => n.
+case pselect => [Hl | /(_ Xn_summable)//].
+rewrite !coefs_series.
+case: is_fps_summableP=> /= s s_uniq Hs.
+rewrite (bigD1_seq n) ?{}s_uniq //= ?Hs coefsXn eqxx //= ?oner_neq0 //.
+rewrite big1 ?addr0 // => i /negbTE.
+by rewrite coefsXn eq_sym => ->.
+Qed.
+
+End Tests.
+*)
