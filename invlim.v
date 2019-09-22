@@ -29,10 +29,7 @@ Unset Printing Implicit Defensive.
 
 Reserved Notation "{ 'invlim' S }"
          (at level 0, format "{ 'invlim'  S }").
-
-
-
-Delimit Scope invlim_scope with ILim.
+Reserved Notation "''pi_' i" (at level 8, i at level 2, format "''pi_' i").
 
 Definition directed (T : Type) (R : T -> T -> bool) :=
   forall x y : T, { z | R x z & R y z }.
@@ -181,29 +178,32 @@ case: x y => [fx Hx] [fy Hy] /= H.
 have {H} H : fx = fy by apply functional_extensionality_dep.
 by subst fy; have -> : Hx = Hy by apply Prop_irrelevance.
 Qed.
+Notation "''pi_' i" := (ilproj i) : invlim_scope.
 
+
+Local Open Scope invlim_scope.
 
 Section UniversalProperty.
 
 Variable (T : Type) (f : forall i, T -> Ob i).
 Hypothesis Hcomp : iscompat Sys f.
 
-Lemma iluniv_spec :
-  {iluniv : T -> invlim Sys | forall i, (ilproj i) \o iluniv = f i}.
+Fact iluniv_spec :
+  {iluniv : T -> invlim Sys | forall i, 'pi_i \o iluniv = f i}.
 Proof.
 move: Hcomp; rewrite /iscompat => Hf; pose fil t i := f i t.
 have Hfil t : ilcomm Sys (fil t) by rewrite /fil=> i j Hij; apply Hf.
 by exists (fun t => InvLim (Hfil t)).
 Qed.
 Definition iluniv := let: exist f _ := iluniv_spec in f.
-Lemma ilunivP i t : ilproj i (iluniv t) = f i t.
+Lemma ilunivP i t : 'pi_i (iluniv t) = f i t.
 Proof.
 rewrite /iluniv; move: t; case: iluniv_spec => un Hun t.
 by rewrite -Hun.
 Qed.
 
 Lemma ilunivE (un : T -> invlim Sys) :
-  (forall i, (ilproj i) \o un =1 f i) -> un =1 iluniv.
+  (forall i, 'pi_i \o un =1 f i) -> un =1 iluniv.
 Proof.
 move=> H x; apply invlimP=> i.
 by rewrite -/((ilproj i \o un) _) H ilunivP.
@@ -212,6 +212,7 @@ Qed.
 End UniversalProperty.
 
 End InverseLimitTheory.
+Notation "'pi_ i" := (ilproj i) : ring_scope.
 
 
 Open Scope ring_scope.
@@ -230,11 +231,11 @@ Fact ilzeroP : ilcomm Sys (fun i => 0 : Ob i).
 Proof. by move=> i j Hij; rewrite raddf0. Qed.
 Definition ilzero : {invlim Sys} := InvLim ilzeroP.
 
-Fact iloppP x : ilcomm Sys (fun i => - (ilproj i x)).
+Fact iloppP x : ilcomm Sys (fun i => - ('pi_i x)).
 Proof. by move=> i j Hij; rewrite raddfN (ilprojE x). Qed.
 Definition ilopp x : {invlim Sys} := InvLim (iloppP x).
 
-Fact iladdP x y : ilcomm Sys (fun i => ilproj i x + ilproj i y).
+Fact iladdP x y : ilcomm Sys (fun i => 'pi_i x + 'pi_i y).
 Proof. by move=> i j Hij; rewrite raddfD (ilprojE x) (ilprojE y). Qed.
 Definition iladd x y : {invlim Sys} := InvLim (iladdP x y).
 
@@ -253,11 +254,11 @@ Fact ilproj_is_additive i : additive (ilproj (Sys := Sys) i).
 Proof. by []. Qed.
 Canonical ilproj_additive i := Additive (ilproj_is_additive i).
 
-Lemma il_neq0 x : x != 0 -> exists i, ilproj i x != 0.
+Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
 Proof.
 move=> Hx; apply/existsbP; move: Hx; apply contraR => /=.
 rewrite existsbE => /forallp_asboolPn Hall.
-apply/eqP/invlimP=> i; rewrite -/(ilproj i x) -/(ilproj i 0) raddf0.
+apply/eqP/invlimP=> i; rewrite -/('pi_i x) -/('pi_i 0) raddf0.
 by have /negP := Hall i; rewrite negbK => /eqP.
 Qed.
 
@@ -292,7 +293,7 @@ Fact iloneP : ilcomm Sys (fun i => 1 : Ob i).
 Proof. by move=> i j Hij; rewrite rmorph1. Qed.
 Definition ilone : {invlim Sys} := InvLim iloneP.
 
-Fact ilmulP x y : ilcomm Sys (fun i => ilproj i x * ilproj i y).
+Fact ilmulP x y : ilcomm Sys (fun i => 'pi_i x * 'pi_i y).
 Proof. by move=> i j Hij; rewrite rmorphM (ilprojE x) (ilprojE y). Qed.
 Definition ilmul x y : {invlim Sys} := InvLim (ilmulP x y).
 
@@ -363,17 +364,17 @@ Variable Sys : invsys Mor.
 
 Implicit Type (x y : {invlim Sys}).
 
-Definition ilunit x := `[forall i, ilproj i x \is a GRing.unit].
+Definition ilunit x := `[forall i, 'pi_i x \is a GRing.unit].
 
 Fact inv_isunitP x :
-  (forall i, ilproj i x \is a GRing.unit) ->
-  ilcomm Sys (fun i => (ilproj i x)^-1).
+  (forall i, 'pi_i x \is a GRing.unit) -> ilcomm Sys (fun i => ('pi_i x)^-1).
 Proof.
 by move=> Hunit i j ilej; rewrite /= rmorphV ?(ilprojE x) // Hunit.
 Qed.
 Definition ilinv x : {invlim Sys} :=
-  if pselect (forall i, ilproj i x \is a GRing.unit) is left Pf
+  if pselect (forall i, 'pi_i x \is a GRing.unit) is left Pf
   then InvLim (inv_isunitP Pf) else x.
+
 
 Fact ilmulVr : {in ilunit, left_inverse 1 ilinv *%R}.
 Proof.
@@ -390,7 +391,7 @@ Qed.
 Fact ilunitP x y : y * x = 1 /\ x * y = 1 -> ilunit x.
 Proof.
 move=> [Hxy Hyx]; apply/forallbP => i; apply/unitrP.
-by exists (ilproj i y); rewrite -!rmorphM Hxy Hyx.
+by exists ('pi_i y); rewrite -!rmorphM Hxy Hyx.
 Qed.
 Fact ilinv0id : {in [predC ilunit], ilinv =1 id}.
 Proof.
@@ -437,13 +438,13 @@ Proof.
 move=> H; case: (altP (x =P 0)) => //= /il_neq0 [i Hi].
 move: H; apply contra_eqT => /il_neq0 [j Hj].
 have [k ilek jlek] := directedP i j.
-have {Hi} /negbTE Hx : ilproj k x != 0.
+have {Hi} /negbTE Hx : 'pi_k x != 0.
   move: Hi; apply contra => /eqP/(congr1 (Mor ilek)).
   by rewrite (ilprojE x) raddf0 => ->.
-have {Hj} /negbTE Hy : ilproj k y != 0.
+have {Hj} /negbTE Hy : 'pi_k y != 0.
   move: Hj; apply contra => /eqP/(congr1 (Mor jlek)).
   by rewrite (ilprojE y) raddf0 => ->.
-apply/negP => /eqP/(congr1 (ilproj k))/eqP.
+apply/negP => /eqP/(congr1 'pi_k)/eqP.
 by rewrite rmorph0 rmorphM mulf_eq0 Hx Hy.
 Qed.
 
@@ -466,7 +467,7 @@ Variable Sys : invsys Mor.
 
 Implicit Type (x y : {invlim Sys}) (r : R).
 
-Fact ilscaleP r x : ilcomm Sys (fun i => r *: ilproj i x).
+Fact ilscaleP r x : ilcomm Sys (fun i => r *: 'pi_i x).
 Proof. by move=> i j Hij; rewrite linearZ (ilprojE x). Qed.
 Definition ilscale r x : {invlim Sys} := InvLim (ilscaleP r x).
 
@@ -557,6 +558,7 @@ Canonical invlimp_algType :=
 End InvLimitAlg.
 
 
+
 Section InvLimitUnitAlg.
 
 Variables (key : unit) (I : dirType key).
@@ -584,7 +586,7 @@ Proof.
 move=> x /il_neq0 [i Hi].
 rewrite unfold_in /= /ilunit; apply/forallbP => j; rewrite unitfE.
 have [k ilek jlek] := directedP i j.
-have {Hi} : ilproj k x != 0.
+have {Hi} : 'pi_k x != 0.
   move: Hi; apply contra => /eqP/(congr1 (Mor ilek)).
   by rewrite (ilprojE x) raddf0 => ->.
 by rewrite -(ilprojE x jlek) fmorph_eq0.
@@ -693,10 +695,11 @@ Definition mpoly_invsys := InvSys 0%N cnvar_idO cnvar_compatO.
 End CNVars.
 
 
-Let lm (R : comRingType) := [lmodType R of {invlim mpoly_invsys R}].
 Let zm (R : comRingType) := [zmodType of {invlim mpoly_invsys R}].
+Let ra (R : comRingType) := [ringType of {invlim mpoly_invsys R}].
+Let lm (R : comRingType) := [lmodType R of {invlim mpoly_invsys R}].
 Let za (R : comRingType) := [algType R of {invlim mpoly_invsys R}].
 
 Lemma test (R : comRingType) (r : R) (x y : {invlim mpoly_invsys R}) :
-  ilproj 2 (r *: (x * y)) = ilproj 2 y * ilproj 2 (r *: x).
+  'pi_2 (r *: (x * y)) = 'pi_2 y * 'pi_2 (r *: x).
 Proof. by rewrite linearZ /= mulrC scalerAr. Qed.
