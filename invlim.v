@@ -117,9 +117,12 @@ Open Scope order_scope.
 Section InverseSystem.
 
 Variables (key : unit) (I : dirType key).
+
+(** Objects and morphisms of the inverse system at left outside the record *)
+(** below to allows the addition of more algebraic structure to them.      *)
+(** For example : ringType / rmorphism.                                    *)
 Variable Ob : I -> Type.
 Variable Mor : (forall i j, i <= j -> Ob j -> Ob i).
-
 Record invsys : Type := InvSys {
       invsys_i0 : I;
       invsys_id : forall i (Hii : i <= i), (Mor Hii) =1 id;
@@ -132,8 +135,8 @@ Record invsys : Type := InvSys {
 (** notation {invlim S} and to get the inhabitant of I.                    *)
 Definition invsys_obj (Sys : invsys) := Ob.
 Definition invsys_mor (Sys : invsys) := Mor.
-Definition ilcomm (Sys : invsys) (f : forall i, Ob i) :=
-  forall i j, forall (Hij : i <= j), Mor Hij (f j) = f i.
+Definition ilcomm (Sys : invsys) (fam : forall i, Ob i) :=
+  forall i j, forall (Hij : i <= j), Mor Hij (fam j) = fam i.
 Definition iscompat (Sys : invsys) (T : Type) (morT : forall i, T -> Ob i) :=
   forall i j, forall (Hij : i <= j), (Mor Hij) \o (morT j) =1 morT i.
 
@@ -143,8 +146,12 @@ Record invlim := InvLim { ilfam :> forall i, Ob i; _ : ilcomm Sys ilfam; }.
 Definition invlim_of of phant ((invsys_obj Sys) (invsys_i0 Sys)) := invlim.
 Identity Coercion type_invlim_of : invlim_of >-> invlim.
 
+Notation "{ 'invlim' S }" := (invlim_of (Phant ((invsys_obj S) (invsys_i0 S)))).
+
 Canonical invlim_eqType := EqType invlim gen_eqMixin.
+Canonical invlimp_eqType := EqType {invlim Sys} gen_eqMixin.
 Canonical invlim_choiceType := ChoiceType invlim gen_choiceMixin.
+Canonical invlimp_choiceType := ChoiceType {invlim Sys} gen_choiceMixin.
 
 End InverseSystem.
 Notation "{ 'invlim' S }" := (invlim_of (Phant ((invsys_obj S) (invsys_i0 S)))).
@@ -161,14 +168,14 @@ Implicit Type x y : {invlim Sys}.
 
 Definition ilproj i : {invlim Sys} -> Ob i := (ilfam (Sys := Sys))^~ i.
 
-Lemma invlimP x :
+Lemma ilprojE x :
   forall i j, forall (Hij : i <= j), Mor Hij (ilproj j x) = (ilproj i x).
 Proof. by case: x. Qed.
 
 Lemma ilprojP : iscompat Sys ilproj.
 Proof. by move=> i j Hij [fam Hfam] /=; apply Hfam. Qed.
 
-Lemma invlimE x y : (forall i, ilproj i x = ilproj i y) -> x = y.
+Lemma invlimP x y : (forall i, ilproj i x = ilproj i y) -> x = y.
 Proof.
 case: x y => [fx Hx] [fy Hy] /= H.
 have {H} H : fx = fy by apply functional_extensionality_dep.
@@ -198,7 +205,7 @@ Qed.
 Lemma ilunivE (un : T -> invlim Sys) :
   (forall i, (ilproj i) \o un =1 f i) -> un =1 iluniv.
 Proof.
-move=> H x; apply invlimE=> i.
+move=> H x; apply invlimP=> i.
 by rewrite -/((ilproj i \o un) _) H ilunivP.
 Qed.
 
@@ -224,19 +231,19 @@ Proof. by move=> i j Hij; rewrite raddf0. Qed.
 Definition ilzero : {invlim Sys} := InvLim ilzeroP.
 
 Fact iloppP x : ilcomm Sys (fun i => - (ilproj i x)).
-Proof. by move=> i j Hij; rewrite raddfN (invlimP x). Qed.
+Proof. by move=> i j Hij; rewrite raddfN (ilprojE x). Qed.
 Definition ilopp x : {invlim Sys} := InvLim (iloppP x).
 
 Fact iladdP x y : ilcomm Sys (fun i => ilproj i x + ilproj i y).
-Proof. by move=> i j Hij; rewrite raddfD (invlimP x) (invlimP y). Qed.
+Proof. by move=> i j Hij; rewrite raddfD (ilprojE x) (ilprojE y). Qed.
 Definition iladd x y : {invlim Sys} := InvLim (iladdP x y).
 
 Program Definition invlim_zmodMixin :=
   @ZmodMixin {invlim Sys} ilzero ilopp iladd _ _ _ _.
-Next Obligation. by move=> a b c; apply invlimE => i; rewrite /= addrA. Qed.
-Next Obligation. by move=> a b; apply invlimE => i; rewrite /= addrC. Qed.
-Next Obligation. by move=> b; apply invlimE => i; rewrite /= add0r. Qed.
-Next Obligation. by move=> b; apply invlimE => i; rewrite /= addNr. Qed.
+Next Obligation. by move=> a b c; apply invlimP=> i; rewrite /= addrA. Qed.
+Next Obligation. by move=> a b; apply invlimP=> i; rewrite /= addrC. Qed.
+Next Obligation. by move=> b; apply invlimP=> i; rewrite /= add0r. Qed.
+Next Obligation. by move=> b; apply invlimP=> i; rewrite /= addNr. Qed.
 Canonical invlim_zmodType :=
   Eval hnf in ZmodType (invlim Sys) invlim_zmodMixin.
 Canonical invlimp_zmodType :=
@@ -250,7 +257,7 @@ Lemma il_neq0 x : x != 0 -> exists i, ilproj i x != 0.
 Proof.
 move=> Hx; apply/existsbP; move: Hx; apply contraR => /=.
 rewrite existsbE => /forallp_asboolPn Hall.
-apply/eqP/invlimE=> i; rewrite -/(ilproj i x) -/(ilproj i 0) raddf0.
+apply/eqP/invlimP=> i; rewrite -/(ilproj i x) -/(ilproj i 0) raddf0.
 by have /negP := Hall i; rewrite negbK => /eqP.
 Qed.
 
@@ -262,7 +269,7 @@ Hypothesis Hcomp : iscompat Sys f.
 
 Fact iluniv_is_additive : additive (iluniv Hcomp).
 Proof.
-by move=> t u; apply invlimE=> i; rewrite ilunivP !raddfB /= !ilunivP.
+by move=> t u; apply invlimP=> i; rewrite ilunivP !raddfB /= !ilunivP.
 Qed.
 Canonical iluniv_additive := Additive iluniv_is_additive.
 
@@ -286,16 +293,16 @@ Proof. by move=> i j Hij; rewrite rmorph1. Qed.
 Definition ilone : {invlim Sys} := InvLim iloneP.
 
 Fact ilmulP x y : ilcomm Sys (fun i => ilproj i x * ilproj i y).
-Proof. by move=> i j Hij; rewrite rmorphM (invlimP x) (invlimP y). Qed.
+Proof. by move=> i j Hij; rewrite rmorphM (ilprojE x) (ilprojE y). Qed.
 Definition ilmul x y : {invlim Sys} := InvLim (ilmulP x y).
 
 Program Definition invlim_ringMixin :=
   @RingMixin [zmodType of {invlim Sys}] ilone ilmul _ _ _ _ _ _.
-Next Obligation. by move=> a b c; apply invlimE => i; rewrite /= mulrA. Qed.
-Next Obligation. by move=> a; apply invlimE => i; rewrite /= mul1r. Qed.
-Next Obligation. by move=> a; apply invlimE => i; rewrite /= mulr1. Qed.
-Next Obligation. by move=> a b c; apply invlimE => i /=; rewrite /= mulrDl. Qed.
-Next Obligation. by move=> a b c; apply invlimE => i /=; rewrite /= mulrDr. Qed.
+Next Obligation. by move=> a b c; apply invlimP=> i; rewrite /= mulrA. Qed.
+Next Obligation. by move=> a; apply invlimP=> i; rewrite /= mul1r. Qed.
+Next Obligation. by move=> a; apply invlimP=> i; rewrite /= mulr1. Qed.
+Next Obligation. by move=> a b c; apply invlimP=> i /=; rewrite /= mulrDl. Qed.
+Next Obligation. by move=> a b c; apply invlimP=> i /=; rewrite /= mulrDr. Qed.
 Next Obligation.
 apply/negP => /eqP/(congr1 (fun x => x (invsys_i0 Sys))) /= /eqP.
 exact/negP/oner_neq0.
@@ -318,8 +325,8 @@ Hypothesis Hcomp : iscompat Sys f.
 Fact iluniv_is_multiplicative : multiplicative (iluniv Hcomp).
 Proof.
 split.
-- by move=> t u; apply invlimE=> i; rewrite ilunivP rmorphM /= !ilunivP.
-- by apply invlimE=> i; rewrite ilunivP !rmorph1.
+- by move=> t u; apply invlimP=> i; rewrite ilunivP rmorphM /= !ilunivP.
+- by apply invlimP=> i; rewrite ilunivP !rmorph1.
 Qed.
 Canonical iluniv_multiplicative := AddRMorphism iluniv_is_multiplicative.
 
@@ -338,7 +345,7 @@ Variable Sys : invsys Mor.
 Implicit Type (x y : {invlim Sys}).
 
 Fact ilmulC x y : x * y = y * x.
-Proof. by apply invlimE => i; rewrite /= mulrC. Qed.
+Proof. by apply invlimP=> i; rewrite /= mulrC. Qed.
 Canonical invlim_comRingType :=
   Eval hnf in ComRingType (invlim Sys) ilmulC.
 Canonical invlimp_comRingType :=
@@ -359,9 +366,10 @@ Implicit Type (x y : {invlim Sys}).
 Definition ilunit x := `[forall i, ilproj i x \is a GRing.unit].
 
 Fact inv_isunitP x :
-  (forall i, ilproj i x \is a GRing.unit) -> ilcomm Sys (fun i => (ilproj i x)^-1).
+  (forall i, ilproj i x \is a GRing.unit) ->
+  ilcomm Sys (fun i => (ilproj i x)^-1).
 Proof.
-by move=> Hunit i j ilej; rewrite /= rmorphV ?(invlimP x) // Hunit.
+by move=> Hunit i j ilej; rewrite /= rmorphV ?(ilprojE x) // Hunit.
 Qed.
 Definition ilinv x : {invlim Sys} :=
   if pselect (forall i, ilproj i x \is a GRing.unit) is left Pf
@@ -369,13 +377,13 @@ Definition ilinv x : {invlim Sys} :=
 
 Fact ilmulVr : {in ilunit, left_inverse 1 ilinv *%R}.
 Proof.
-move=> x /forallbP Hinv; apply invlimE => i.
+move=> x /forallbP Hinv; apply invlimP=> i.
 rewrite /ilinv; case: pselect => /= [_|/(_ Hinv)//].
 by rewrite mulVr // Hinv.
 Qed.
 Fact ilmulrV : {in ilunit, right_inverse 1 ilinv *%R}.
 Proof.
-move=> x /forallbP Hinv; apply invlimE => i.
+move=> x /forallbP Hinv; apply invlimP=> i.
 rewrite /ilinv; case: pselect => /= [_|/(_ Hinv)//].
 by rewrite mulrV // Hinv.
 Qed.
@@ -431,10 +439,10 @@ move: H; apply contra_eqT => /il_neq0 [j Hj].
 have [k ilek jlek] := directedP i j.
 have {Hi} /negbTE Hx : ilproj k x != 0.
   move: Hi; apply contra => /eqP/(congr1 (Mor ilek)).
-  by rewrite (invlimP x) raddf0 => ->.
+  by rewrite (ilprojE x) raddf0 => ->.
 have {Hj} /negbTE Hy : ilproj k y != 0.
   move: Hj; apply contra => /eqP/(congr1 (Mor jlek)).
-  by rewrite (invlimP y) raddf0 => ->.
+  by rewrite (ilprojE y) raddf0 => ->.
 apply/negP => /eqP/(congr1 (ilproj k))/eqP.
 by rewrite rmorph0 rmorphM mulf_eq0 Hx Hy.
 Qed.
@@ -459,15 +467,15 @@ Variable Sys : invsys Mor.
 Implicit Type (x y : {invlim Sys}) (r : R).
 
 Fact ilscaleP r x : ilcomm Sys (fun i => r *: ilproj i x).
-Proof. by move=> i j Hij; rewrite linearZ (invlimP x). Qed.
+Proof. by move=> i j Hij; rewrite linearZ (ilprojE x). Qed.
 Definition ilscale r x : {invlim Sys} := InvLim (ilscaleP r x).
 
 Program Definition invlim_lmodMixin :=
   @LmodMixin R [zmodType of {invlim Sys}] ilscale _ _ _ _.
-Next Obligation. by apply invlimE => i /=; rewrite scalerA. Qed.
-Next Obligation. by move=> x; apply invlimE=> i /=; rewrite scale1r. Qed.
-Next Obligation. by move=> r x y; apply invlimE=> i /=; rewrite scalerDr. Qed.
-Next Obligation. by move=> r s; apply invlimE=> i /=; rewrite scalerDl. Qed.
+Next Obligation. by apply invlimP=> i /=; rewrite scalerA. Qed.
+Next Obligation. by move=> x; apply invlimP=> i /=; rewrite scale1r. Qed.
+Next Obligation. by move=> r x y; apply invlimP=> i /=; rewrite scalerDr. Qed.
+Next Obligation. by move=> r s; apply invlimP=> i /=; rewrite scalerDl. Qed.
 
 Canonical invlim_lmodType :=
   Eval hnf in LmodType R (invlim Sys) invlim_lmodMixin.
@@ -486,7 +494,7 @@ Hypothesis Hcomp : iscompat Sys f.
 
 Fact iluniv_is_linear : linear (iluniv Hcomp).
 Proof.
-by move=> r t u; apply invlimE=> i; rewrite !ilunivP !linearP /= !ilunivP.
+by move=> r t u; apply invlimP=> i; rewrite !ilunivP !linearP /= !ilunivP.
 Qed.
 Canonical iluniv_linear := AddLinear iluniv_is_linear.
 
@@ -508,7 +516,7 @@ Implicit Type (x y : {invlim Sys}) (r : R).
 
 
 Fact ilscaleAl r x y : ilscale r (x * y) = ilscale r x * y.
-Proof. by apply invlimE => i /=; rewrite scalerAl. Qed.
+Proof. by apply invlimP=> i /=; rewrite scalerAl. Qed.
 Canonical invlim_lalgType :=
   Eval hnf in LalgType R (invlim Sys) ilscaleAl.
 Canonical invlimp_lalgType :=
@@ -540,7 +548,7 @@ Implicit Type (x y : {invlim Sys}) (r : R).
 
 
 Fact ilscaleAr r x y : ilscale r (x * y) = x * ilscale r y.
-Proof. by apply invlimE => i /=; rewrite scalerAr. Qed.
+Proof. by apply invlimP=> i /=; rewrite scalerAr. Qed.
 Canonical invlim_algType :=
   Eval hnf in AlgType R (invlim Sys) ilscaleAr.
 Canonical invlimp_algType :=
@@ -578,8 +586,8 @@ rewrite unfold_in /= /ilunit; apply/forallbP => j; rewrite unitfE.
 have [k ilek jlek] := directedP i j.
 have {Hi} : ilproj k x != 0.
   move: Hi; apply contra => /eqP/(congr1 (Mor ilek)).
-  by rewrite (invlimP x) raddf0 => ->.
-by rewrite -(invlimP x jlek) fmorph_eq0.
+  by rewrite (ilprojE x) raddf0 => ->.
+by rewrite -(ilprojE x jlek) fmorph_eq0.
 Qed.
 Canonical invlim_fieldType :=
   Eval hnf in FieldType (invlim Sys) invlim_fieldMixin.
@@ -602,7 +610,8 @@ Variable (m n : nat).
 Hypothesis (nlem : (n <= m)%N).
 
 Fact cnvar_tupleP :
-  @size {mpoly R[n]} (take m [tuple 'X_i | i < n] ++ [tuple 0 | i < m - n]) == m.
+  @size {mpoly R[n]}
+        (take m [tuple 'X_i | i < n] ++ [tuple 0 | i < m - n]) == m.
 Proof. by rewrite size_cat !size_tuple /minn ltnNge nlem /= subnKC. Qed.
 Definition cnvar_tuple := Tuple cnvar_tupleP.
 Definition cnvar p := p \mPo cnvar_tuple.
