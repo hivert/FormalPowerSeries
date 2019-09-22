@@ -127,12 +127,15 @@ Record invsys : Type := InvSys {
           (Mor Hij) \o (Mor Hjk) =1 (Mor (le_trans Hij Hjk));
   }.
 
-(** Make sure ilcomm depend of the system and not only the morphisms *)
-(** This is needed to triger the unification in the notation and     *)
-(** To get the inhabitant of I                                       *)
+(** Make sure the following definitions depend on the system and not only  *)
+(** on the morphisms. This is needed to triger the unification in the      *)
+(** notation {invlim S} and to get the inhabitant of I.                    *)
+Definition invsys_obj (Sys : invsys) := Ob.
+Definition invsys_mor (Sys : invsys) := Mor.
 Definition ilcomm (Sys : invsys) (f : forall i, Ob i) :=
   forall i j, forall (Hij : i <= j), Mor Hij (f j) = f i.
-Definition invsys_obj (Sys : invsys) := Ob.
+Definition iscompat (Sys : invsys) (T : Type) (morT : forall i, T -> Ob i) :=
+  forall i j, forall (Hij : i <= j), (Mor Hij) \o (morT j) =1 morT i.
 
 Variable Sys : invsys.
 Record invlim := InvLim { ilfam :> forall i, Ob i; _ : ilcomm Sys ilfam; }.
@@ -152,35 +155,54 @@ Section InverseLimitTheory.
 Variables (key : unit) (I : dirType key).
 Variable Ob : I -> Type.
 Variable Mor : (forall i j, i <= j -> Ob j -> Ob i).
-Variable Sys : invsys Mor.
 
+Variable Sys : invsys Mor.
 Implicit Type x y : {invlim Sys}.
 
 Definition ilproj i : {invlim Sys} -> Ob i := (ilfam (Sys := Sys))^~ i.
-Definition iscompat (T : Type) (morT : forall i, T -> Ob i) :=
-  forall i j, forall (Hij : i <= j), (Mor Hij) \o (morT j) =1 morT i.
 
 Lemma invlimP x :
   forall i j, forall (Hij : i <= j), Mor Hij (ilproj j x) = (ilproj i x).
 Proof. by case: x. Qed.
 
-Lemma ilprojP : iscompat ilproj.
+Lemma ilprojP : iscompat Sys ilproj.
 Proof. by move=> i j Hij [fam Hfam] /=; apply Hfam. Qed.
 
-Lemma invsysE x y : (forall i, ilproj i x = ilproj i y) -> x = y.
+Lemma invlimE x y : (forall i, ilproj i x = ilproj i y) -> x = y.
 Proof.
 case: x y => [fx Hx] [fy Hy] /= H.
 have {H} H : fx = fy by apply functional_extensionality_dep.
 by subst fy; have -> : Hx = Hy by apply Prop_irrelevance.
 Qed.
 
-Lemma univ_invsys (T : Type) (f : forall i, T -> Ob i) :
-  iscompat f -> {finvlim : T -> invlim Sys | forall i, f i =1 (ilproj i) \o finvlim}.
+
+Section UniversalProperty.
+
+Variable (T : Type) (f : forall i, T -> Ob i).
+Hypothesis Hcomp : iscompat Sys f.
+
+Lemma iluniv_spec :
+  {iluniv : T -> invlim Sys | forall i, (ilproj i) \o iluniv = f i}.
 Proof.
-rewrite /iscompat => Hf; pose fil t i := f i t.
+move: Hcomp; rewrite /iscompat => Hf; pose fil t i := f i t.
 have Hfil t : ilcomm Sys (fil t) by rewrite /fil=> i j Hij; apply Hf.
 by exists (fun t => InvLim (Hfil t)).
 Qed.
+Definition iluniv := let: exist f _ := iluniv_spec in f.
+Lemma ilunivP i t : ilproj i (iluniv t) = f i t.
+Proof.
+rewrite /iluniv; move: t; case: iluniv_spec => un Hun t.
+by rewrite -Hun.
+Qed.
+
+Lemma ilunivE (un : T -> invlim Sys) :
+  (forall i, (ilproj i) \o un =1 f i) -> un =1 iluniv.
+Proof.
+move=> H x; apply invlimE=> i.
+by rewrite -/((ilproj i \o un) _) H ilunivP.
+Qed.
+
+End UniversalProperty.
 
 End InverseLimitTheory.
 
@@ -211,10 +233,10 @@ Definition iladd x y : {invlim Sys} := InvLim (iladdP x y).
 
 Program Definition invlim_zmodMixin :=
   @ZmodMixin {invlim Sys} ilzero ilopp iladd _ _ _ _.
-Next Obligation. by move=> a b c; apply invsysE => i; rewrite /= addrA. Qed.
-Next Obligation. by move=> a b; apply invsysE => i; rewrite /= addrC. Qed.
-Next Obligation. by move=> b; apply invsysE => i; rewrite /= add0r. Qed.
-Next Obligation. by move=> b; apply invsysE => i; rewrite /= addNr. Qed.
+Next Obligation. by move=> a b c; apply invlimE => i; rewrite /= addrA. Qed.
+Next Obligation. by move=> a b; apply invlimE => i; rewrite /= addrC. Qed.
+Next Obligation. by move=> b; apply invlimE => i; rewrite /= add0r. Qed.
+Next Obligation. by move=> b; apply invlimE => i; rewrite /= addNr. Qed.
 Canonical invlim_zmodType :=
   Eval hnf in ZmodType (invlim Sys) invlim_zmodMixin.
 Canonical invlimp_zmodType :=
@@ -228,9 +250,23 @@ Lemma il_neq0 x : x != 0 -> exists i, ilproj i x != 0.
 Proof.
 move=> Hx; apply/existsbP; move: Hx; apply contraR => /=.
 rewrite existsbE => /forallp_asboolPn Hall.
-apply/eqP/invsysE => i; rewrite -/(ilproj i x) -/(ilproj i 0) raddf0.
+apply/eqP/invlimE=> i; rewrite -/(ilproj i x) -/(ilproj i 0) raddf0.
 by have /negP := Hall i; rewrite negbK => /eqP.
 Qed.
+
+
+Section UniversalProperty.
+
+Variable (T : zmodType) (f : forall i, {additive T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+
+Fact iluniv_is_additive : additive (iluniv Hcomp).
+Proof.
+by move=> t u; apply invlimE=> i; rewrite ilunivP !raddfB /= !ilunivP.
+Qed.
+Canonical iluniv_additive := Additive iluniv_is_additive.
+
+End UniversalProperty.
 
 End InvLimitZModType.
 
@@ -255,11 +291,11 @@ Definition ilmul x y : {invlim Sys} := InvLim (ilmulP x y).
 
 Program Definition invlim_ringMixin :=
   @RingMixin [zmodType of {invlim Sys}] ilone ilmul _ _ _ _ _ _.
-Next Obligation. by move=> a b c; apply invsysE => i; rewrite /= mulrA. Qed.
-Next Obligation. by move=> a; apply invsysE => i; rewrite /= mul1r. Qed.
-Next Obligation. by move=> a; apply invsysE => i; rewrite /= mulr1. Qed.
-Next Obligation. by move=> a b c; apply invsysE => i /=; rewrite /= mulrDl. Qed.
-Next Obligation. by move=> a b c; apply invsysE => i /=; rewrite /= mulrDr. Qed.
+Next Obligation. by move=> a b c; apply invlimE => i; rewrite /= mulrA. Qed.
+Next Obligation. by move=> a; apply invlimE => i; rewrite /= mul1r. Qed.
+Next Obligation. by move=> a; apply invlimE => i; rewrite /= mulr1. Qed.
+Next Obligation. by move=> a b c; apply invlimE => i /=; rewrite /= mulrDl. Qed.
+Next Obligation. by move=> a b c; apply invlimE => i /=; rewrite /= mulrDr. Qed.
 Next Obligation.
 apply/negP => /eqP/(congr1 (fun x => x (invsys_i0 Sys))) /= /eqP.
 exact/negP/oner_neq0.
@@ -272,6 +308,22 @@ Canonical invlimp_ringType :=
 Fact ilproj_is_multiplicative i : multiplicative (ilproj (Sys := Sys) i).
 Proof. by []. Qed.
 Canonical ilproj_multiplicative i := AddRMorphism (ilproj_is_multiplicative i).
+
+
+Section UniversalProperty.
+
+Variable (T : ringType) (f : forall i, {rmorphism T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+
+Fact iluniv_is_multiplicative : multiplicative (iluniv Hcomp).
+Proof.
+split.
+- by move=> t u; apply invlimE=> i; rewrite ilunivP rmorphM /= !ilunivP.
+- by apply invlimE=> i; rewrite ilunivP !rmorph1.
+Qed.
+Canonical iluniv_multiplicative := AddRMorphism iluniv_is_multiplicative.
+
+End UniversalProperty.
 
 End InvLimitRing.
 
@@ -286,7 +338,7 @@ Variable Sys : invsys Mor.
 Implicit Type (x y : {invlim Sys}).
 
 Fact ilmulC x y : x * y = y * x.
-Proof. by apply invsysE => i; rewrite /= mulrC. Qed.
+Proof. by apply invlimE => i; rewrite /= mulrC. Qed.
 Canonical invlim_comRingType :=
   Eval hnf in ComRingType (invlim Sys) ilmulC.
 Canonical invlimp_comRingType :=
@@ -317,13 +369,13 @@ Definition ilinv x : {invlim Sys} :=
 
 Fact ilmulVr : {in ilunit, left_inverse 1 ilinv *%R}.
 Proof.
-move=> x /forallbP Hinv; apply invsysE => i.
+move=> x /forallbP Hinv; apply invlimE => i.
 rewrite /ilinv; case: pselect => /= [_|/(_ Hinv)//].
 by rewrite mulVr // Hinv.
 Qed.
 Fact ilmulrV : {in ilunit, right_inverse 1 ilinv *%R}.
 Proof.
-move=> x /forallbP Hinv; apply invsysE => i.
+move=> x /forallbP Hinv; apply invlimE => i.
 rewrite /ilinv; case: pselect => /= [_|/(_ Hinv)//].
 by rewrite mulrV // Hinv.
 Qed.
@@ -412,10 +464,10 @@ Definition ilscale r x : {invlim Sys} := InvLim (ilscaleP r x).
 
 Program Definition invlim_lmodMixin :=
   @LmodMixin R [zmodType of {invlim Sys}] ilscale _ _ _ _.
-Next Obligation. by apply invsysE => i /=; rewrite scalerA. Qed.
-Next Obligation. by move=> x; apply invsysE=> i /=; rewrite scale1r. Qed.
-Next Obligation. by move=> r x y; apply invsysE=> i /=; rewrite scalerDr. Qed.
-Next Obligation. by move=> r s; apply invsysE=> i /=; rewrite scalerDl. Qed.
+Next Obligation. by apply invlimE => i /=; rewrite scalerA. Qed.
+Next Obligation. by move=> x; apply invlimE=> i /=; rewrite scale1r. Qed.
+Next Obligation. by move=> r x y; apply invlimE=> i /=; rewrite scalerDr. Qed.
+Next Obligation. by move=> r s; apply invlimE=> i /=; rewrite scalerDl. Qed.
 
 Canonical invlim_lmodType :=
   Eval hnf in LmodType R (invlim Sys) invlim_lmodMixin.
@@ -425,6 +477,20 @@ Canonical invlimp_lmodType :=
 Fact ilproj_is_linear i : linear (ilproj (Sys := Sys) i).
 Proof. by []. Qed.
 Canonical ilproj_linear i := AddLinear (ilproj_is_linear i).
+
+
+Section UniversalProperty.
+
+Variable (T : lmodType R) (f : forall i, {linear T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+
+Fact iluniv_is_linear : linear (iluniv Hcomp).
+Proof.
+by move=> r t u; apply invlimE=> i; rewrite !ilunivP !linearP /= !ilunivP.
+Qed.
+Canonical iluniv_linear := AddLinear iluniv_is_linear.
+
+End UniversalProperty.
 
 End InvLimitLinear.
 
@@ -442,13 +508,21 @@ Implicit Type (x y : {invlim Sys}) (r : R).
 
 
 Fact ilscaleAl r x y : ilscale r (x * y) = ilscale r x * y.
-Proof. by apply invsysE => i /=; rewrite scalerAl. Qed.
+Proof. by apply invlimE => i /=; rewrite scalerAl. Qed.
 Canonical invlim_lalgType :=
   Eval hnf in LalgType R (invlim Sys) ilscaleAl.
 Canonical invlimp_lalgType :=
   Eval hnf in LalgType R {invlim Sys} ilscaleAl.
 
 Canonical ilproj_lrmorphism i := AddLRMorphism (ilproj_is_linear i).
+
+Section UniversalProperty.
+
+Variable (T : lalgType R) (f : forall i, {lrmorphism T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+Canonical iluniv_lrmorphism := AddLRMorphism (iluniv_is_linear Hcomp).
+
+End UniversalProperty.
 
 End InvLimitLalg.
 
@@ -466,7 +540,7 @@ Implicit Type (x y : {invlim Sys}) (r : R).
 
 
 Fact ilscaleAr r x y : ilscale r (x * y) = x * ilscale r y.
-Proof. by apply invsysE => i /=; rewrite scalerAr. Qed.
+Proof. by apply invlimE => i /=; rewrite scalerAr. Qed.
 Canonical invlim_algType :=
   Eval hnf in AlgType R (invlim Sys) ilscaleAr.
 Canonical invlimp_algType :=
