@@ -608,27 +608,29 @@ Variable R : comRingType.
 
 Section Defs.
 
-Variable (m n : nat).
-Hypothesis (nlem : (n <= m)%N).
-
-Fact cnvar_tupleP :
-  @size {mpoly R[n]}
-        (take m [tuple 'X_i | i < n] ++ [tuple 0 | i < m - n]) == m.
-Proof. by rewrite size_cat !size_tuple /minn ltnNge nlem /= subnKC. Qed.
-Definition cnvar_tuple := Tuple cnvar_tupleP.
+Variable (n m : nat).
+Lemma cnvar_tupleP (T : eqType) (t : seq T) (c : T) :
+  size (take m t ++ nseq (m - size t) c) == m.
+Proof.
+rewrite size_cat size_take size_nseq -/(minn _ _) minnC /minn.
+case: ltnP => [/ltnW/subnKC -> //|]; rewrite -subn_eq0 => /eqP ->.
+by rewrite addn0.
+Qed.
+Definition cnvar_tuple : m.-tuple {mpoly R[n]} :=
+  Tuple (cnvar_tupleP [tuple 'X_i | i < n] 0).
 Definition cnvar p := p \mPo cnvar_tuple.
 
-Lemma cnvar_is_rmorphism : rmorphism cnvar.
+Fact cnvar_is_rmorphism : rmorphism cnvar.
 Proof. repeat split; [exact: rmorphB | exact: rmorphM | exact: rmorph1]. Qed.
 Canonical cnvar_additive := Additive cnvar_is_rmorphism.
 Canonical cnvar_rmorphism := RMorphism cnvar_is_rmorphism.
 
-Lemma cnvar_is_linear : linear cnvar.
+Fact cnvar_is_linear : linear cnvar.
 Proof. by rewrite /cnvar; exact: linearP. Qed.
 Canonical cnvar_linear := AddLinear cnvar_is_linear.
 Canonical cnvar_lrmorphism := [lrmorphism of cnvar].
 
-
+Hypothesis (nlem : (n <= m)%N).
 Lemma tnth_cnvar_tuple (i : 'I_m) (ilen : (i < n)%N) :
   tnth cnvar_tuple i = 'X_(Ordinal ilen).
 Proof.
@@ -642,64 +644,86 @@ Qed.
 Lemma tnth_cnvar_tuple0 (i : 'I_m) : (n <= i)%N -> tnth cnvar_tuple i = 0.
 Proof.
 move=> nlei; rewrite (tnth_nth 0) /= nth_cat size_take size_map size_enum_ord.
-rewrite (ltnNge m n) nlem /= (ltnNge i n) nlei /=.
-have nltm : (0 < m - n)%N by rewrite subn_gt0 (leq_ltn_trans nlei).
-apply: (nth_map (Ordinal nltm)).
-by rewrite size_enum_ord -(ltn_add2r n) !subnK.
+by rewrite (ltnNge m n) nlem /= (ltnNge i n) nlei /= nth_nseq if_same.
 Qed.
 
 End Defs.
 
-Lemma cnvarE n m (H1 H2 : (n <= m)%N) : cnvar H1 =1 cnvar H2.
-Proof. by move=> p; rewrite /cnvar; congr (_ \mPo _); apply: val_inj. Qed.
-
-Lemma cnvar_id n (H : (n <= n)%N) : cnvar H =1 id.
+Lemma cnvar_id n : @cnvar n n =1 id.
 Proof.
 move=> p; rewrite /cnvar.
-suff -> : cnvar_tuple H = [tuple 'X_i | i < n] by rewrite comp_mpoly_id.
+suff -> : cnvar_tuple n n = [tuple 'X_i | i < n] by rewrite comp_mpoly_id.
 apply eq_from_tnth => i.
-rewrite tnth_cnvar_tuple /= tnth_mktuple; congr ('X_ _).
+rewrite tnth_cnvar_tuple // tnth_mktuple; congr ('X_ _).
 exact: val_inj.
 Qed.
 
-Lemma cnvar_compat i j k  (Hij : (i <= j)%N) (Hjk : (j <= k)%N) :
-  (cnvar Hij) \o (cnvar Hjk) =1 (cnvar (leq_trans Hij Hjk)).
+Lemma cnvar_compat i j k :
+  (i <= j)%N -> (j <= k)%N -> (@cnvar i j) \o (@cnvar j k) =1 (@cnvar i k).
 Proof.
-move=> p /=; rewrite /cnvar !(comp_mpolyE p).
-rewrite raddf_sum /=; apply eq_bigr => m _.
+move=> ilej jlek p /=; have ilek := leq_trans ilej jlek.
+rewrite /cnvar !(comp_mpolyE p) raddf_sum /=; apply eq_bigr => m _.
 rewrite comp_mpolyZ; congr (_ *: _).
 rewrite rmorph_prod /=; apply eq_bigr => l _.
 rewrite !rmorphX /=; congr (_ ^+ _).
 case: (ltnP l i) => [llti | ilel].
-- rewrite !tnth_cnvar_tuple ?(leq_trans llti Hij) // => Hlj.
+- rewrite !tnth_cnvar_tuple ?(leq_trans llti ilej) // => Hlj.
   by rewrite comp_mpolyXU -tnth_nth !tnth_cnvar_tuple.
 - rewrite [RHS]tnth_cnvar_tuple0 //.
   case: (ltnP l j) => [lltj|jlel].
-  + by rewrite tnth_cnvar_tuple comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
+  + by rewrite tnth_cnvar_tuple // comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
   + by rewrite tnth_cnvar_tuple0 // comp_mpoly0.
 Qed.
 
-Local Lemma leEnat_impl i j : (i <= j)%O -> (i <= j)%N.
-Proof. by rewrite leEnat. Qed.
 
-Lemma cnvar_idO n (H : (n <= n)%O) : cnvar (leEnat_impl H) =1 id.
-Proof. exact: cnvar_id. Qed.
+Section InverseSys.
 
-Lemma cnvar_compatO i j k  (Hij : (i <= j)%O) (Hjk : (j <= k)%O) :
-  (cnvar (leEnat_impl Hij)) \o (cnvar (leEnat_impl Hjk))
-  =1 (cnvar (leEnat_impl (le_trans Hij Hjk))).
-Proof. by move=> p; rewrite cnvar_compat; apply cnvarE. Qed.
 
-Definition mpoly_invsys := InvSys 0%N cnvar_idO cnvar_compatO.
+Definition cnvarsys (i j : nat) (H : (i <= j)%O) := @cnvar i j.
+Program Definition infpoly_sys := @InvSys _ _ _ cnvarsys 0%N _ _.
+Next Obligation. exact: cnvar_id. Qed.
+Next Obligation. exact: cnvar_compat. Qed.
+
+Variables (i j : nat) (H : (i <= j)%O).
+Fact cnvarsys_is_rmorphism : rmorphism (cnvarsys H).
+Proof. exact: cnvar_is_rmorphism. Qed.
+Canonical cnvarsys_additive := Additive cnvarsys_is_rmorphism.
+Canonical cnvarsys_rmorphism := RMorphism cnvarsys_is_rmorphism.
+
+Fact cnvarsys_is_linear : linear (cnvarsys H).
+Proof. exact: cnvar_is_linear. Qed.
+Canonical cnvarsys_linear := AddLinear cnvarsys_is_linear.
+Canonical cnvarsys_lrmorphism := [lrmorphism of (cnvarsys H)].
+
+End InverseSys.
+
+Fact infpolyXP i :
+  ilcomm infpoly_sys
+         (fun n => if ltnP i n is LtnNotGeq Pf then 'X_(Ordinal Pf) else 0).
+Proof.
+move=> m n mlen /=.
+case (ltnP i m) => [iltm|mlei]; case (ltnP i n) => [iltn|nlei].
+- by rewrite /cnvarsys/cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple.
+- by exfalso; have:= leq_trans iltm (leq_trans mlen nlei); rewrite ltnn.
+- by rewrite /cnvarsys/cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
+- by rewrite raddf0.
+Qed.
+Definition infpolyX i : {invlim infpoly_sys} := InvLim (infpolyXP i).
+
 
 End CNVars.
 
 
-Let zm (R : comRingType) := [zmodType of {invlim mpoly_invsys R}].
-Let ra (R : comRingType) := [ringType of {invlim mpoly_invsys R}].
-Let lm (R : comRingType) := [lmodType R of {invlim mpoly_invsys R}].
-Let za (R : comRingType) := [algType R of {invlim mpoly_invsys R}].
+Section Tests.
 
-Lemma test (R : comRingType) (r : R) (x y : {invlim mpoly_invsys R}) :
+Variable R : comRingType.
+Check [zmodType of {invlim infpoly_sys R}].
+Check [comRingType of {invlim infpoly_sys R}].
+Check [lmodType R of {invlim infpoly_sys R}].
+Check [algType R of {invlim infpoly_sys R}].
+
+Goal forall (r : R) (x y : {invlim infpoly_sys R}),
   'pi_2 (r *: (x * y)) = 'pi_2 y * 'pi_2 (r *: x).
-Proof. by rewrite linearZ /= mulrC scalerAr. Qed.
+Proof. by move=> r x y; rewrite linearZ /= mulrC scalerAr. Qed.
+
+End Tests.
