@@ -1,0 +1,7 @@
+-R theories/ Combi
+-arg -w
+-arg -notation-overridden
+theories/fps.v
+theories/invlim.v
+theories/natbar.v
+
