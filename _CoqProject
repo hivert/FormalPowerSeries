@@ -4,4 +4,6 @@
 theories/fps.v
 theories/invlim.v
 theories/natbar.v
+theories/infpoly.v
+theories/padic.v
 

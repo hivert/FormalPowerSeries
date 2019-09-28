@@ -17,6 +17,7 @@ From SsrMultinomials Require Import ssrcomplements freeg mpoly.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
+Require Import natbar.
 
 Import Order.Def.
 Import Order.Syntax.
@@ -31,7 +32,6 @@ Reserved Notation "{ 'invlim' S }"
          (at level 0, format "{ 'invlim'  S }").
 Reserved Notation "''pi_' i" (at level 8, i at level 2, format "''pi_' i").
 
-Delimit Scope invlim_scope with InvLim.
 
 
 Definition directed (T : Type) (R : T -> T -> bool) :=
@@ -184,8 +184,7 @@ Proof. by case: x. Qed.
 Lemma ilprojP : iscompat Sys ilproj.
 Proof. by move=> i j Hij [fam Hfam] /=; apply Hfam. Qed.
 
-Local Open Scope invlim_scope.
-Notation "''pi_' i" := (ilproj i) : invlim_scope.
+Local Notation "''pi_' i" := (ilproj i).
 
 Lemma invlimP x y : (forall i, 'pi_i x = 'pi_i y) -> x = y.
 Proof.
@@ -224,15 +223,23 @@ Qed.
 End UniversalProperty.
 
 End InverseLimitTheory.
-Local Open Scope invlim_scope.
-Notation "'pi_ i" := (ilproj i) : invlim_scope.
+Notation "'pi_ i" := (ilproj i) : ring_scope.
 
+
+(****************************************************************************)
+(** Inverse limits in various algebraic categories                          *)
+(**                                                                         *)
+(** We don't deal with multiplicative groups as they are all assumed finite *)
+(** in mathcomp.                                                            *)
+(****************************************************************************)
+Open Scope ring_scope.
+Import GRing.Theory.
 
 Section InvLimitEqType.
 
 Variables (disp : unit) (I : dirType disp).
 Variable Ob : I -> eqType.
-Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
+Variable bonding : forall i j, (i <= j)%O -> Ob j -> Ob i.
 
 Variable Sys : invsys bonding.
 Implicit Type x y : {invlim Sys}.
@@ -247,15 +254,6 @@ Qed.
 End InvLimitEqType.
 
 
-Open Scope ring_scope.
-Import GRing.Theory.
-
-(****************************************************************************)
-(** Inverse limits in various algebraic categories                          *)
-(**                                                                         *)
-(** We don't deal with multiplicative groups as they are all assumed finite *)
-(** in mathcomp.                                                            *)
-(****************************************************************************)
 Section InvLimitZModType.
 
 Variables (disp : unit) (I : dirType disp).
@@ -623,305 +621,52 @@ Canonical invlimp_fieldType :=
 End InvLimitField.
 
 
+Section Valuation.
 
-(** An example to do tests *)
-Section CNVars.
+Variable Ob : nat -> zmodType.
+Variable bonding : forall i j : nat, (i <= j)%O -> {additive (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
 
-Import GRing.Theory.
-Open Scope ring_scope.
-Variable R : comRingType.
+Implicit Type (x y : {invlim Sys}).
 
-Section Defs.
 
-Variable (n m : nat).
-Lemma cnvar_tupleP (T : eqType) (t : seq T) (c : T) :
-  size (take m t ++ nseq (m - size t) c) == m.
+Definition valuation x : natbar.
+case: (altP (x =P 0)) => [_|/il_neq0 H]; first exact: Inf.
+exact: Nat (ex_minn H).
+Defined.
+
+Definition valuat x : natbar :=
+  if altP (x =P 0) is AltFalse Pf then Nat (ex_minn (il_neq0 Pf))
+  else Inf.
+
+Variant valuat_spec x : natbar -> Type :=
+  | ValNat n of 'pi_n x != 0 & (forall i, (i < n)%N -> 'pi_i x = 0) :
+      valuat_spec x (Nat n)
+  | ValInf of x = 0 : valuat_spec x Inf.
+
+Lemma valuatP x : valuat_spec x (valuat x).
 Proof.
-rewrite size_cat size_take size_nseq -/(minn _ _) minnC /minn.
-case: ltnP => [/ltnW/subnKC -> //|]; rewrite -subn_eq0 => /eqP ->.
-by rewrite addn0.
-Qed.
-Definition cnvar_tuple : m.-tuple {mpoly R[n]} :=
-  Tuple (cnvar_tupleP [tuple 'X_i | i < n] 0).
-Definition cnvar p := p \mPo cnvar_tuple.
-
-Fact cnvar_is_rmorphism : rmorphism cnvar.
-Proof. repeat split; [exact: rmorphB | exact: rmorphM | exact: rmorph1]. Qed.
-Canonical cnvar_additive := Additive cnvar_is_rmorphism.
-Canonical cnvar_rmorphism := RMorphism cnvar_is_rmorphism.
-
-Fact cnvar_is_linear : linear cnvar.
-Proof. by rewrite /cnvar; exact: linearP. Qed.
-Canonical cnvar_linear := AddLinear cnvar_is_linear.
-Canonical cnvar_lrmorphism := [lrmorphism of cnvar].
-
-Hypothesis (nlem : (n <= m)%N).
-Lemma tnth_cnvar_tuple (i : 'I_m) (ilen : (i < n)%N) :
-  tnth cnvar_tuple i = 'X_(Ordinal ilen).
-Proof.
-rewrite (tnth_nth 0) /= nth_cat size_take size_map size_enum_ord.
-rewrite (ltnNge m n) nlem /= ilen.
-rewrite nth_take ?(leq_trans ilen) //.
-rewrite (nth_map (Ordinal ilen)) ?size_enum_ord //; congr ('X_ _).
-by apply val_inj; rewrite /= nth_enum_ord.
+rewrite /valuat; case (altP (x =P 0)) => [Pf|NPf]; first exact: ValInf.
+case: ex_minnP => v Hv vmin; apply ValNat => [|i iv]; first exact: Hv.
+by apply/contraTeq: iv; rewrite -leqNgt; apply vmin.
 Qed.
 
-Lemma tnth_cnvar_tuple0 (i : 'I_m) : (n <= i)%N -> tnth cnvar_tuple i = 0.
+Lemma proj_le_valuat x n : (Nat n < valuat x)%O -> 'pi_n x = 0.
 Proof.
-move=> nlei; rewrite (tnth_nth 0) /= nth_cat size_take size_map size_enum_ord.
-by rewrite (ltnNge m n) nlem /= (ltnNge i n) nlei /= nth_nseq if_same.
+case: valuatP => [v Hv vmin /= |->]; last by rewrite raddf0.
+by rewrite ltEnatbar; apply: vmin.
 Qed.
 
-End Defs.
-
-Lemma cnvar_id n : @cnvar n n =1 id.
+Lemma valuatNatE x n :
+  'pi_n x != 0 -> (forall i, (i < n)%N -> 'pi_i x = 0) -> valuat x = Nat n.
 Proof.
-move=> p; rewrite /cnvar.
-suff -> : cnvar_tuple n n = [tuple 'X_i | i < n] by rewrite comp_mpoly_id.
-apply eq_from_tnth => i.
-rewrite tnth_cnvar_tuple // tnth_mktuple; congr ('X_ _).
-exact: val_inj.
+case: valuatP => [v Hv vmin /= |->]; last by rewrite raddf0 eqxx.
+move=> Hn /(_ v)/contra_neqN/(_ Hv); rewrite -leqNgt => nlev.
+congr Nat; apply anti_leq; rewrite {}nlev andbT.
+by move: vmin => /(_ n)/contra_neqN/(_ Hn); rewrite -leqNgt.
 Qed.
 
-Lemma cnvar_compat i j k :
-  (i <= j)%N -> (j <= k)%N -> (@cnvar i j) \o (@cnvar j k) =1 (@cnvar i k).
-Proof.
-move=> ilej jlek p /=; have ilek := leq_trans ilej jlek.
-rewrite /cnvar !(comp_mpolyE p) raddf_sum /=; apply eq_bigr => m _.
-rewrite comp_mpolyZ; congr (_ *: _).
-rewrite rmorph_prod /=; apply eq_bigr => l _.
-rewrite !rmorphX /=; congr (_ ^+ _).
-case: (ltnP l i) => [llti | ilel].
-- rewrite !tnth_cnvar_tuple ?(leq_trans llti ilej) // => Hlj.
-  by rewrite comp_mpolyXU -tnth_nth !tnth_cnvar_tuple.
-- rewrite [RHS]tnth_cnvar_tuple0 //.
-  case: (ltnP l j) => [lltj|jlel].
-  + by rewrite tnth_cnvar_tuple // comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
-  + by rewrite tnth_cnvar_tuple0 // comp_mpoly0.
-Qed.
+Lemma valuat0 : valuat 0 = Inf.
+Proof. by case: valuatP => [v | //]; rewrite raddf0 eqxx. Qed.
 
-
-Section InverseSys.
-
-Definition cnvarbond (i j : nat) of (i <= j)%O := @cnvar i j.
-Program Definition infpoly_sys := @InvSys _ _ _ cnvarbond 0%N _ _.
-Next Obligation. exact: cnvar_id. Qed.
-Next Obligation. exact: cnvar_compat. Qed.
-
-
-Variables (i j : nat) (H : (i <= j)%O).
-Fact cnvarbond_is_rmorphism : rmorphism (cnvarbond H).
-Proof. exact: cnvar_is_rmorphism. Qed.
-Canonical cnvarbond_additive := Additive cnvarbond_is_rmorphism.
-Canonical cnvarbond_rmorphism := RMorphism cnvarbond_is_rmorphism.
-
-Fact cnvarbond_is_linear : linear (cnvarbond H).
-Proof. exact: cnvar_is_linear. Qed.
-Canonical cnvarbond_linear := AddLinear cnvarbond_is_linear.
-Canonical cnvarbond_lrmorphism := [lrmorphism of (cnvarbond H)].
-
-End InverseSys.
-
-
-End CNVars.
-
-Section Tests.
-
-Variable R : comRingType.
-
-Variables (i j : nat) (H : (i <= j)%O).
-Check [lrmorphism of (cnvarbond H)].
-
-Check [zmodType of {invlim infpoly_sys R}].
-Check [comRingType of {invlim infpoly_sys R}].
-Check [lmodType R of {invlim infpoly_sys R}].
-Check [algType R of {invlim infpoly_sys R}].
-
-Goal forall (r : R) (x y : {invlim infpoly_sys R}),
-  'pi_2 (r *: (x * y)) = 'pi_2 y * 'pi_2 (r *: x).
-Proof. by move=> r x y; rewrite linearZ /= mulrC scalerAr. Qed.
-
-End Tests.
-
-Section InfPolyTheory.
-Variable R : comRingType.
-
-Fact infpolyXP i :
-  isthread (infpoly_sys R)
-         (fun n => if ltnP i n is LtnNotGeq Pf then 'X_(Ordinal Pf) else 0).
-Proof.
-move=> m n mlen /=.
-case (ltnP i m) => [iltm|mlei]; case (ltnP i n) => [iltn|nlei].
-- by rewrite /cnvarbond/cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple.
-- by exfalso; have:= leq_trans iltm (leq_trans mlen nlei); rewrite ltnn.
-- by rewrite /cnvarbond/cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
-- by rewrite raddf0.
-Qed.
-Definition infpolyX i : {invlim infpoly_sys _} := InvLim (infpolyXP i).
-
-End InfPolyTheory.
-
-
-Section DivCompl.
-Open Scope nat_scope.
-
-Lemma modB m n d : 0 < d -> d %| m -> n <= m -> m - n = d - n %% d %[mod d].
-Proof.
-move=> Hd; rewrite (modn_def n d); case: (edivnP n d) => q r ->.
-rewrite Hd /= => rled ddivm Hqr.
-rewrite subnDA; apply/eqP. rewrite -(eqn_modDr r); apply/eqP.
-rewrite [in RHS]subnK ?modnn; last exact: ltnW.
-rewrite subnK; first last.
-  by rewrite -(leq_add2l (q * d)) subnKC // (leq_trans _ Hqr) // leq_addr.
-move: ddivm => /dvdnP [k ->{m Hqr}].
-by rewrite -mulnBl modnMl.
-Qed.
-
-Definition Zmn m n : 'Z_n -> 'Z_m := fun i => inZp i.
-
-Variables m n p : nat.
-Hypothesis (mgt1 : m > 1) (ngt1 : n > 1).
-Hypothesis (mdivn : m %| n).
-Lemma Zmn_is_rmorphism : rmorphism (@Zmn m n).
-Proof.
-repeat split=> [[i Hi] [j Hj]|]; rewrite /= /Zmn /inZp;
-    apply val_inj; move: Hi Hj; rewrite /= !Zp_cast // => Hi Hj.
-- rewrite !modnDml !modnDmr modn_dvdm //.
-  by apply/eqP; rewrite eqn_modDl modB //; apply: ltnW.
-- by rewrite modn_dvdm // modnMml modnMmr.
-Qed.
-
-Lemma comp_Zmn : @Zmn m n \o @Zmn n p =1 @Zmn m p.
-Proof.
-move=> i /=; apply val_inj => /=.
-rewrite (Zp_cast ngt1) (Zp_cast mgt1).
-rewrite (modn_def i n); case: (edivnP i n) => {i} q r -> /= Hr.
-by move: mdivn => /dvdnP [k ->]; rewrite mulnA -modnDml modnMl add0n.
-Qed.
-
-End DivCompl.
-
-Definition padic_bond (p : nat) of (prime p) :=
-  fun (i j : nat) of (i <= j)%O => @Zmn (p ^ i.+1)%N (p ^ j.+1)%N.
-
-Section Padics.
-
-Variable (p : nat).
-Local Notation Z j := 'Z_(p ^ j.+1).
-
-Hypothesis (p_pr : prime p).
-Lemma expgt1 l : (1 < p ^ (l.+1))%N.
-Proof.
-apply: (leq_trans (prime_gt1 p_pr)).
-by rewrite -{1}(expn1 p) leq_exp2l // prime_gt1.
-Qed.
-Lemma expgt0 l : (0 < p ^ (l.+1))%N.
-Proof. exact: ltn_trans _ (expgt1 l). Qed.
-
-Lemma truncexp l : (Zp_trunc (p ^ l.+1)).+2 = (p ^ l.+1)%N.
-Proof. by rewrite Zp_cast // expgt1. Qed.
-
-Lemma expN1lt n : (p ^ n.+1 - 1 < p ^ n.+1)%N.
-Proof.
-have := expgt1 n; case: (p ^ _)%N => // k _.
-by rewrite subSS subn0 ltnS.
-Qed.
-
-Local Lemma expdiv n i j : (i <= j)%O -> (n ^ i.+1 %| n ^ j.+1)%N.
-Proof.
-rewrite leEnat -ltnS => Hij;
-by rewrite -(subnK Hij) expnD dvdn_mull.
-Qed.
-
-Program Definition padic_invsys :=
-  InvSys (bonding := fun (i j : nat) (H : (i <= j)%O) => padic_bond p_pr H)
-         0%N _ _.
-Next Obligation. by move=> x; apply valZpK. Qed.
-Next Obligation. exact: comp_Zmn (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
-
-Variables (i j : nat) (H : (i <= j)%O).
-Lemma bond_is_rmorphism : rmorphism (padic_bond p_pr H).
-Proof. exact: Zmn_is_rmorphism (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
-Canonical bond_additive := Additive bond_is_rmorphism.
-Canonical bond_rmorphism := RMorphism bond_is_rmorphism.
-
-End Padics.
-
-Definition padic_int (p : nat) (p_pr : prime p) := {invlim padic_invsys p_pr}.
-
-
-Section PadicTheory.
-
-Variables (p : nat) (p_pr : prime p).
-Implicit Type x y : padic_int p_pr.
-
-Lemma padic_unit x : (x \is a GRing.unit) = ('pi_0%N x != 0).
-Proof.
-rewrite unfold_in /= /ilunit; apply/forallbP/idP => [/(_ 0%N) | /= Hx i].
-- by apply/memPn: ('pi_0%N x); rewrite unitr0.
-- have:= leq0n i; rewrite -leEnat => Hi.
-  move: (ilprojE x Hi) Hx; rewrite {Hi} /padic_bond /Zmn => <-.
-  move: ('pi_i x); rewrite {x} expn1 -(pdiv_id p_pr) => m /=.
-  rewrite -{2}(natr_Zp m) unitZpE ?expgt1 ?pdiv_id //.
-  rewrite /inZp /= -(natr_Zp (Ordinal _)) /= -unitfE unitFpE //.
-  rewrite pdiv_id // in m |- *.
-  rewrite (@Zp_cast p) ?prime_gt1 // coprime_modr.
-  exact: coprime_expl.
-Qed.
-
-Fact padic_mul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
-Proof.
-case: (altP (x =P 0)) => //= /il_neq0 [/= i Hneq0] Hxy.
-apply/eqP/invlimP=> /= j.
-move: Hxy => /(congr1 'pi_(i+j)%N); rewrite raddf0 rmorphM /=.
-move: Hneq0.
-have:= leq_addr i j; rewrite -leEnat => Hij; rewrite -(ilprojE y Hij).
-have:= leq_addr j i; rewrite -leEnat => Hji; rewrite -(ilprojE x Hji).
-rewrite /padic_bond /Zmn {Hij Hji} [(j + i)%N]addnC.
-move: ('pi_(i + j)%N x) ('pi_(i + j)%N y) => {x y} [x Hx] [y Hy].
-rewrite /inZp /= -(natr_Zp (Ordinal _)) /=.
-rewrite truncexp // (Zp_nat_mod (expgt1 p_pr i)) => xmod.
-have {xmod} xmod : (x %% p^(i.+1) != 0)%N.
-  move: xmod; apply contra => /eqP Heq.
-  by rewrite Zp_nat; apply/eqP/val_inj; rewrite /= truncexp.
-move=> /(congr1 val); rewrite /= (truncexp p_pr (i + j)) => /eqP xymod.
-apply val_inj; rewrite /= truncexp // => {Hx Hy}.
-have xn0 : (0 < x)%N.
-  by apply/contraR: xmod; rewrite -leqNgt leqn0 => /eqP ->; rewrite mod0n.
-case: (ltnP 0%N y)=> [yn0|]; last by rewrite leqn0 => /eqP ->; rewrite mod0n.
-have xyn0 : (0 < x * y)%N by rewrite muln_gt0 xn0 yn0.
-apply/eqP; rewrite -/(dvdn _ _) pfactor_dvdn //.
-move: xymod; rewrite -/(dvdn _ _) pfactor_dvdn // lognM //.
-move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
-by apply contraLR; rewrite -!leqNgt; exact: leq_add.
-Qed.
-Canonical padic_int_idomainType :=
-  Eval hnf in IdomainType (padic_int p_pr) padic_mul_eq0.
-
-End PadicTheory.
-
-
-
-Section Tests.
-Variables (p : nat) (p_pr : prime p).
-Canonical padic_unit_ring := Eval hnf in [unitRingType of padic_int p_pr].
-
-
-Fact padicN1_thread :
-  isthread (padic_invsys p_pr) (fun n => inord (p ^ n.+1 - 1)).
-Proof.
-move=> m n mlen /=; rewrite /padic_bond /Zmn; apply val_inj => /=.
-rewrite !inordK truncexp // ?expN1lt //.
-rewrite modB; try exact: expgt0; try exact: expdiv.
-by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
-Qed.
-Definition ZpN1 : {invlim padic_invsys p_pr} := InvLim padicN1_thread.
-
-Lemma ZpN1E : ZpN1 = -1.
-Proof.
-apply invlimP => /= n; apply val_inj => /=.
-rewrite inordK truncexp // ?expN1lt //.
-by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
-Qed.
-
-End Tests.
+End Valuation.
