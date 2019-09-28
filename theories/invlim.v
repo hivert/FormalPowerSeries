@@ -144,13 +144,13 @@ Record invsys : Type := InvSys {
 (** notation {invlim S} and to get the inhabitant of I.                    *)
 Definition invsys_obj of invsys := Ob.
 Definition invsys_mor of invsys := bonding.
-Definition isthread of invsys := fun fam : forall i, Ob i =>
-  forall i j, forall (Hij : i <= j), bonding Hij (fam j) = fam i.
+Definition isthread of invsys := fun thr : forall i, Ob i =>
+  forall i j, forall (Hij : i <= j), bonding Hij (thr j) = thr i.
 Definition iscompat of invsys := fun T (mors : forall i, T -> Ob i) =>
   forall i j, forall (Hij : i <= j), bonding Hij \o mors j =1 mors i.
 
 Variable Sys : invsys.
-Record invlim := InvLim { ilfam :> forall i, Ob i; _ : isthread Sys ilfam; }.
+Record invlim := InvLim { ilthr :> forall i, Ob i; _ : isthread Sys ilthr; }.
 
 Definition invlim_of of phantom invsys Sys := invlim.
 Identity Coercion type_invlim_of : invlim_of >-> invlim.
@@ -175,14 +175,14 @@ Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
 Implicit Type x y : {invlim Sys}.
 
-Definition ilproj i : {invlim Sys} -> Ob i := (ilfam (Sys := Sys))^~ i.
+Definition ilproj i : {invlim Sys} -> Ob i := (ilthr (Sys := Sys))^~ i.
 
 Lemma ilprojE x :
   forall i j, forall (Hij : i <= j), bonding Hij (ilproj j x) = ilproj i x.
 Proof. by case: x. Qed.
 
 Lemma ilprojP : iscompat Sys ilproj.
-Proof. by move=> i j Hij [fam Hfam] /=; apply Hfam. Qed.
+Proof. by move=> i j Hij [thr Hthr]; apply Hthr. Qed.
 
 Local Notation "''pi_' i" := (ilproj i).
 
@@ -621,6 +621,10 @@ Canonical invlimp_fieldType :=
 End InvLimitField.
 
 
+
+(***************************************************************************)
+(** Valuation in inverse limits                                            *)
+(***************************************************************************)
 Section Valuation.
 
 Variable Ob : nat -> zmodType.
@@ -629,11 +633,6 @@ Variable Sys : invsys bonding.
 
 Implicit Type (x y : {invlim Sys}).
 
-
-Definition valuation x : natbar.
-case: (altP (x =P 0)) => [_|/il_neq0 H]; first exact: Inf.
-exact: Nat (ex_minn H).
-Defined.
 
 Definition valuat x : natbar :=
   if altP (x =P 0) is AltFalse Pf then Nat (ex_minn (il_neq0 Pf))
@@ -651,22 +650,91 @@ case: ex_minnP => v Hv vmin; apply ValNat => [|i iv]; first exact: Hv.
 by apply/contraTeq: iv; rewrite -leqNgt; apply vmin.
 Qed.
 
-Lemma proj_le_valuat x n : (Nat n < valuat x)%O -> 'pi_n x = 0.
+Lemma lt_valuatP x n : reflect ('pi_n x = 0) (Nat n < valuat x)%O.
 Proof.
-case: valuatP => [v Hv vmin /= |->]; last by rewrite raddf0.
-by rewrite ltEnatbar; apply: vmin.
+apply (iffP idP); case: valuatP => [v Hv vmin /= |->] //.
+- by rewrite ltEnatbar; apply vmin.
+- apply contra_eqT; rewrite ltEnatbar -leqNgt => vlen.
+  apply/contra: Hv => /eqP/(congr1 (bonding vlen)).
+  by rewrite (ilprojE x) raddf0 => ->.
 Qed.
+
+Lemma le_valuatP x n :
+  reflect (forall i, (i < n)%N -> 'pi_i x = 0) (Nat n <= valuat x)%O.
+Proof.
+apply (iffP idP).
+- case: valuatP => [v Hv vmin /= |->] //.
+  by rewrite leEnatbar => nlev i /leq_trans/(_ nlev); apply vmin.
+- case: n => // n; first exact: le0bar.
+  move=> /(_ n)/(_ (ltnSn _)) /lt_valuatP.
+  by case: (valuat x)=> // v; rewrite ltEnatbar leEnatbar.
+Qed.
+
+Lemma proj_gt_valuat x n : (Nat n >= valuat x)%O = ('pi_n x != 0).
+Proof. by apply negb_inj; rewrite negbK -ltNge; apply/lt_valuatP/eqP. Qed.
 
 Lemma valuatNatE x n :
   'pi_n x != 0 -> (forall i, (i < n)%N -> 'pi_i x = 0) -> valuat x = Nat n.
 Proof.
-case: valuatP => [v Hv vmin /= |->]; last by rewrite raddf0 eqxx.
-move=> Hn /(_ v)/contra_neqN/(_ Hv); rewrite -leqNgt => nlev.
-congr Nat; apply anti_leq; rewrite {}nlev andbT.
-by move: vmin => /(_ n)/contra_neqN/(_ Hn); rewrite -leqNgt.
+move=> Hn nmin; apply le_anti; rewrite proj_gt_valuat Hn /=.
+exact/le_valuatP.
 Qed.
 
 Lemma valuat0 : valuat 0 = Inf.
 Proof. by case: valuatP => [v | //]; rewrite raddf0 eqxx. Qed.
+
+Lemma valuat0P x : (valuat x == Inf) = (x == 0).
+Proof.
+apply/eqP/eqP=> [valx|->]; last exact: valuat0.
+by apply/invlimP=> i; rewrite raddf0; apply/lt_valuatP; rewrite valx.
+Qed.
+
+Lemma valuatN x : valuat (- x) = valuat x.
+Proof.
+case: (valuatP x) => [vN HvN vnmiN /= | ->]; last by rewrite oppr0 valuat0.
+apply valuatNatE; first by rewrite raddfN oppr_eq0.
+by move=> i /vnmiN; rewrite raddfN /= => ->; rewrite oppr0.
+Qed.
+
+Lemma valuatD x1 x2 :
+  (valuat x1 `&` valuat x2 <= valuat (x1 + x2))%O.
+Proof.
+wlog v1lev2 : x1 x2 / (valuat x1 <= valuat x2)%O.
+  move=> Hlog; case: (leP (valuat x1) (valuat x2)) => [|/ltW]/Hlog//.
+  by rewrite addrC meetC.
+rewrite (meet_idPl v1lev2); move: v1lev2.
+case: (valuatP x1)=> [v1 Hv1 v1min|->]; last by rewrite add0r.
+case: (valuatP x2)=> [v2 Hv2 v2min|->]; last by rewrite addr0 (valuatNatE Hv1).
+rewrite leEnatbar => le12.
+apply/le_valuatP => i Hi; rewrite raddfD /= v1min ?v2min ?addr0 //.
+exact: leq_trans Hi le12.
+Qed.
+Lemma valuat_sum I r P (F : I ->  {invlim Sys}) :
+  (\meet_(i <- r | P i) valuat (F i) <= valuat (\sum_(i <- r | P i) F i))%O.
+Proof.
+apply: (big_ind2 (fun x v => v <= valuat x)%O); rewrite ?valuat0 //=.
+by move=> x1 v1 x2 v2 H1 H2; apply: (le_trans (leI2 _ _) (valuatD x1 x2)).
+Qed.
+
+Lemma valuatB s1 s2 :
+  (valuat s1 `&` valuat s2 <= valuat (s1 - s2))%O.
+Proof. by have:= valuatD s1 (-s2); rewrite valuatN. Qed.
+
+Lemma valuatDr s1 s2 :
+  (valuat s1 < valuat s2)%O -> valuat (s1 + s2) = valuat s1.
+Proof.
+case: (valuatP s2) => [v2 _   v2min|-> _]; last by rewrite addr0.
+case: (valuatP s1) => [v1 Hv1 v1min|->]; last by rewrite ltIbar.
+rewrite ltEnatbar => v12.
+apply valuatNatE=> [|n nv1]; rewrite raddfD /= v2min ?addr0 // ?v1min //.
+exact: ltn_trans nv1 v12.
+Qed.
+
+Lemma valuatBr s1 s2 :
+  (valuat s1 < valuat s2)%O -> valuat (s1 - s2) = valuat s1.
+Proof. by rewrite -(valuatN s2) => /valuatDr. Qed.
+Lemma valuatBl s1 s2 :
+  (valuat s2 < valuat s1)%O -> valuat (s1 - s2) = valuat s2.
+Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
 
 End Valuation.
