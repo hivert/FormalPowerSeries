@@ -32,6 +32,12 @@ Reserved Notation "{ 'invlim' S }"
          (at level 0, format "{ 'invlim'  S }").
 Reserved Notation "''pi_' i" (at level 8, i at level 2, format "''pi_' i").
 
+Reserved Notation "\Sum_( i : t ) F"
+         (at level 41, F at level 41, i at level 50,
+         format "\Sum_( i  :  t )  F").
+Reserved Notation "\Sum_( i ) F"
+         (at level 41, F at level 41, i at level 50,
+         format "\Sum_( i )  F").
 
 
 Definition directed (T : Type) (R : T -> T -> bool) :=
@@ -738,3 +744,96 @@ Lemma valuatBl s1 s2 :
 Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
 
 End Valuation.
+
+
+From mathcomp Require Import finmap.
+
+Section CommHugeOp.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> eqType.
+Variable bonding : forall i j : I, (i <= j)%O -> (Ob j) -> (Ob i).
+Variable Sys : invsys bonding.
+
+Variable (C : choiceType).
+Variables (idx : {invlim Sys}) (op : Monoid.com_law idx).
+
+Implicit Type F : C -> {invlim Sys}.
+Implicit Types (x y z t : {invlim Sys}).
+
+Definition invar i x := forall s, 'pi_i (op x s) = 'pi_i s.
+Definition is_ilopable F :=
+  forall i, exists s : seq C, forall c, c \notin s -> invar i (F c).
+Lemma ilopable_spec F :
+  is_ilopable F ->
+  forall i, { f : {fset C} | f =i predC (fun c => `[< invar i (F c)>]) }.
+Proof.
+move=> H i; move/(_ i): H => /cid [s Hs].
+have key : unit by [].
+exists (seq_fset key [seq c <- s | ~~ `[< invar i (F c)>]]) => c.
+rewrite seq_fsetE !inE mem_filter.
+by case: (boolP `[< _>]) => //=; apply contraR => /Hs/asboolT.
+Qed.
+Definition ilopable F (sm : is_ilopable F) c :=
+  let: exist fs _ := ilopable_spec sm c in fs.
+
+Lemma ilopableP F (sm : is_ilopable F) i c :
+  reflect (invar i (F c)) (c \notin (ilopable sm i)).
+Proof.
+rewrite /ilopable; apply (iffP negP); case: ilopable_spec => f Hf.
+- by rewrite Hf inE => /negP; rewrite negbK => /asboolW.
+- by rewrite Hf inE => H; apply/negP; rewrite negbK; apply asboolT.
+Qed.
+
+Lemma ilopable_subset F (sm : is_ilopable F) i j :
+  (i <= j)%O -> (ilopable sm i `<=` ilopable sm j)%fset.
+Proof.
+move=> ilej.
+apply/fsubsetP => c; apply/contraLR => /ilopableP Hinv.
+by apply/ilopableP => x; rewrite -!(ilprojE _ ilej) Hinv.
+Qed.
+
+Fact ilopable_istrhead F (sm : is_ilopable F) :
+  isthread Sys (fun i => 'pi_i (\big[op/idx]_(c <- ilopable sm i) F c)).
+Proof.
+move=> i j Hij; rewrite ilprojE.
+rewrite (bigID (fun c => `[< invar i (F c)>])) /=.
+set X := (X in op _ X); set Y := (Y in _ = _ Y).
+have {X} -> : X = Y.
+  rewrite {}/X {}/Y; apply eq_fbigl_cond => c.
+  rewrite !inE andbT; apply negb_inj; rewrite negb_and negbK.
+  case: (boolP (c \in (ilopable sm j))) => /= Hc.
+  - by apply/asboolP/idP=> /ilopableP //; apply.
+  - suff -> : c \notin (ilopable sm i) by [].
+    by apply/contra: Hc; apply: (fsubsetP (ilopable_subset sm Hij)).
+elim: (X in \big[op/idx]_(i <- X | _) _) => [| s0 s IHs].
+  by rewrite big_nil Monoid.mul1m.
+rewrite big_cons /=; case: asboolP => [|]; last by rewrite IHs.
+by rewrite -Monoid.mulmA {1}/invar => ->.
+Qed.
+
+Definition HugeOp F : {invlim Sys} :=
+  if pselect (is_ilopable F) is left sm
+  then InvLim (ilopable_istrhead sm)
+  else idx.
+
+Local Notation "\Op_( c ) F" := (HugeOp (fun c => F)) (at level 0).
+
+Lemma coefsHugeOp F i (f : {fset C}) :
+  is_ilopable F ->
+  subpred (predC (mem f)) (fun c => `[< invar i (F c)>]) ->
+  'pi_i (\Op_( c ) (F c)) = 'pi_i (\big[op/idx]_(c <- f) (F c)).
+Proof.
+rewrite /HugeOp=> Hop Hsub; case: pselect; last by move=> /(_ Hop).
+move=> /= {Hop} Hop.
+transitivity ('pi_i (\big[op/idx]_(c <- f | c \in ilopable Hop i) F c)).
+rewrite [in RHS](bigID [pred c | `[< invar i (F c)>]]) /=.
+rewrite [X in op _ X]big1 ?addr0; last by move=> i; rewrite negbK => /eqP.
+rewrite -[RHS]big_filter; apply: perm_big.
+apply: (uniq_perm (fset_uniq _) (filter_uniq _ (enum_finpred_uniq _))) => i.
+rewrite ilopableE mem_filter inE enum_finpredE.
+ by case: (boolP (_ == 0)) => // /Hsub /= ->.
+Qed.
+ *)
+
+End HugeOp.

@@ -86,7 +86,7 @@ Notation "{ 'trpoly' R n }" :=  (trpoly_of n (Phant R)).
 Hint Resolve size_trpoly.
 
 
-Section Quotient.
+Section PolyModXnTheory.
 
 Variable R : ringType.
 Variable n : nat.
@@ -112,9 +112,9 @@ Definition Trpoly_of (p : {poly R}) (p_small : size p <= n.+1)
   : {trpoly R n} := TruncPolynomial p_small.
 Definition trpoly_of_fun (f : nat -> R) := Trpoly_of (size_poly _ f).
 
-Lemma trXn_spec p : size (Poly (take n.+1 p)) <= n.+1.
+Lemma trXn_subproof p : size (Poly (take n.+1 p)) <= n.+1.
 Proof. by apply: (leq_trans (size_Poly _)); rewrite size_take geq_minl. Qed.
-Definition trXn p : {trpoly R n} := TruncPolynomial (trXn_spec p).
+Definition trXn p := Trpoly_of (trXn_subproof p).
 
 Lemma trXnE p : Poly (take n.+1 p) = val (trXn p).
 Proof. by []. Qed.
@@ -158,7 +158,13 @@ Lemma poly_trXn_quotP p q :
     (p == q %[mod {trpoly R n}])%qT.
 Proof. by rewrite !unlock /pi_phant; apply (iffP eqP); rewrite trXnP. Qed.
 
-End Quotient.
+End PolyModXnTheory.
+
+Local Open Scope tfps_scope.
+
+Notation "[ 'trpoly' s <= n => F ]" := (trpoly_of_fun n (fun s => F)) : tfps_scope.
+Notation "[ 'trpoly' s => F ]" := [trpoly s <= _ => F] : tfps_scope.
+Notation "c %:S" := (trXn _ (c %:P)) (at level 2) : tfps_scope.
 
 
 Section MorePolyTheory.
@@ -227,11 +233,11 @@ Section ModPolyTheory.
 Variable (R : ringType).
 Implicit Types (p q r s : {poly R}).
 
-Fact leq_modpXn m p : size (trXn m p) <= m.+1.
+Fact leq_modpXn n p : size (trXn n p) <= n.+1.
 Proof. by case: (trXn _ _). Qed.
 
 (* should not be visible outside this file *)
-Fact trXnC a n : trXn n a%:P = a%:P :> {poly R}.
+Fact trXnC n a : trXn n a%:P = a%:P :> {poly R}.
 Proof.
 apply/polyP => i; rewrite coef_trXn coefC.
 by case: eqP => [->|_] //; rewrite if_same.
@@ -246,25 +252,26 @@ Qed.
 Fact coef0M p q : (p * q)`_0 = p`_0 * q`_0.
 Proof. by rewrite coefM big_ord_recl big_ord0 addr0. Qed.
 
-Lemma trXn_mull n p q : trXn n (val (trXn n p) * q) = trXn n (p * q).
+Variable (n : nat).
+
+Lemma trXn_mull p q : trXn n (val (trXn n p) * q) = trXn n (p * q).
 Proof.
 apply/trXnP => i le_in /=; rewrite !coefM.
 apply eq_bigr => [] [j] /=; rewrite ltnS => le_ji _.
 by rewrite coef_trXn (leq_trans le_ji le_in).
 Qed.
 
-Lemma trXn_mulr n p q : trXn n (p * val (trXn n q)) = trXn n (p * q).
+Lemma trXn_mulr p q : trXn n (p * val (trXn n q)) = trXn n (p * q).
 Proof.
 apply/trXnP => i le_in /=; rewrite !coefM.
 apply eq_bigr => [] [j] /=; rewrite ltnS => le_ji _.
 by rewrite coef_trXn (leq_trans (leq_subr _ _) le_in).
 Qed.
 
-Lemma trXn_mul n p q :
+Lemma trXn_mul p q :
   trXn n (val (trXn n p) * val (trXn n q)) = trXn n (p * q).
 Proof. by rewrite trXn_mulr trXn_mull. Qed.
 
-Variable (n : nat).
 
 (* zmodType structure *)
 Implicit Types (f g : {trpoly R n}).
@@ -278,9 +285,9 @@ Lemma add_trpoly_subproof f g :
 Proof. by rewrite (leq_trans (size_add _ _)) // geq_max !size_trpoly. Qed.
 Definition add_trpoly f g := Trpoly_of (add_trpoly_subproof f g).
 
-Lemma opp_trpoly_proof f : size (- val f) <= n.+1.
+Lemma opp_trpoly_subproof f : size (- val f) <= n.+1.
 Proof. by rewrite size_opp ?size_trpoly. Qed.
-Definition opp_trpoly f := Trpoly_of (opp_trpoly_proof f).
+Definition opp_trpoly f := Trpoly_of (opp_trpoly_subproof f).
 
 Program Definition trpoly_zmodMixin :=
   @ZmodMixin {trpoly R n} zero_trpoly opp_trpoly add_trpoly _ _ _ _.
@@ -310,14 +317,11 @@ Proof. by rewrite size_polyC (leq_trans (leq_b1 _)). Qed.
 Definition one_trpoly : {trpoly R n} := Trpoly_of one_trpoly_proof.
 
 Definition mul_trpoly f g := trXn n (val f * val g).
-
-Local Notation "[ 'trpoly' s => F ]" := (trpoly_of_fun n (fun s => F)).
-Definition hmul_trpoly f g := trpoly_of_fun n (fun j => (f`_j * g`_j)).
-
-Definition deriv_trpoly f : {trpoly R n.-1} :=
-  trpoly_of_fun n.-1 (fun j => f`_j.+1 *+ j.+1).
+Definition hmul_trpoly f g := [trpoly j <= n => f`_j * g`_j].
+Definition deriv_trpoly f := [trpoly j <= n.-1 => f`_j.+1 *+ j.+1].
 
 Local Notation "f *h g" := (hmul_trpoly f g) (at level 2).
+Local Notation "f ^` () " := (deriv_trpoly f) (at level 8).
 
 Lemma hmul_trpolyA : associative hmul_trpoly.
 Proof.
@@ -366,11 +370,9 @@ by rewrite exprS {}IHm /= !rmorphX /= trpolyK -exprS.
 Qed.
 
 (* lmodType structure *)
-Lemma scale_trpoly_spec (c : R) f : size (c *: val f) <= n.+1.
+Lemma scale_trpoly_subproof (c : R) f : size (c *: val f) <= n.+1.
 Proof. exact: leq_trans (size_scale_leq _ _) (size_trpoly _). Qed.
-
-Definition scale_trpoly (c : R) f : {trpoly R n} :=
-  TruncPolynomial (scale_trpoly_spec c f).
+Definition scale_trpoly (c : R) f := Trpoly_of (scale_trpoly_subproof c f).
 
 Program Definition trpoly_lmodMixin :=
   @LmodMixin R [zmodType of {trpoly R n}] scale_trpoly _ _ _ _.
@@ -402,7 +404,7 @@ Canonical trXn_lrmorphism := AddLRMorphism trXn_is_linear.
 Local Notation "c %:S" := (trXn _ (c %:P)) (at level 2).
 
 Fact onefE : 1 = 1 %:S.
-Proof. by apply/val_inj => /=; rewrite -[LHS](trXnC 1 n). Qed.
+Proof. by apply/val_inj => /=; rewrite -[LHS](trXnC n 1). Qed.
 
 (* Test *)
 Fact trpoly0 : trXn n (0 : {poly R}) = 0.
@@ -412,9 +414,6 @@ Fact trpoly1 : trXn n (1 : {poly R}) = 1.
 Proof. by rewrite rmorph1. Qed.
 
 End ModPolyTheory.
-
-Notation "c %:S" := (trXn _ (c %:P)) (at level 2) : tfps_scope.
-Local Open Scope tfps_scope.
 
 
 Section ModPolyTheoryComRing.
@@ -451,21 +450,21 @@ Fixpoint inv_trpoly_rec f bound m :=
     else - (\sum_(i < m) (inv_trpoly_rec f b i) * f`_(m - i)) * f`_(locked 0%N)^-1
   else f`_(locked 0%N)^-1.
 Definition inv_trpoly f : {trpoly R n} :=
-  if unit_trpoly f then trpoly_of_fun n (fun i => inv_trpoly_rec f i i) else f.
+  if unit_trpoly f then [trpoly i <= n => inv_trpoly_rec f i i] else f.
 
-Fixpoint inv_trpolyr_rec f bound m :=
+Fixpoint invr_trpoly_rec f bound m :=
   if bound is b.+1 then
-    if (m <= b)%N then inv_trpolyr_rec f b m
+    if (m <= b)%N then invr_trpoly_rec f b m
     else - f`_(locked 0%N)^-1 *
-           (\sum_(i < m) f`_(locked i.+1) * (inv_trpolyr_rec f b (m - i.+1)%N))
+           (\sum_(i < m) f`_(locked i.+1) * (invr_trpoly_rec f b (m - i.+1)%N))
   else f`_(locked 0%N)^-1.
-Definition inv_trpolyr f : {trpoly R n} :=
-  if unit_trpoly f then trpoly_of_fun n (fun i => inv_trpolyr_rec f i i) else f.
+Definition invr_trpoly f : {trpoly R n} :=
+  if unit_trpoly f then [trpoly i <= n => invr_trpoly_rec f i i] else f.
 
 Lemma coef0_inv_trpoly f : unit_trpoly f -> (inv_trpoly f)`_0 = f`_0^-1.
 Proof. by rewrite /inv_trpoly => ->; rewrite coef_trpoly_of_fun /= -lock. Qed.
-Lemma coef0_inv_trpolyr f : unit_trpoly f -> (inv_trpolyr f)`_0 = f`_0^-1.
-Proof. by rewrite /inv_trpolyr => ->; rewrite coef_trpoly_of_fun /= -lock. Qed.
+Lemma coef0_invr_trpoly f : unit_trpoly f -> (invr_trpoly f)`_0 = f`_0^-1.
+Proof. by rewrite /invr_trpoly => ->; rewrite coef_trpoly_of_fun /= -lock. Qed.
 
 Lemma coefS_inv_trpoly f m :
   unit_trpoly f -> m < n ->
@@ -479,14 +478,14 @@ rewrite coef_trpoly_of_fun (leq_trans le_im (ltnW lt_mn)); congr (_ * _).
 have:= le_im => /subnKC <-; elim: (m - i)%N => [|k IHk]; first by rewrite addn0.
 by rewrite addnS /= leq_addr.
 Qed.
-Lemma coefS_inv_trpolyr f m :
+Lemma coefS_invr_trpoly f m :
   unit_trpoly f -> m < n ->
-  (inv_trpolyr f)`_m.+1 =
+  (invr_trpoly f)`_m.+1 =
   - f`_(locked 0%N)^-1 *
-    (\sum_(i < m.+1) f`_(locked i.+1) * (inv_trpolyr f)`_(m - i)%N).
+    (\sum_(i < m.+1) f`_(locked i.+1) * (invr_trpoly f)`_(m - i)%N).
 Proof.
 move=> s_unit lt_mn.
-rewrite /inv_trpolyr s_unit coef_trpoly_of_fun /= ltnn lt_mn; congr (- _ * _).
+rewrite /invr_trpoly s_unit coef_trpoly_of_fun /= ltnn lt_mn; congr (- _ * _).
 apply: eq_bigr => [[i]/=]; rewrite ltnS => le_im _.
 rewrite coef_trpoly_of_fun (leq_trans (leq_subr _ _) (ltnW lt_mn)); congr (_ * _).
 rewrite /bump /= subSS.
@@ -513,21 +512,21 @@ case: (ltnP m.+1 n.+1) => Hmn.
 by rewrite nth_default // size_take -lock (leq_trans (geq_minl _ _)).
 Qed.
 
-Lemma mul_trpolyrVr : {in unit_trpoly, right_inverse 1 inv_trpolyr *%R}.
+Lemma mul_trpolyrVr : {in unit_trpoly, right_inverse 1 invr_trpoly *%R}.
 Proof.
 move=> f s_unit; have:= s_unit; rewrite /= unfold_in => s0_unit.
 apply/trpolyP => m _; elim: m {1 3 4}m (leqnn m) => [| m IHm] i.
   rewrite leqn0 => /eqP ->.
   rewrite [0%N]lock /= coef_Poly nth_take -lock //.
   rewrite coefM big_ord_recr big_ord0 sub0n [0%N]lock /=.
-  by rewrite /= add0r -lock coef0_inv_trpolyr // mulrV // coefC.
+  by rewrite /= add0r -lock coef0_invr_trpoly // mulrV // coefC.
 move=> le_im1; case: (leqP i m) => [|lt_mi]; first exact: IHm.
 have {le_im1 lt_mi i} -> : i = m.+1 by apply anti_leq; rewrite le_im1 lt_mi.
 rewrite coef1 [RHS]/= [m.+1]lock /= coef_Poly.
 case: (ltnP m.+1 n.+1) => Hmn.
   rewrite nth_take -lock //.
   rewrite coefM big_ord_recl [m.+1]lock [val ord0]/= subn0.
-  rewrite -lock coefS_inv_trpolyr //.
+  rewrite -lock coefS_invr_trpoly //.
   rewrite mulNr mulrN -lock mulVKr // addrC.
   apply/eqP; rewrite subr_eq0; apply/eqP.
   by apply eq_bigr => [] [i] /=; rewrite -lock.
@@ -535,9 +534,9 @@ by rewrite nth_default // size_take -lock (leq_trans (geq_minl _ _)).
 Qed.
 
 (* General semi-group theory : left inverse = right inverse *)
-Lemma unit_trpolyE f : unit_trpoly f -> inv_trpoly f = inv_trpolyr f.
+Lemma unit_trpolyE f : unit_trpoly f -> inv_trpoly f = invr_trpoly f.
 Proof.
-move=> H; have:= erefl (inv_trpoly f * f * inv_trpolyr f).
+move=> H; have:= erefl (inv_trpoly f * f * invr_trpoly f).
 by rewrite -{1}mulrA mul_trpolyVr // mul1r mul_trpolyrVr // mulr1.
 Qed.
 
@@ -578,7 +577,7 @@ move=> funit; case: ltnP => Hi.
   by rewrite -(trpolyK f^-1) coef_trXn leqNgt Hi.
 case: i Hi => [|i] Hi; first by rewrite eq_refl coefsV0.
 have -> : f^-1 = inv_trpoly f by [].
-rewrite unit_trpolyE // coefS_inv_trpolyr // -!lock; congr (_ * _).
+rewrite unit_trpolyE // coefS_invr_trpoly // -!lock; congr (_ * _).
 by apply eq_bigr => /= j _; rewrite -lock subSS.
 Qed.
 
@@ -634,8 +633,7 @@ Proof. by rewrite trpoly_unitE nth0_trXn. Qed.
 
 Lemma trpoly_is_cst (g : {trpoly R 0}) : g = (g`_0) %:S.
 Proof.
-apply/val_inj => /=.
-have /= -> := trXnC g`_0 0.
+apply/val_inj => /=; have /= -> := trXnC 0 g`_0.
 by apply: size1_polyC; rewrite size_trpoly.
 Qed.
 
@@ -708,11 +706,11 @@ Variables (K L : ringType) (n : nat) (f : {rmorphism K -> L}).
 
 Implicit Type g h : {trpoly K n}.
 
-Fact map_trpoly_spec g : size (map_poly f (val g)) <= n.+1.
+Fact map_trpoly_subproof g : size (map_poly f (val g)) <= n.+1.
 Proof.
 by rewrite map_polyE (leq_trans (size_Poly _)) // size_map size_trpoly.
 Qed.
-Definition map_trpoly g : {trpoly L n} := TruncPolynomial (map_trpoly_spec g).
+Definition map_trpoly g := Trpoly_of (map_trpoly_subproof g).
 
 Lemma map_trpolyM g h : map_trpoly (g * h) = (map_trpoly g) * (map_trpoly h).
 Proof.

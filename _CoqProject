@@ -7,3 +7,5 @@ theories/natbar.v
 theories/infpoly.v
 theories/padic.v
 
+theories/auxresults.v
+
