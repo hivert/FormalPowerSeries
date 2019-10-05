@@ -1363,9 +1363,9 @@ move: f g; case: m => [f g g0_eq0| m f g g0_eq0].
   rewrite mulrC -[LHS]Pdiv.IdomainUnit.modp_mul // mulrC.
   congr (modp _) ; congr (_ * _).
   rewrite [deriv g %% 'X^m.+1]modp_small ; last first.
-  rewrite size_polyXn (leq_ltn_trans (leq_size_deriv _)) //.
-  have [-> //|] := eqVneq (size g) 0%N.
-  by rewrite -lt0n => sp_gt0; rewrite prednK // size_tfps.
+    rewrite size_polyXn (leq_ltn_trans (leq_size_deriv _)) //.
+    have [-> //|] := eqVneq (size g) 0%N.
+    by rewrite -lt0n => sp_gt0; rewrite prednK // size_tfps.
   rewrite (Pdiv.IdomainUnit.divp_eq (leadXn_unit _ m.+1) (val f)).
   rewrite Pdiv.IdomainUnit.modp_add // modp_mull add0r modp_mod.
   rewrite !comp_polyE !modp_sumn /=; apply: eq_bigr => i _.
