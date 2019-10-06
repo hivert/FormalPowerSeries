@@ -1696,7 +1696,7 @@ Qed.
 
 Local Notation "f ^` ()" := (deriv_trpoly f) (at level 8) : ring_scope.
 
-Lemma deriv_trpoly0_cst f : f^`() = 0 -> {c : R | f = c %:S}.
+Lemma deriv_trpoly_eq0_cst f : f^`() = 0 -> {c : R | f = c %:S}.
 Proof.
 move: f; case: n => [f _| m f]; first by rewrite [f]trpoly_is_cst; exists (f`_0).
 move=> H; exists (f`_0).
@@ -1706,20 +1706,20 @@ move: H => /(congr1 (fun x : {trpoly _ _ } => x`_i)).
 by rewrite coef_deriv_trpoly coef0 -mulr_natr.
 Qed.
 
-Lemma deriv_trpoly0_eq0 f :
+Lemma deriv_trpoly_eq0 f :
   f^`() = 0 -> {x : R | (val f).[x] = 0} -> f = 0.
 Proof.
-move=> /deriv_trpoly0_cst [c ->] [x].
+move=> /deriv_trpoly_eq0_cst [c ->] [x].
 rewrite val_trpolyC /= hornerC => ->.
 by rewrite trpolyC0.
 Qed.
 
-Lemma deriv_trpoly0_eq f g :
+Lemma deriv_trpoly_eq f g :
   f ^` () = g ^` () -> {x : R | (val f).[x] = (val g).[x]} -> f = g.
 Proof.
 move=> H [x Hx].
 apply/eqP; rewrite -(subr_eq0 f g); apply/eqP.
-apply: deriv_trpoly0_eq0; first by rewrite linearB /= H subrr.
+apply: deriv_trpoly_eq0; first by rewrite linearB /= H subrr.
 by exists x ; rewrite -horner_evalE rmorphB /= horner_evalE Hx subrr.
 Qed.
 
@@ -1788,7 +1788,7 @@ Lemma cancel_log_exp : {in coef0_is_0, cancel (@exp R n) (@log R n)}.
 Proof.
 move => f f0_eq0 /=.
 apply/eqP; rewrite -(subr_eq0 _ f); apply/eqP.
-apply: (deriv_trpoly0_eq0 nat_inv).
+apply: (deriv_trpoly_eq0 nat_inv).
 - rewrite linearB /= deriv_log ?exp_in_coef0_is_1 //.
   rewrite deriv_exp // -mulrA divrr ?mulr1 ?subrr // trXn_is_unit.
   by rewrite coef0_exp // unitr1.
@@ -1811,7 +1811,7 @@ have {Hlog} : (p/q) ^` () = 0.
     by move: p0_eq0; rewrite coef0_is_1E => /eqP ->; apply unitr1.
     by move: q0_eq0; rewrite coef0_is_1E => /eqP ->; apply unitr1.
   by move/(congr1 (@deriv_trpoly R n)): Hlog; rewrite !deriv_log // => ->.
-move/(deriv_trpoly0_cst nat_inv) => [c Hpq].
+move/(deriv_trpoly_eq0_cst nat_inv) => [c Hpq].
 suff Hc : c = 1 by subst c; move: Hpq; rewrite trpolyC1; apply: divr1_eq.
 move/(congr1 (fun x => x * q)): Hpq.
 rewrite mulrAC -mulrA divrr; last first.
@@ -1867,21 +1867,21 @@ Proof. by rewrite unitfE; move: char_K_is_zero => /charf0P ->. Qed.
 
 Notation nif := nat_inv_field.
 
-Definition pred_size_prim    := TrpolyUnitRing.pred_size_prim nif.
-Definition primK             := TrpolyUnitRing.primK nif.
-Definition prim_trpolyK      := TrpolyUnitRing.prim_trpolyK nif.
-Definition deriv_trpolyK     := TrpolyUnitRing.deriv_trpolyK nif.
-Definition exp_is_morphism   := TrpolyUnitRing.exp_is_morphism nif.
-Definition deriv_trpoly0_cst := TrpolyUnitRing.deriv_trpoly0_cst nif.
-Definition deriv_trpoly0_eq0 := TrpolyUnitRing.deriv_trpoly0_eq0 nif.
-Definition deriv_trpoly0_eq  := TrpolyUnitRing.deriv_trpoly0_eq nif.
-Definition deriv_exp         := TrpolyUnitRing.deriv_exp nif.
-Definition deriv_log         := TrpolyUnitRing.deriv_log nif.
-Definition cancel_log_exp    := TrpolyUnitRing.cancel_log_exp nif.
-Definition log_inj           := TrpolyUnitRing.log_inj nif.
-Definition cancel_exp_log    := TrpolyUnitRing.cancel_exp_log nif.
-Definition log_is_morphism   := TrpolyUnitRing.log_is_morphism nif.
-Definition exp_logX          := TrpolyUnitRing.exp_logX.
+Definition pred_size_prim       := TrpolyUnitRing.pred_size_prim nif.
+Definition primK                := TrpolyUnitRing.primK nif.
+Definition prim_trpolyK         := TrpolyUnitRing.prim_trpolyK nif.
+Definition deriv_trpolyK        := TrpolyUnitRing.deriv_trpolyK nif.
+Definition exp_is_morphism      := TrpolyUnitRing.exp_is_morphism nif.
+Definition deriv_trpoly_eq0_cst := TrpolyUnitRing.deriv_trpoly_eq0_cst nif.
+Definition deriv_trpoly_eq0     := TrpolyUnitRing.deriv_trpoly_eq0 nif.
+Definition deriv_trpoly_eq      := TrpolyUnitRing.deriv_trpoly_eq nif.
+Definition deriv_exp            := TrpolyUnitRing.deriv_exp nif.
+Definition deriv_log            := TrpolyUnitRing.deriv_log nif.
+Definition cancel_log_exp       := TrpolyUnitRing.cancel_log_exp nif.
+Definition log_inj              := TrpolyUnitRing.log_inj nif.
+Definition cancel_exp_log       := TrpolyUnitRing.cancel_exp_log nif.
+Definition log_is_morphism      := TrpolyUnitRing.log_is_morphism nif.
+Definition exp_logX             := TrpolyUnitRing.exp_logX.
 
 End TrpolyField.
 

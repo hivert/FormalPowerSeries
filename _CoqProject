@@ -8,4 +8,5 @@ theories/infpoly.v
 theories/padic.v
 
 theories/auxresults.v
+theories/truncpoly.v
 
