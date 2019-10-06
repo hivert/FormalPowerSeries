@@ -819,16 +819,23 @@ Definition HugeOp F : {invlim Sys} :=
 
 Local Notation "\Op_( c ) F" := (HugeOp (fun c => F)) (at level 0).
 
-Lemma coefsHugeOp F i (f : {fset C}) :
+(*
+Lemma coefsHugeOp F i (S : {fset C}) :
   is_ilopable F ->
-  subpred (predC (mem f)) (fun c => `[< invar i (F c)>]) ->
-  'pi_i (\Op_( c ) (F c)) = 'pi_i (\big[op/idx]_(c <- f) (F c)).
+  subpred (predC (mem S)) (fun c => `[< invar i (F c)>]) ->
+  'pi_i (\Op_( c ) (F c)) = 'pi_i (\big[op/idx]_(c <- S) (F c)).
 Proof.
 rewrite /HugeOp=> Hop Hsub; case: pselect; last by move=> /(_ Hop).
 move=> /= {Hop} Hop.
-transitivity ('pi_i (\big[op/idx]_(c <- f | c \in ilopable Hop i) F c)).
+transitivity ('pi_i (\big[op/idx]_(c <- S | c \in ilopable Hop i) F c));
+  first last.
+  
+
 rewrite [in RHS](bigID [pred c | `[< invar i (F c)>]]) /=.
-rewrite [X in op _ X]big1 ?addr0; last by move=> i; rewrite negbK => /eqP.
+  rewrite [X in op _ X]big1 ?addr0; first last.
+  move=> j /andP [].
+
+   rewrite negbK => /eqP.
 rewrite -[RHS]big_filter; apply: perm_big.
 apply: (uniq_perm (fset_uniq _) (filter_uniq _ (enum_finpred_uniq _))) => i.
 rewrite ilopableE mem_filter inE enum_finpredE.
@@ -836,4 +843,4 @@ rewrite ilopableE mem_filter inE enum_finpredE.
 Qed.
  *)
 
-End HugeOp.
+End CommHugeOp.
