@@ -16,7 +16,6 @@ Unset Printing Implicit Defensive.
 
 Import GRing.Theory.
 Local Open Scope ring_scope.
-(* Local Open Scope quotient_scope. *)
 
 Delimit Scope trpoly_scope with trpoly.
 
@@ -31,6 +30,7 @@ Reserved Notation "\X" (at level 0).
 Reserved Notation "\Xo( n )" (at level 0).
 Reserved Notation "f *h g" (at level 2).
 Reserved Notation "x ^^ n" (at level 29, left associativity).
+Reserved Notation "f \So g" (at level 50).
 
 
 Section MoreBigop.
@@ -993,11 +993,11 @@ End Coefficient01.
 Arguments coef0_is_0 {R n}.
 Arguments coef0_is_1 {R n}.
 
-Lemma coef_trXn_is_0 (R : ringType) (n m : nat) (f : {trpoly (R) n}) :
+Lemma coef0_is_0_trXn (R : ringType) (n m : nat) (f : {trpoly (R) n}) :
   (trXn m f \in coef0_is_0) = (f \in coef0_is_0).
 Proof. by rewrite !coef0_is_0E nth0_trXn. Qed.
 
-Lemma coef_trXn_is_1 (R : ringType) (n m : nat) (f : {trpoly (R) n}) :
+Lemma coef0_is_1_trXn (R : ringType) (n m : nat) (f : {trpoly (R) n}) :
   (trXn m f \in coef0_is_1) = (f \in coef0_is_1).
 Proof. by rewrite !coef0_is_1E nth0_trXn. Qed.
 
@@ -1401,6 +1401,22 @@ rewrite coefM; apply big1 => [] [j /=]; rewrite ltnS => le_ji _.
 by rewrite coeffX_eq0 ?mul0r // ltnS (leq_trans le_ji le_in).
 Qed.
 
+Lemma coef_comp_poly_cX p c i : (p \Po (c *: 'X))`_i = c ^+ i * p`_i.
+Proof.
+rewrite coef_comp_poly.
+rewrite (eq_bigr (fun j : 'I_ _ =>
+                    c ^+ j * p`_j * (i == j)%:R)) => [|j _]; first last.
+  rewrite -mulr_algl exprMn_comm; last exact: commr_polyX.
+  by rewrite -in_algE -rmorphX mulr_algl coefZ coefXn mulrA [p`_j * _]mulrC.
+case: (ltnP i (size p)) => [lt_isz | le_szi].
+- rewrite (bigD1 (Ordinal lt_isz)) //= big1 ?addr0; first last.
+    move=> [j /= lt_jsz]; rewrite -val_eqE /= eq_sym => /negbTE ->.
+    by rewrite mulr0.
+  by rewrite eqxx mulr1.
+- rewrite nth_default // mulr0 big1 // => [] [j /= lt_jsz] _.
+  by rewrite (gtn_eqF (leq_trans lt_jsz le_szi)) mulr0.
+Qed.
+
 End MoreCompPoly.
 
 
@@ -1410,18 +1426,33 @@ Variables (R : comRingType) (n : nat).
 Implicit Types (f g : {trpoly R n}) (p q : {poly R}).
 
 Definition comp_trpoly m (f g : {trpoly R m}) :=
-  if f \in coef0_is_0 then trXn m (comp_poly f g) else 0.
+  if f \in coef0_is_0 then trXn m (comp_poly f g) else (g`_0%N)%:S.
 
-Local Notation "f \So g" := (comp_trpoly g f) (at level 2) : trpoly_scope.
+Local Notation "f \So g" := (comp_trpoly g f) : trpoly_scope.
 
 
 Lemma comp_trpoly_coef0_neq0 f g :
-  g \notin coef0_is_0 -> f \So g = 0.
+  g \notin coef0_is_0 -> f \So g = (f`_0%N)%:S.
 Proof. by move/negbTE => p0_neq0; rewrite /comp_trpoly p0_neq0. Qed.
 
 Lemma comp_trpoly_coef0_eq0 f g :
   g \in coef0_is_0 -> f \So g = trXn n (f \Po g).
 Proof. by move => f0_eq0 ; rewrite /comp_trpoly f0_eq0. Qed.
+
+Lemma coef0_comp_trpoly f g : (f \So g)`_0 = f`_0.
+Proof.
+rewrite /comp_trpoly; case: (boolP (_ \in _)); last by rewrite coef_trpolyC.
+rewrite coef0_is_0E coef_trXn {-2}[0%N]lock /= -lock => /eqP.
+by rewrite -!horner_coef0 horner_comp => ->.
+Qed.
+
+Lemma coef0_is_0_comp f g :
+  (f \So g \in coef0_is_0) = (f \in coef0_is_0).
+Proof. by rewrite !coef0_is_0E coef0_comp_trpoly. Qed.
+
+Lemma coef0_is_1_comp f g :
+  (f \So g \in coef0_is_1) = (f \in coef0_is_1).
+Proof. by rewrite !coef0_is_1E coef0_comp_trpoly. Qed.
 
 Section Variable_f.
 
@@ -1434,26 +1465,23 @@ Lemma comp_trpoly0 : 0 \So f = 0.
 Proof.
 case (boolP (f \in coef0_is_0)) => [f0_eq0 | f0_neq0].
 - by rewrite comp_trpoly_coef0_eq0 // comp_poly0 rmorph0.
-- by rewrite comp_trpoly_coef0_neq0.
+- by rewrite comp_trpoly_coef0_neq0 // coef0 trpolyC0.
 Qed.
 
-(* is there a better statement ? *)
-Lemma comp_trpolyC (c : R) :
-  c%:S \So f = (c * (f \in coef0_is_0)%:R) %:S.
+Lemma comp_trpolyC (c : R) : c%:S \So f = c%:S.
 Proof.
 case (boolP (f \in coef0_is_0)) => [f0_eq0 | f0_neq0].
 - rewrite comp_trpoly_coef0_eq0 //=; have /= -> := trXnC n c.
-  by rewrite comp_polyC mulr1.
-- by rewrite mulr0 trXn0 comp_trpoly_coef0_neq0.
+  by rewrite comp_polyC.
+- by rewrite comp_trpoly_coef0_neq0 ?coef_trpolyC.
 Qed.
 
-Lemma comp_trpolyCf (c : R) : f \So (c%:S) = (f`_0 * (c == 0)%:R) %:S.
+Lemma comp_trpolyCf (c : R) : f \So (c%:S) = (f`_0)%:S.
 Proof.
 have [->| /negbTE c_neq0] := eqVneq c 0.
-  by rewrite eqxx mulr1 rmorph0 comp_trpoly0r.
-rewrite comp_trpoly_coef0_neq0; last first.
-  by rewrite coef0_is_0E nth0_trXn coefC eqxx negbT.
-by rewrite c_neq0 mulr0 rmorph0.
+  by rewrite trpolyC0 comp_trpoly0r.
+rewrite comp_trpoly_coef0_neq0 //.
+by rewrite coef0_is_0E nth0_trXn coefC eqxx negbT.
 Qed.
 
 Hypothesis (f0_is_0 : f \in coef0_is_0).
@@ -1472,6 +1500,7 @@ Qed.
 
 End Variable_f.
 
+
 Lemma comp_trpolyXr f : n != 0%N -> f \So \X = f.
 Proof.
 rewrite comp_trpoly_coef0_eq0 ?trpolyX_in_coef0_is_0 //.
@@ -1487,70 +1516,34 @@ case: n f Hn => // m f _.
 by rewrite val_trpolySX comp_polyX trpolyK.
 Qed.
 
-(* TODO : simplify this proof *)
 Lemma coef_comp_trpoly_cX f c i :
   n != 0%N -> (f \So (c *: \X))`_i = c ^+ i * f`_i.
 Proof.
 move=> n_neq0.
+case: (leqP i n) => [le_in | lt_ni]; first last.
+  rewrite coef_trpoly leqNgt lt_ni /= nth_default ?mulr0 //.
+  exact: (leq_trans (size_trpoly f) lt_ni).
+rewrite -coef_comp_poly_cX.
 rewrite comp_trpoly_coef0_eq0 ?coef0_is_0Z ?trpolyX_in_coef0_is_0 //.
-rewrite coef_trXn (coef_trpoly f).
-case: leqP => Hi; last by rewrite mulr0.
-rewrite coef_comp_poly.
-case: (ltnP i (size f)) => [lt_isz | le_szi].
-- rewrite (bigD1 (Ordinal lt_isz)) //= big1 ?addr0; first last.
-    move=> [j /= Hj] H.
-    rewrite trXnE val_trpolyX scalerA -mulr_algl.
-    rewrite exprMn_comm; last exact: commr_polyX.
-    rewrite -in_algE -rmorphX mulr_algl coefZ coefXn.
-    have /negbTE -> : i != j.
-      by move: H; apply contra => /eqP/esym Hij; apply/eqP/val_inj.
-    by rewrite !mulr0.
-  rewrite trXnE val_trpolyX scalerA -mulr_algl.
-  rewrite exprMn_comm; last exact: commr_polyX.
-  rewrite -in_algE -rmorphX mulr_algl coefZ coefXn.
-  by rewrite eq_refl mulr1 mulrC n_neq0 mulr1.
-rewrite nth_default // mulr0 big1 // => [] [j /= Hj] _.
-rewrite trXnE val_trpolyX scalerA -mulr_algl n_neq0 mulr1.
-rewrite exprMn_comm; last exact: commr_polyX.
-rewrite -in_algE -rmorphX mulr_algl coefZ coefXn.
-have /gtn_eqF -> := (leq_trans Hj le_szi).
-by rewrite !mulr0.
+by rewrite coef_trXn le_in /= trXnE val_trpolyX n_neq0 scale1r.
 Qed.
 
-(* TODO : simplify this proof *)
-Lemma comp_trpolyA f g h :
-  h \in coef0_is_0 -> f \So (g \So h) = (f \So g) \So h.
+Lemma comp_trpolyA f g h : f \So (g \So h) = (f \So g) \So h.
 Proof.
-move=> h0_eq0.
-rewrite !(comp_trpoly_coef0_eq0 _ h0_eq0).
+case (boolP (h \in coef0_is_0)) => [h0_eq0 | h0_neq0]; first last.
+  rewrite !(comp_trpoly_coef0_neq0 _ h0_neq0).
+  by rewrite comp_trpolyCf coef0_comp_trpoly.
 case (boolP (g \in coef0_is_0)) => [g0_eq0 | g0_neq0]; first last.
-  rewrite !(comp_trpoly_coef0_neq0 f) // ?comp_poly0 ?trXn0 //.
-  rewrite coef0_is_0E !coef_trXn coef_comp_poly.
-  rewrite (@ifT _ (0 <= n) _ 0 is_true_true).
-  have : size g != 0%N.
-    have:= g0_neq0; apply contra; rewrite size_poly_eq0 => /eqP.
-    rewrite -{1}[0]/(trpoly n (0 : {trpoly R n})) => /trpoly_inj ->.
-    exact: rpred0.
-  case: (size g) => sz // _; rewrite big_ord_recl.
-  rewrite expr0 coef1 mulr1 big1 ?addr0 => [|i _].
-    by move: g0_neq0; apply contra; rewrite coef0_is_0E.
-  rewrite [0%N]lock /= /bump /= add1n.
-  rewrite exprSr -lock coef0M.
-  move: h0_eq0; rewrite coef0_is_0E => /eqP ->.
-  by rewrite !mulr0.
+  by rewrite !(comp_trpoly_coef0_neq0 f) ?comp_trpolyC // coef0_is_0_comp.
+rewrite comp_trpoly_coef0_eq0 ?coef0_is_0_comp //.
 rewrite !comp_trpoly_coef0_eq0 //.
-  rewrite -trXn_comp_polyr comp_polyA trXn_comp_polyl //.
-  by move: h0_eq0; rewrite coef0_is_0E => /eqP.
-rewrite coef0_is_0E coef_trXn coef_comp_poly big1 ?if_same //.
-rewrite [0%N]lock /= => [] [i /= _] _.
-case: i => [|i].
-  by move: g0_eq0; rewrite coef0_is_0E => /eqP ->; rewrite mul0r.
-rewrite exprSr -lock coef0M.
-move: h0_eq0; rewrite coef0_is_0E => /eqP ->.
-by rewrite !mulr0.
+rewrite -trXn_comp_polyr comp_polyA trXn_comp_polyl //.
+by move: h0_eq0; rewrite coef0_is_0E => /eqP.
 Qed.
 
 End Composition.
+
+Notation "f \So g" := (comp_trpoly g f) : trpoly_scope.
 
 
 Section MoreComposition.
@@ -1558,7 +1551,6 @@ Section MoreComposition.
 Variables (R : comRingType) (n : nat).
 Implicit Types (f g : {trpoly R n}).
 
-Local Notation "f \So g" := (comp_trpoly g f) (at level 2) : trpoly_scope.
 
 Lemma deriv_trpoly_comp f g :
   f \in coef0_is_0 ->
@@ -1966,7 +1958,7 @@ rewrite (eq_bigr (fun i => (f )^` () * ((1 - (trXn m f)) ^+ i.-1))) =>
   rewrite -[X in X * _]opprK -[X in X * _]add0r -{1}(subrr 1).
   rewrite -addrA -linearB /= -[X in X * _]opprB mulNr -subrX1 opprB /=.
   rewrite expr_coef0_is_0 ?subr0 //.
-  by rewrite -coef0_is_10 coef_trXn_is_1.
+  by rewrite -coef0_is_10 coef0_is_1_trXn.
 Qed.
 
 Lemma expK : {in coef0_is_0, cancel (@exp R n) (@log R n)}.
