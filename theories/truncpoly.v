@@ -1376,7 +1376,7 @@ Section MoreExpPoly.
 Variable (R : ringType).
 Implicit Type (p q : {poly R}).
 
-Fact coeffX_eq0 n m p :
+Fact coefX_eq0 n m p :
   p`_0 = 0 -> n < m -> (p ^+ m)`_n = 0.
 Proof.
 elim: m n p => [|m IHm] n p Hp; first by rewrite ltn0.
@@ -1396,7 +1396,22 @@ Fact trXn_eq0 n m p :
 Proof.
 move=> H1 H2.
 apply/trpolyP => i le_in; rewrite coef_trXn coef0 le_in.
-by rewrite coeffX_eq0 // (leq_ltn_trans le_in H2).
+by rewrite coefX_eq0 // (leq_ltn_trans le_in H2).
+Qed.
+
+Lemma trXnMX_eq0 n p q i j :
+  p`_0 = 0 -> q`_0 = 0 -> n < i + j -> trXn n (p ^+ i * q ^+ j) = 0.
+Proof.
+move=> p0 q0 lt_n_addij.
+apply/trpolyP => l le_li; rewrite coef0.
+rewrite coef_trXn le_li coefM.
+rewrite (bigID (fun k => val k >= i)) /= ?big1 ?addr0 // => [] [k Hk] /= H.
+- rewrite -ltnNge in H.
+  by rewrite coefX_eq0 ?mul0r.
+- rewrite ltnS in Hk.
+  rewrite [X in _* X]coefX_eq0 ?mulr0 //.
+  rewrite leq_ltn_subLR //.
+  exact: (leq_ltn_trans le_li (leq_trans lt_n_addij (leq_add _ _))).
 Qed.
 
 Lemma expr_coef0_is_0 (n m : nat) :
@@ -1430,7 +1445,7 @@ move => q0_eq0; apply/trXnP => i le_in.
 rewrite -{1}(poly_cat p n.+1) comp_polyD coefD comp_polyM !trXnE.
 rewrite rmorphX /= comp_polyX [X in _ + X](_ : _ = 0) ?addr0 //.
 rewrite coefM; apply big1 => [] [j /=]; rewrite ltnS => le_ji _.
-by rewrite coeffX_eq0 ?mul0r // ltnS (leq_trans le_ji le_in).
+by rewrite coefX_eq0 ?mul0r // ltnS (leq_trans le_ji le_in).
 Qed.
 
 Lemma coef_comp_poly_cX p c i : (p \Po (c *: 'X))`_i = c ^+ i * p`_i.
@@ -1830,20 +1845,20 @@ apply/val_inj => /=; apply/val_inj => /=.
 rewrite !trXnE trXn_mul.
 rewrite !coef0_is_0E -!horner_coef0 in f0_eq0 g0_eq0.
 move/eqP: g0_eq0 ; move/eqP : f0_eq0.
-move: f g => [f fr] [g gr] /=.
+case: f g => [f _] [g _] /=.
 rewrite !horner_coef0 => f0_eq0 g0_eq0.
 rewrite (eq_bigr (fun i => let i' := (nat_of_ord i) in i'`!%:R^-1 *:
          (\sum_(j < i'.+1) f ^+ (i' - j) * g ^+ j *+ 'C(i', j)))); last first.
   by move => i _ /=; rewrite exprDn.
 rewrite (big_distrl _ _ _) /=.
-rewrite (eq_bigr (fun i => let i' := (nat_of_ord i) in (\sum_(j < i' .+1)
+rewrite (eq_bigr (fun i => let i' := (nat_of_ord i) in (\sum_(j < i'.+1)
         ((j`! * (i' -j)`!)%:R) ^-1 *: (f ^+ (i' - j) * g ^+ j)))); last first.
-  move => [i i_lt_Sn] _ /=.
-  rewrite scaler_sumr; apply: eq_bigr => [ /= [j j_lt_Si]] _ /=.
+  move => [i /= _] _.
+  rewrite scaler_sumr; apply: eq_bigr => [[j]]; rewrite /= ltnS => le_ji _.
   rewrite -mulrnAl scalerAl -scaler_nat scalerA -scalerAl; congr(_ *: _).
-  case: i i_lt_Sn j_lt_Si => [|i] _.
-    by rewrite ltnS leqn0 => /eqP ->; rewrite fact0 bin0 mulr1 muln1.
-  rewrite ltnS => Hi; rewrite bin_factd //.
+  case: i le_ji => [|i Hi].
+    by rewrite leqn0 => /eqP ->; rewrite fact0 bin0 mulr1 muln1.
+  rewrite bin_factd //.
   rewrite natr_div ?mulKr ?fact_unit // ?natrM ?unitrM ?fact_unit //.
   by apply/dvdnP; exists 'C(i.+1, j); rewrite bin_fact.
 rewrite [in RHS](eq_bigr (fun i => let i' := (nat_of_ord i) in (\sum_(j < n.+1)
@@ -1856,7 +1871,7 @@ rewrite [in RHS](eq_bigr (fun i => let i' := (nat_of_ord i) in (\sum_(j < n.+1)
 rewrite !trXnE.
 have -> : trXn n (\sum_(i < n.+1) \sum_(j < n.+1)
                    (i`! * j`!)%:R^-1 *: (f ^+ i * g ^+ j))  =
-          trXn n (\sum_(i < n.+1) \sum_(j < n.+1 | i+j <= n)
+          trXn n (\sum_(i < n.+1) \sum_(j < n.+1 | i + j <= n)
                    (i`! * j`!)%:R^-1 *: (f ^+ i * g ^+ j)).
   rewrite !rmorph_sum; apply: eq_bigr => [[i i_lt_Sn]] _ /=.
   rewrite !rmorph_sum.
@@ -1866,16 +1881,7 @@ have -> : trXn n (\sum_(i < n.+1) \sum_(j < n.+1)
                       (fun j => trXn n ((i`! * j`!)%:R^-1 *: (f ^+ i * g ^+ j)))).
   apply: big1_seq => /= j.
   rewrite -ltnNge; move/andP => [ n_lt_addij _]; rewrite linearZ /=.
-  suff -> : trXn n (f ^+ i * g ^+ j) = 0 by rewrite scaler0.
-  apply/trpolyP => l le_li; rewrite coef0.
-  rewrite coef_trXn le_li coefM.
-  rewrite (bigID (fun k => val k >= i)) /= ?big1 ?addr0 // => [] [k Hk] /= H.
-  - rewrite -ltnNge in H.
-    by rewrite coeffX_eq0 ?mul0r.
-  - rewrite ltnS in Hk.
-    rewrite [X in _* X]coeffX_eq0 ?mulr0 //.
-    rewrite leq_ltn_subLR //.
-    exact: (leq_ltn_trans le_li (leq_trans n_lt_addij (leq_add _ _))).
+  by rewrite trXnMX_eq0 // scaler0.
 rewrite [in RHS](eq_bigr (fun i => let i' := (nat_of_ord i) in \sum_(j < n.+1 |
         i' + j < n.+1) (i'`! * j`!)%:R^-1 *: (f ^+ i' * g ^+ j))); last first.
   move => i _ /=.
@@ -2115,12 +2121,12 @@ Proof. by move=> /expr_trpolyK/can_in_inj. Qed.
 End DerivExpLog.
 
 
-Section CoeffExpX.
+Section CoefExpX.
 
 Variables R : comUnitRingType.
 Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 
-Lemma coeff1cX p c : 1 + c *: \Xo(p) \in @coef0_is_1 R _.
+Lemma coef1cX p c : 1 + c *: \Xo(p) \in @coef0_is_1 R _.
 Proof.
 by rewrite coef0_is_1E coefD coef1 coefZ coef_trXn coefX mulr0 addr0.
 Qed.
@@ -2132,7 +2138,7 @@ rewrite -alg_trpolyC; congr (_ *: _); apply val_inj.
 by rewrite (val_deriv_trpoly \Xo(p.+1)) val_trpolyX scale1r derivX.
 Qed.
 
-Lemma coeff_expr1cX c a m p : m <= p ->
+Lemma coef_expr1cX c a m p : m <= p ->
   ((1 + c *: \Xo(p)) ^^ a)`_m = c ^+ m * \prod_(i < m) (a - i%:R) / m`!%:R :> R.
 Proof.
 elim: m p a => [|m IHm] p a lt_mp.
@@ -2142,7 +2148,7 @@ case: p lt_mp => [|p] //; rewrite ltnS => le_mp.
 have:= coef_deriv_trpoly ((1 + c *: \Xo(p.+1)) ^^ a) m.
 rewrite -mulr_natr => /(congr1 (fun x => x * m.+1%:R^-1)).
 rewrite mulrK // => <-.
-rewrite deriv_expr_trpoly ?coeff1cX // deriv1cX.
+rewrite deriv_expr_trpoly ?coef1cX // deriv1cX.
 rewrite [_ * c%:S]mulrC -alg_trpolyC mulr_algl exprS coefZ.
 rewrite coefZ coef_trXn le_mp {}IHm ?(leq_trans le_mp) // {p le_mp}.
 rewrite mulrA factS natrM invrM // ?fact_unit // !mulrA; congr (_ * _ * _).
@@ -2151,13 +2157,13 @@ rewrite big_ord_recl /= subr0; congr (_ * _).
 by apply eq_bigr => i /= _; rewrite /bump /= natrD -[1%:R]/1 opprD addrA.
 Qed.
 
-Lemma coeff_expr1X a m p :
+Lemma coef_expr1X a m p :
   m <= p -> ((1 + \Xo(p)) ^^ a)`_m = \prod_(i < m) (a - i%:R) / m`!%:R :> R.
 Proof.
-by move=> le_mp; rewrite -[\X]scale1r coeff_expr1cX // expr1n mul1r.
+by move=> le_mp; rewrite -[\X]scale1r coef_expr1cX // expr1n mul1r.
 Qed.
 
-End CoeffExpX.
+End CoefExpX.
 
 End TrpolyUnitRing.
 
