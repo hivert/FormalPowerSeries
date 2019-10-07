@@ -20,7 +20,7 @@ Local Open Scope ring_scope.
 Delimit Scope trpoly_scope with trpoly.
 
 Reserved Notation "{ 'trpoly' R n }"
-         (at level 0, R at next level, format "{ 'trpoly'  R  n }").
+         (at level 0, R, n at level 2, format "{ 'trpoly'  R  n }").
 Reserved Notation "[ 'trpoly' s <= n => F ]"
   (at level 0, n at next level, s ident, format "[ 'trpoly' s <= n  =>  F ]").
 Reserved Notation "[ 'trpoly' s => F ]"
@@ -578,6 +578,62 @@ Qed.
 End MoreModPolyTheory.
 
 
+Section ConverseModPoly.
+
+Variable (R : ringType) (n : nat).
+
+Fact size_conv_subproof (f : {trpoly R n}) :
+  size (map_poly (fun c : R => c : R^c) f) <= n.+1.
+Proof. by rewrite size_map_inj_poly ?size_trpoly. Qed.
+Definition conv_trpoly f : {trpoly R^c n} := Trpoly_of (size_conv_subproof f).
+
+Fact size_iconv_subproof (f : {trpoly R^c n}) :
+  size (map_poly (fun c : R^c => c : R) f) <= n.+1.
+Proof. by rewrite size_map_inj_poly ?size_trpoly. Qed.
+Definition iconv_trpoly f : {trpoly R n} := Trpoly_of (size_iconv_subproof f).
+
+Fact conv_trpoly_is_additive : additive conv_trpoly.
+Proof.
+by move=> f g; apply/trpolyP => i _; rewrite /= coefB !coef_map_id0 // coefB.
+Qed.
+Canonical conv_trpoly_additive := Additive conv_trpoly_is_additive.
+
+Fact iconv_trpoly_is_additive : additive iconv_trpoly.
+Proof.
+by move=> f g; apply/trpolyP => i _; rewrite /= coefB !coef_map_id0 // coefB.
+Qed.
+Canonical iconv_trpoly_additive := Additive iconv_trpoly_is_additive.
+
+Lemma conv_trpolyK : cancel conv_trpoly iconv_trpoly.
+Proof. by move=> f; apply/trpolyP => i _; rewrite !coef_map_id0. Qed.
+Lemma iconv_trpolyK : cancel iconv_trpoly conv_trpoly.
+Proof. by move=> f; apply/trpolyP => i _; rewrite !coef_map_id0. Qed.
+
+Lemma conv_trpoly1 : conv_trpoly 1 = 1.
+Proof. by apply/trpolyP => i Hi; rewrite coef_map_id0 // !coef1. Qed.
+Lemma iconv_trpoly1 : iconv_trpoly 1 = 1.
+Proof. by apply/trpolyP => i Hi; rewrite coef_map_id0 // !coef1. Qed.
+
+Lemma conv_trpolyM f g :
+  conv_trpoly f * conv_trpoly g = conv_trpoly (g * f).
+Proof.
+apply/trpolyP => i Hi.
+rewrite /conv_trpoly /= !trXnE coef_trXn Hi coef_map_id0 // coef_trXn Hi.
+rewrite coefMr coefM; apply eq_bigr => j _ /=.
+by rewrite !coef_map_id0.
+Qed.
+Lemma iconv_trpolyM f g :
+  iconv_trpoly f * iconv_trpoly g = iconv_trpoly (g * f).
+Proof.
+apply/trpolyP => i Hi.
+rewrite /conv_trpoly /= !trXnE coef_trXn Hi coef_map_id0 // coef_trXn Hi.
+rewrite coefMr coefM; apply eq_bigr => j _ /=.
+by rewrite !coef_map_id0.
+Qed.
+
+End ConverseModPoly.
+
+
 Section ModPolyTheoryComRing.
 
 Variable (R : comRingType) (n : nat).
@@ -604,50 +660,26 @@ Implicit Types (f g : {trpoly R n}).
 
 Definition unit_trpoly : pred {trpoly R n} := fun f => f`_0 \in GRing.unit.
 
-(* Noncommutative setting : we define a left and right inverve, getting  *)
-(* that they are equal only latter thank to general semigroup theory.    *)
 Fixpoint inv_trpoly_rec f bound m :=
   if bound is b.+1 then
     if (m <= b)%N then inv_trpoly_rec f b m
-    else - (\sum_(i < m) (inv_trpoly_rec f b i) * f`_(m - i)) * f`_(locked 0%N)^-1
+    else - f`_(locked 0%N)^-1 *
+           (\sum_(i < m) f`_(locked i.+1) * (inv_trpoly_rec f b (m - i.+1)%N))
   else f`_(locked 0%N)^-1.
 Definition inv_trpoly f : {trpoly R n} :=
   if unit_trpoly f then [trpoly i <= n => inv_trpoly_rec f i i] else f.
 
-Fixpoint invr_trpoly_rec f bound m :=
-  if bound is b.+1 then
-    if (m <= b)%N then invr_trpoly_rec f b m
-    else - f`_(locked 0%N)^-1 *
-           (\sum_(i < m) f`_(locked i.+1) * (invr_trpoly_rec f b (m - i.+1)%N))
-  else f`_(locked 0%N)^-1.
-Definition invr_trpoly f : {trpoly R n} :=
-  if unit_trpoly f then [trpoly i <= n => invr_trpoly_rec f i i] else f.
-
 Lemma coef0_inv_trpoly f : unit_trpoly f -> (inv_trpoly f)`_0 = f`_0^-1.
 Proof. by rewrite /inv_trpoly => ->; rewrite coef_trpoly_of_fun /= -lock. Qed.
-Lemma coef0_invr_trpoly f : unit_trpoly f -> (invr_trpoly f)`_0 = f`_0^-1.
-Proof. by rewrite /invr_trpoly => ->; rewrite coef_trpoly_of_fun /= -lock. Qed.
 
 Lemma coefS_inv_trpoly f m :
   unit_trpoly f -> m < n ->
   (inv_trpoly f)`_m.+1 =
-  - (\sum_(i < m.+1) (inv_trpoly f)`_i * f`_(m.+1 - i)) * f`_(locked 0%N)^-1.
+  - f`_(locked 0%N)^-1 *
+    (\sum_(i < m.+1) f`_(locked i.+1) * (inv_trpoly f)`_(m - i)%N).
 Proof.
 move=> s_unit lt_mn.
 rewrite /inv_trpoly s_unit coef_trpoly_of_fun /= ltnn lt_mn; congr (- _ * _).
-apply: eq_bigr => [[i]/=]; rewrite ltnS => le_im _.
-rewrite coef_trpoly_of_fun (leq_trans le_im (ltnW lt_mn)); congr (_ * _).
-have:= le_im => /subnKC <-; elim: (m - i)%N => [|k IHk]; first by rewrite addn0.
-by rewrite addnS /= leq_addr.
-Qed.
-Lemma coefS_invr_trpoly f m :
-  unit_trpoly f -> m < n ->
-  (invr_trpoly f)`_m.+1 =
-  - f`_(locked 0%N)^-1 *
-    (\sum_(i < m.+1) f`_(locked i.+1) * (invr_trpoly f)`_(m - i)%N).
-Proof.
-move=> s_unit lt_mn.
-rewrite /invr_trpoly s_unit coef_trpoly_of_fun /= ltnn lt_mn; congr (- _ * _).
 apply: eq_bigr => [[i]/=]; rewrite ltnS => le_im _.
 rewrite coef_trpoly_of_fun (leq_trans (leq_subr _ _) (ltnW lt_mn)); congr (_ * _).
 rewrite /bump /= subSS.
@@ -656,54 +688,59 @@ move: le_im => /subnKC <-; elim: (m - i)%N => [|k IHl]; first by rewrite addn0.
 by rewrite addnS /= leq_addr.
 Qed.
 
-Lemma mul_trpolyVr : {in unit_trpoly, left_inverse 1 inv_trpoly *%R}.
+Lemma mul_trpolyVr : {in unit_trpoly, right_inverse 1 inv_trpoly *%R}.
 Proof.
 move=> f s_unit; have:= s_unit; rewrite /= unfold_in => s0_unit.
 apply/trpolyP => m _; elim: m {1 3 4}m (leqnn m) => [| m IHm] i.
   rewrite leqn0 => /eqP ->.
   rewrite [0%N]lock /= coef_Poly nth_take -lock //.
   rewrite coefM big_ord_recr big_ord0 sub0n [0%N]lock /=.
-  by rewrite /= add0r -lock coef0_inv_trpoly // mulVr // coefC.
-move=> le_im1; case: (leqP i m) => [|lt_mi]; first exact: IHm.
-have {le_im1 lt_mi i} -> : i = m.+1 by apply anti_leq; rewrite le_im1 lt_mi.
-rewrite coef1 [RHS]/= [m.+1]lock /= coef_Poly.
-case: (ltnP m.+1 n.+1) => Hmn.
-  rewrite nth_take -lock //.
-  rewrite coefM big_ord_recr [m.+1]lock /= subnn -lock coefS_inv_trpoly //.
-  by rewrite -lock divrK // subrr.
-by rewrite nth_default // size_take -lock (leq_trans (geq_minl _ _)).
-Qed.
-
-Lemma mul_trpolyrVr : {in unit_trpoly, right_inverse 1 invr_trpoly *%R}.
-Proof.
-move=> f s_unit; have:= s_unit; rewrite /= unfold_in => s0_unit.
-apply/trpolyP => m _; elim: m {1 3 4}m (leqnn m) => [| m IHm] i.
-  rewrite leqn0 => /eqP ->.
-  rewrite [0%N]lock /= coef_Poly nth_take -lock //.
-  rewrite coefM big_ord_recr big_ord0 sub0n [0%N]lock /=.
-  by rewrite /= add0r -lock coef0_invr_trpoly // mulrV // coefC.
+  by rewrite /= add0r -lock coef0_inv_trpoly // mulrV // coefC.
 move=> le_im1; case: (leqP i m) => [|lt_mi]; first exact: IHm.
 have {le_im1 lt_mi i} -> : i = m.+1 by apply anti_leq; rewrite le_im1 lt_mi.
 rewrite coef1 [RHS]/= [m.+1]lock /= coef_Poly.
 case: (ltnP m.+1 n.+1) => Hmn.
   rewrite nth_take -lock //.
   rewrite coefM big_ord_recl [m.+1]lock [val ord0]/= subn0.
-  rewrite -lock coefS_invr_trpoly //.
+  rewrite -lock coefS_inv_trpoly //.
   rewrite mulNr mulrN -lock mulVKr // addrC.
   apply/eqP; rewrite subr_eq0; apply/eqP.
   by apply eq_bigr => [] [i] /=; rewrite -lock.
 by rewrite nth_default // size_take -lock (leq_trans (geq_minl _ _)).
 Qed.
 
-(* General semi-group theory : left inverse = right inverse *)
-Lemma invr_trpolyE f : unit_trpoly f -> inv_trpoly f = invr_trpoly f.
+Lemma inv_trpoly0id : {in [predC unit_trpoly], inv_trpoly =1 id}.
 Proof.
-move=> H; have:= erefl (inv_trpoly f * f * invr_trpoly f).
-by rewrite -{1}mulrA mul_trpolyVr // mul1r mul_trpolyrVr // mulr1.
+by move=> s; rewrite inE /= /inv_trpoly unfold_in /unit_trpoly => /negbTE ->.
 Qed.
 
-Lemma mul_trpolyrV : {in unit_trpoly, right_inverse 1 inv_trpoly *%R}.
-Proof. by move=> f Hs; rewrite invr_trpolyE // mul_trpolyrVr. Qed.
+End ModPolyTheoryUnitRing.
+
+
+Section MoreModPolyTheoryUnitRing.
+
+Variable (R : unitRingType) (n : nat).
+Implicit Types (f g : {trpoly R n}).
+
+Definition invl_trpoly f := iconv_trpoly (inv_trpoly (conv_trpoly f)).
+
+Lemma mul_trpolyVl : {in @unit_trpoly R n, left_inverse 1 invl_trpoly *%R}.
+Proof.
+move=> f Hf; rewrite /invl_trpoly -{2}(conv_trpolyK f).
+rewrite iconv_trpolyM mul_trpolyVr ?iconv_trpoly1 //.
+by move: Hf; rewrite !unfold_in coef_map_id0.
+Qed.
+
+(* General semi-group theory : left inverse = right inverse *)
+Lemma invr_trpolyE f : unit_trpoly f -> inv_trpoly f = invl_trpoly f.
+Proof.
+move=> H; have:= erefl (invl_trpoly f * f * inv_trpoly f).
+by rewrite -{2}mulrA mul_trpolyVl // mul1r mul_trpolyVr // mulr1.
+Qed.
+
+Lemma mul_trpolyrV :
+  {in @unit_trpoly R n, left_inverse 1 (@inv_trpoly R n) *%R}.
+Proof. by move=> f Hs; rewrite invr_trpolyE // mul_trpolyVl. Qed.
 
 Lemma unit_trpolyP f g : g * f = 1 /\ f * g = 1 -> unit_trpoly f.
 Proof.
@@ -714,13 +751,8 @@ rewrite coef_Poly nth_take -lock // coef1 coef0M eq_refl => Hr.
 by rewrite /unit_trpoly; apply/unitrP; exists g`_0.
 Qed.
 
-Lemma inv_trpoly0id : {in [predC unit_trpoly], inv_trpoly =1 id}.
-Proof.
-by move=> s; rewrite inE /= /inv_trpoly unfold_in /unit_trpoly => /negbTE ->.
-Qed.
-
 Definition trpoly_unitMixin :=
-  UnitRingMixin mul_trpolyVr mul_trpolyrV unit_trpolyP inv_trpoly0id.
+  UnitRingMixin mul_trpolyrV (@mul_trpolyVr _ _) unit_trpolyP (@inv_trpoly0id _ _).
 Canonical trpoly_unitRingType :=
   Eval hnf in UnitRingType {trpoly R n} trpoly_unitMixin.
 
@@ -739,7 +771,7 @@ move=> funit; case: ltnP => Hi.
   by rewrite -(trpolyK f^-1) coef_trXn leqNgt Hi.
 case: i Hi => [|i] Hi; first by rewrite eq_refl coefsV0.
 have -> : f^-1 = inv_trpoly f by [].
-rewrite invr_trpolyE // coefS_invr_trpoly // -!lock; congr (_ * _).
+rewrite coefS_inv_trpoly // -!lock; congr (_ * _).
 by apply eq_bigr => /= j _; rewrite -lock subSS.
 Qed.
 
@@ -757,7 +789,7 @@ case (boolP (c \in GRing.unit)) => [Uc | nUc].
 by rewrite !invr_out // unit_trpolyE coef_trXn coefC.
 Qed.
 
-End ModPolyTheoryUnitRing.
+End MoreModPolyTheoryUnitRing.
 
 Lemma trXnV (R : unitRingType) n m (f : {trpoly R m}) :
   n <= m -> trXn n (f^-1) = (trXn n f) ^-1.
