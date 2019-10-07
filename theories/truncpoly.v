@@ -2260,4 +2260,4 @@ End TruncPolyField.
 
 End TruncPolyField.
 
-Import TruncPolyField.
+Export TruncPolyField.
