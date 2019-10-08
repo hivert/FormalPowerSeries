@@ -66,7 +66,7 @@ Proof.
 rewrite /FC; apply/trpolyP => i le_in.
 rewrite coef_trpoly_of_fun coefD coef1 coef_trpolyMX le_in.
 case: i le_in => [|i] lt_in; first by rewrite C0 addr0.
-rewrite add0r CS [i.+1.-1]/= expr2 /= trXnE coef_trXn (ltnW lt_in).
+rewrite add0r CS [i.+1.-1]/= expr2 /= coef_trXn (ltnW lt_in).
 rewrite coefM natr_sum; apply eq_bigr => [[j]]; rewrite /= ltnS => le_ji _.
 rewrite natrM !coef_poly.
 rewrite (leq_trans (leq_ltn_trans le_ji lt_in) _) //.
