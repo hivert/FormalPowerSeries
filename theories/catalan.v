@@ -83,7 +83,7 @@ Import TruncPolyUnitRing.
 Lemma mulr_nat i (f : {trpoly Rat n}) : i%:R *: f = i%:R * f.
 Proof. by rewrite scaler_nat -[f *+ i]mulr_natr mulrC. Qed.
 
-Theorem FCE : \X * FC = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
+Theorem XFCE : \X * FC = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
 Proof.
 have : (2%:R *: \X * FC - 1) ^+ 2 = 1 - 4%:R *: \X.
   apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
@@ -112,7 +112,7 @@ Qed.
 Theorem coefFC i : (i < n)%N -> FC`_i = i.*2`!%:R / i`!%:R /i.+1`!%:R.
 Proof.
 move=> Hi.
-have:= congr1 (fun x : {trpoly _ _ } => x`_i.+1) FCE.
+have:= congr1 (fun x : {trpoly _ _ } => x`_i.+1) XFCE.
 rewrite coef_trpolyMX Hi ![X in (X = _)]/= => ->.
 rewrite coefZ coefB coef1 sub0r -scaleNr coef_expr1cX ?{}Hi //.
 rewrite mulrN mulrA -mulNr; congr (_ / _).
@@ -141,18 +141,28 @@ Qed.
 End GenSeries.
 
 Theorem Cat_rat i : ((C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> Rat)%R.
-Proof.
-have Hi := ltnSn i.
-by rewrite -(coefFC Hi) coef_trpoly_of_fun (ltnW Hi).
-Qed.
+Proof. by rewrite -(coefFC (ltnSn i)) coef_trpoly_of_fun (ltnW _). Qed.
 
-Theorem Cat i : C i * i`! * i.+1`! = i.*2`!.
+Theorem CatM i : C i * i`! * i.+1`! = i.*2`!.
 Proof.
 have:= Cat_rat i.
 move/(congr1 (fun x => x * (i.+1)`!%:R * i`!%:R)%R).
-rewrite divrK // divrK // -!natrM => /eqP.
+rewrite (divrK (fact_unit i.+1)) (divrK (fact_unit i)) // -!natrM => /eqP.
 rewrite Num.Theory.eqr_nat => /eqP <-.
 by rewrite -[RHS]mulnA [_`! * i`!]mulnC mulnA.
+Qed.
+
+Theorem CatV i : C i = i.*2`! %/ (i`! * i.+1`!).
+Proof.
+have := CatM i; rewrite -mulnA => /(congr1 (fun j => j %/ (i`! * (i.+1)`!))).
+by rewrite mulnK // muln_gt0 !fact_gt0.
+Qed.
+
+Theorem Cat i : C i = 'C(i.*2, i) %/ i.+1.
+Proof.
+case: (ltnP 0 i)=> [Hi|]; last by rewrite leqn0=> /eqP->; rewrite C0 bin0 divn1.
+rewrite (CatV i) factS [i.+1 * _]mulnC mulnA.
+by rewrite -{3}(addnK i i) addnn divnMA bin_factd // double_gt0.
 Qed.
 
 End Catalan.
