@@ -1,4 +1,4 @@
-(** Truncated polynomial, i.e. polynom mod X^n *)
+(** Catalan number via generating functions *)
 (******************************************************************************)
 (*       Copyright (C) 2019 Florent Hivert <florent.hivert@lri.fr>            *)
 (*                                                                            *)
@@ -19,7 +19,7 @@ From mathcomp Require Import perm ssralg poly polydiv mxpoly binomial bigop.
 From mathcomp Require Import finalg zmodp matrix mxalgebra polyXY ring_quotient.
 From mathcomp Require Import rat ssrnum.
 
-Require Import auxresults truncpoly.
+Require Import truncpoly.
 
 
 Set Implicit Arguments.
@@ -34,17 +34,12 @@ Variable (C : nat -> nat).
 Hypothesis C0 : C 0 = 1%N.
 Hypothesis CS : forall n : nat, C n.+1 = \sum_(i < n.+1) C i * C (n - i).
 
-Example C1 : C 1 = 1.
-Proof. by rewrite !(CS, big_ord_recl, big_ord0, C0); compute. Qed.
-Example C2 : C 2 = 2.
-Proof. by rewrite !(CS, big_ord_recl, big_ord0, C0); compute. Qed.
-Example C3 : C 3 = 5.
-Proof. by rewrite !(CS, big_ord_recl, big_ord0, C0); compute. Qed.
-Example C4 : C 4 = 14.
-Proof. by rewrite !(CS, big_ord_recl, big_ord0, C0); compute. Qed.
-Example C5 : C 5 = 42.
-Proof. by rewrite !(CS, big_ord_recl, big_ord0, C0); compute. Qed.
-
+Local Definition Csimpl := (C0, CS, big_ord0, big_ord_recl).
+Example C1 : C 1 = 1.  Proof. by rewrite !Csimpl. Qed.
+Example C2 : C 2 = 2.  Proof. by rewrite !Csimpl. Qed.
+Example C3 : C 3 = 5.  Proof. by rewrite !Csimpl. Qed.
+Example C4 : C 4 = 14. Proof. by rewrite !Csimpl. Qed.
+Example C5 : C 5 = 42. Proof. by rewrite !Csimpl. Qed.
 
 Import GRing.Theory.
 
@@ -61,10 +56,10 @@ Local Open Scope ring_scope.
 Local Open Scope trpoly_scope.
 
 Variable n : nat.
-Definition FC : {trpoly Rat n} := [trpoly i => (C i)%:R ].
+Definition FC : {trpoly Rat n} := [trpoly i => (C i)%:R].
 
 Lemma FC_in_coef0_is_1 : FC \in coef0_is_1.
-Proof. by rewrite coef0_is_1E coef_trpoly_of_fun /= C0. Qed.
+Proof. by rewrite coef0_is_1E coef_trpoly_of_fun C0. Qed.
 
 Proposition FC_eq : FC = 1 + \X * FC ^+ 2.
 Proof.
@@ -115,7 +110,7 @@ move=> Hi.
 have:= congr1 (fun x : {trpoly _ _ } => x`_i.+1) XFCE.
 rewrite coef_trpolyMX Hi ![X in (X = _)]/= => ->.
 rewrite coefZ coefB coef1 sub0r -scaleNr coef_expr1cX ?{}Hi //.
-rewrite mulrN mulrA -mulNr; congr (_ / _).
+rewrite mulrN mulrA -mulNr; congr (_ / (i.+1)`!%:R).
 rewrite -[4]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
 rewrite exprMn -mulrA [(1 *- 2)^+ _]expr_prod -big_split /= big_ord_recl /=.
 rewrite subr0 mulNr divrr // mulN1r 2!mulrN [LHS]opprK.

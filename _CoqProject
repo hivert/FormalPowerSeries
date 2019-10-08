@@ -9,4 +9,5 @@ theories/padic.v
 
 theories/auxresults.v
 theories/truncpoly.v
+theories/catalan.v
 
