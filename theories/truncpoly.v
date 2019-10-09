@@ -46,6 +46,14 @@ Reserved Notation "f \So g" (at level 50).
 Reserved Notation "\sqrt f" (at level 10).
 
 
+
+Lemma expr_prod i (R : ringType) (x : R) : x ^+ i = \prod_(j < i) x.
+Proof.
+elim: i => [|i IHi]; first by rewrite expr0 big_ord0.
+by rewrite big_ord_recl -IHi exprS.
+Qed.
+
+
 Section MoreBigop.
 
 Definition swap (R : Type) (x : R * R) := (x.2, x.1).
@@ -1096,12 +1104,36 @@ End Coefficient01IDomain.
 
 Section DivisionByX.
 
+Definition mulfX (R : ringType) m (f : {trpoly R m}) :=
+  [trpoly i <= m.+1 => if i == 0%N then 0 else f`_i.-1].
 Definition divfX (R : ringType) m (f : {trpoly R m}) :=
   [trpoly i <= m.-1 => f`_i.+1].
 
+Variable (R : ringType) (m : nat).
+
+Lemma mulfXK (f : {trpoly R m}) : cancel (@mulfX R m) (@divfX R m.+1).
+Proof.
+move=> p; apply/trpolyP => i Hi.
+by rewrite !coef_trpoly_of_fun ltnS Hi.
+Qed.
+
+Lemma divfXK (f : {trpoly R m}) :
+  {in coef0_is_0, cancel (@divfX R m.+1) (@mulfX R m)}.
+Proof.
+move=> p Hp.
+apply/trpolyP => [[|i]] Hi; rewrite !coef_trpoly_of_fun Hi ?(eqP Hp) //.
+by rewrite -ltnS /= Hi.
+Qed.
+
+Lemma mulfXE (f : {trpoly R m}) : trXn m (mulfX f) = \X * f.
+Proof.
+apply/trpolyP => i Hi.
+by rewrite coef_trXn coef_trpoly_of_fun coef_trpolyMX Hi (leq_trans Hi).
+Qed.
+
 Variable K : idomainType.
 
-Lemma divfXE (m : nat) :
+Lemma divfXE  :
   {in @coef0_is_0 K m, forall f, divfX f = trXn m.-1 (f %/ 'X)}.
 Proof.
 move=> f.
@@ -1112,6 +1144,15 @@ by rewrite coef_poly coef_trXn ltnS Hi coefMX.
 Qed.
 
 End DivisionByX.
+
+Lemma map_trpoly_mulfX (K L : ringType) (f : {rmorphism K -> L})
+  (m : nat) (g : {trpoly K m}) :
+  map_trpoly f (mulfX g) = mulfX (map_trpoly f g).
+Proof.
+apply/trpolyP => i lt_im1.
+rewrite !(coef_trpoly_of_fun, coef_map, lt_im1).
+by case: i {lt_im1}=> [|j]//=; rewrite rmorph0.
+Qed.
 
 Lemma map_trpoly_divfX (K L : ringType) (f : {rmorphism K -> L})
   (m : nat) (g : {trpoly K m}) :
