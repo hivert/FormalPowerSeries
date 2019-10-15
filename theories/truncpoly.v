@@ -1225,24 +1225,30 @@ Definition divfX (R : ringType) m (f : {trpoly R m}) :=
 
 Variable (R : ringType) (m : nat).
 
-Lemma mulfXK (f : {trpoly R m}) : cancel (@mulfX R m) (@divfX R m.+1).
+Lemma mulfXK: cancel (@mulfX R m) (@divfX R m.+1).
 Proof.
 move=> p; apply/trpolyP => i Hi.
 by rewrite !coef_trpoly_of_fun ltnS Hi.
 Qed.
 
-Lemma divfXK (f : {trpoly R m}) :
-  {in coef0_is_0, cancel (@divfX R m.+1) (@mulfX R m)}.
+Lemma divfXK : {in coef0_is_0, cancel (@divfX R m.+1) (@mulfX R m)}.
 Proof.
 move=> p Hp.
 apply/trpolyP => [[|i]] Hi; rewrite !coef_trpoly_of_fun Hi ?(eqP Hp) //.
 by rewrite -ltnS /= Hi.
 Qed.
 
-Lemma mulfXE (f : {trpoly R m}) : trXn m (mulfX f) = \X * f.
+Lemma trXn_mulfXE (f : {trpoly R m}) : trXn m (mulfX f) = \X * f.
 Proof.
 apply/trpolyP => i Hi.
 by rewrite coef_trXn coef_trpoly_of_fun coef_trpolyMX Hi (leq_trans Hi).
+Qed.
+
+Lemma mulfXE (f : {trpoly R m}) : mulfX f = \X * trXn m.+1 f.
+Proof.
+apply/trpolyP => i Hi.
+rewrite coef_trpoly_of_fun coef_trpolyMX coef_trXn Hi.
+by case: i Hi => //= i /ltnW ->.
 Qed.
 
 Lemma trXns_mulfX (f : {trpoly R m}) n :
@@ -1829,61 +1835,31 @@ Notation "f \So g" := (comp_trpoly g f) : trpoly_scope.
 Section Lagrange.
 
 Variables R : comUnitRingType.
-Variable (n : nat) (g : {trpoly R n}).
+Variable n : nat.
+
+Section LagrangeFixPoint.
+
+Variable g : {trpoly R n}.
 Hypothesis gU : g \is a GRing.unit.
 
-Fixpoint laginv_rec o : {trpoly R n} :=
-  if o is o'.+1 then \X * (g \So (laginv_rec o')) else 0.
-Definition laginv := laginv_rec n.
 
-Lemma laginv_rec_coef0 o : laginv_rec o \in coef0_is_0.
-Proof.
-by rewrite coef0_is_0E; case: o => [|o]; rewrite ?coef0 ?coef_trpolyMX.
-Qed.
+Fixpoint lagrfix_rec o : {trpoly R o} :=
+  if o is o'.+1 then mulfX ((trXns o' g) \So (lagrfix_rec o')) else 0.
+Definition lagrfix := lagrfix_rec n.+1.
 
-Lemma laginvP : laginv = \X * (g \So laginv).
-Proof.
-rewrite /laginv.
-suff rec o : o <= n ->
-             trXns o (laginv_rec o) = trXns o (\X * (g \So (laginv_rec o))).
-  by have:= (rec n (leqnn n)); rewrite !trXns_id.
-elim: o => [|o IHo] Ho; apply trXnP => i.
-  rewrite leqn0 => /eqP ->.
-  by rewrite (eqP (laginv_rec_coef0 _)) coef_trpolyMX.
-case: i => [_|i]; first by rewrite (eqP (laginv_rec_coef0 _)) coef_trpolyMX.
-rewrite ltnS => Hi /=.
-rewrite -!/(_`_ i.+1) !coef_trpolyMX /= (leq_ltn_trans Hi Ho).
-have lag0 := laginv_rec_coef0 o.
-have Xlag0 : \X * (g \So laginv_rec o) \in coef0_is_0.
-  by rewrite coef0_is_0E coef_trpolyMX.
-have Ho1 := ltnW Ho.
-rewrite {1 3}(trpoly_def g) !raddf_sum !coef_sum /=.
-apply eq_bigr => [[j /=]]; rewrite ltnS => le_jn _.
-rewrite !linearZ !coefZ /=; congr (_ * _).
-have n_non0 : n != 0%N by move: Ho; case n.
-rewrite !comp_trpolyXn //.
-move: (IHo (ltnW Ho)) => /(congr1 (fun f => f ^+ j)).
-rewrite -!rmorphX /=.
-move => /(congr1 (fun f : {trpoly R o} => f`_i)) /=.
-by rewrite 2!coef_trXn Hi.
-Qed.
-
-
-Fixpoint lagrinv_rec o : {trpoly R o} :=
-  if o is o'.+1 then mulfX ((trXns o' g) \So (lagrinv_rec o')) else 0.
-Definition lagrinv := lagrinv_rec n.+1.
-
-Lemma lagrinv_rec_coef0 o : lagrinv_rec o \in coef0_is_0.
+Lemma coef0_is_0_lagrfix_rec o : lagrfix_rec o \in coef0_is_0.
 Proof.
 by rewrite coef0_is_0E; case: o => [|o]; rewrite ?coef0 ?coef_poly.
 Qed.
+Lemma coef0_is_0_lagrfix : lagrfix \in coef0_is_0.
+Proof. exact: coef0_is_0_lagrfix_rec. Qed.
 
-Lemma lagrinvP : lagrinv = mulfX (g \So trXns n lagrinv).
+Lemma lagrfixP : lagrfix = mulfX (g \So trXns n lagrfix).
 Proof.
-rewrite /lagrinv.
+rewrite /lagrfix.
 suff rec o : o <= n ->
-             lagrinv_rec o.+1 =
-             mulfX (trXns o g \So trXns o (lagrinv_rec o.+1)).
+             lagrfix_rec o.+1 =
+             mulfX (trXns o g \So trXns o (lagrfix_rec o.+1)).
   by rewrite [LHS](rec n (leqnn n)) trXns_id.
 elim: o => [|o IHo] lt_on; apply trpolyP => i.
   case: i => [_|i]; first by rewrite /= -!/(_`_0) !coef_poly eqxx.
@@ -1893,25 +1869,61 @@ elim: o => [|o IHo] lt_on; apply trpolyP => i.
 case: i => [_|i]; first by rewrite /= -!/(_`_0) !coef_poly eqxx.
 rewrite ltnS => le_in /=.
 rewrite -!/(_`_ i.+1) !coef_poly !ltnS le_in /=.
-have lag0 := lagrinv_rec_coef0 o.+1.
+have lag0 := coef0_is_0_lagrfix_rec o.+1.
 have Xlag0 :
-  trXns o.+1 (mulfX (trXns o.+1 g \So lagrinv_rec o.+1)) \in coef0_is_0.
+  trXns o.+1 (mulfX (trXns o.+1 g \So lagrfix_rec o.+1)) \in coef0_is_0.
   by rewrite coef0_is_0E coef_trXn coef_poly.
 rewrite {1 3}(trpoly_def (trXns o.+1 g)) !raddf_sum /= !coef_sum.
 apply eq_bigr => [[j /=]]; rewrite ltnS => le_jn _.
 rewrite coef_trXn le_jn !linearZ !coefZ /=; congr (_ * _).
 have n_non0 : n != 0%N by move: lt_on; case n.
-rewrite -/(lagrinv_rec o.+1) !comp_trpolyXn //.
+rewrite -/(lagrfix_rec o.+1) !comp_trpolyXn //.
 move: IHo => /(_ (ltnW lt_on))/(congr1 (fun f => f ^+ j)).
 rewrite -!rmorphX /=.
 move => /(congr1 (fun f : {trpoly R o.+1} => f`_i)) /=.
 rewrite coef_trXn le_in => ->.
-rewrite -/(lagrinv_rec o.+1); move: (lagrinv_rec o.+1) => LR.
+rewrite -/(lagrfix_rec o.+1); move: (lagrfix_rec o.+1) => LR.
 set X :=  (_ ^+ j in RHS); have -> : X`_i = (trXns o.+1 X)`_i.
   by rewrite {}/X coef_trXn le_in.
 rewrite {}/X rmorphX /= trXns_mulfX // trXns_comp; last exact: leqnSn.
 by rewrite trXns_trXns.
 Qed.
+
+Lemma lagrfix_divP : divfX lagrfix = g \So trXns n lagrfix.
+Proof. by rewrite {1}lagrfixP mulfXK. Qed.
+
+Lemma lagrfix_invP : (mulfX g^-1) \So lagrfix = \X.
+Proof.
+have lag0 := coef0_is_0_lagrfix.
+have tlag0 : trXns n lagrfix \in coef0_is_0.
+  by rewrite coef0_is_0_trXns coef0_is_0_lagrfix.
+rewrite mulfXE rmorphM /= comp_trpolyX //.
+rewrite {1}lagrfixP mulfXE -commr_trpolyX -mulrA.
+rewrite -trXn_mulfXE -!/(trXns _ _) trXns_mulfX //.
+rewrite [X in mulfX X]trXns_comp // trXns_trXns // trXns_id.
+rewrite mulfXE -/(trXns _ _) mulrA commr_trpolyX rmorphV //=.
+rewrite -mulrA -trXn_mulfXE -/(trXns _ _) trXns_mulfX //.
+rewrite trXnsM // !trXns_trXns // -trXnsM // divrr; first last.
+  by rewrite unit_trpolyE coef0_comp_trpoly -unit_trpolyE.
+by rewrite trXns1 mulfXE -/(trXns _ _) trXns1 mulr1.
+Qed.
+
+End LagrangeFixPoint.
+
+Implicit Types (f g : {trpoly R n.+1}).
+
+Definition lagrinv f := lagrfix (divfX f)^-1.
+
+Lemma Lagrange f :
+  f \in coef0_is_0 -> divfX f \is a GRing.unit -> f \So (lagrinv f) = \X.
+Proof.
+rewrite /lagrinv => f0 f1.
+have /lagrfix_invP : (divfX f)^-1 \is a GRing.unit by rewrite unitrV.
+by rewrite invrK divfXK.
+Qed.
+
+(** TODO : use standard group argument to show that this is also the left *)
+(*  inverse, so that we have a group.                                     *)
 
 End Lagrange.
 
