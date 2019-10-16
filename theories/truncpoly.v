@@ -1903,14 +1903,11 @@ have lag0 := coef0_is_0_lagrfix.
 have tlag0 : trXns n lagrfix \in coef0_is_0.
   by rewrite coef0_is_0_trXns coef0_is_0_lagrfix.
 rewrite mulfXE rmorphM /= comp_trpolyX //.
-rewrite {1}lagrfixP mulfXE -commr_trpolyX -mulrA.
-rewrite -trXn_mulfXE -!/(trXns _ _) trXns_mulfX //.
-rewrite [X in mulfX X]trXns_comp // trXns_trXns // trXns_id.
-rewrite mulfXE -/(trXns _ _) mulrA commr_trpolyX rmorphV //=.
-rewrite -mulrA -trXn_mulfXE -/(trXns _ _) trXns_mulfX //.
-rewrite trXnsM // !trXns_trXns // -trXnsM // divrr; first last.
-  by rewrite -lagrfix_divP divfX_lagrfix_unit.
-by rewrite trXns1 mulfXE -/(trXns _ _) trXns1 mulr1.
+rewrite {1}lagrfixP mulfXE -mulrA -trXn_mulfXE -!/(trXns _ _) trXns_mulfX //.
+rewrite trXnsM // trXns_trXns // [X in _ * X]trXns_comp //.
+rewrite trXns_trXns // !trXns_id.
+rewrite rmorphV //= divrr ?mulfXE -?/(trXns _ _) ?trXns1 ?mulr1 //.
+by rewrite -lagrfix_divP divfX_lagrfix_unit.
 Qed.
 
 End LagrangeFixPoint.
