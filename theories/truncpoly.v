@@ -246,7 +246,7 @@ Proof. by move=> f; apply/trpolyP => i Hi; rewrite coef_trXn Hi. Qed.
 Lemma trXnK (p : {trpoly R n}) : trXn p = p :> {poly R}.
 Proof. exact: (congr1 val (trpolyK p)). Qed.
 
-Lemma nth0_trXn (p : {poly R}) : (trXn p)`_0 = p`_0.
+Lemma coef0_trXn (p : {poly R}) : (trXn p)`_0 = p`_0.
 Proof. by rewrite coef_trXn leq0n. Qed.
 
 Lemma coef_trpoly_of_fun (f : nat -> R) i :
@@ -295,7 +295,7 @@ Variable (K : idomainType).
 Fact polyXP (p : {poly K}) : reflect (p`_0 = 0) ('X %| p).
 Proof. by rewrite -['X]subr0 -polyC0 -horner_coef0; apply: polyXsubCP. Qed.
 
-Fact nth0_eq_nth0 (p q : {poly K}) :
+Fact coef0_eq_coef0 (p q : {poly K}) :
   p %= q -> (p`_0 == 0) = (q`_0 == 0).
 Proof.
 move => p_eqp_q; rewrite -!horner_coef0.
@@ -889,7 +889,7 @@ Proof. by []. Qed.
 
 Lemma trXn_unitE (p : {poly R}) :
   ((trXn n p) \is a GRing.unit) = (p`_0 \is a GRing.unit).
-Proof. by rewrite unit_trpolyE nth0_trXn. Qed.
+Proof. by rewrite unit_trpolyE coef0_trXn. Qed.
 
 Lemma coef_inv_trpoly f i : f \is a GRing.unit -> f^-1`_i =
   if i > n then 0 else
@@ -902,7 +902,7 @@ case: i Hi => [|i] Hi; first by rewrite eq_refl coef_trpolyV0.
 by rewrite coefS_inv_trpoly.
 Qed.
 
-Fact nth0_inv f : (f ^-1)`_0 = (f`_0)^-1.
+Fact coef0_inv f : (f ^-1)`_0 = (f`_0)^-1.
 Proof.
 case (boolP (f \is a GRing.unit))=> [f_unit|]; first by rewrite coef_inv_trpoly.
 move=> Hinv; rewrite (invr_out Hinv).
@@ -932,7 +932,7 @@ Lemma trXnsV f : m <= n -> trXns m (f^-1) = (trXns m f) ^-1.
 Proof.
 move=> leq_mn.
 case (boolP (f`_0 \is a GRing.unit)) => f0U; first last.
-  by rewrite !invr_out // unit_trpolyE ?nth0_trXn.
+  by rewrite !invr_out // unit_trpolyE ?coef0_trXn.
 by rewrite rmorphV.
 Qed.
 
@@ -1166,11 +1166,11 @@ Arguments coef0_is_1 {R n}.
 
 Lemma coef0_is_0_trXns (R : ringType) (n m : nat) (f : {trpoly (R) n}) :
   (trXns m f \in coef0_is_0) = (f \in coef0_is_0).
-Proof. by rewrite !coef0_is_0E nth0_trXn. Qed.
+Proof. by rewrite !coef0_is_0E coef0_trXn. Qed.
 
 Lemma coef0_is_1_trXns (R : ringType) (n m : nat) (f : {trpoly (R) n}) :
   (trXns m f \in coef0_is_1) = (f \in coef0_is_1).
-Proof. by rewrite !coef0_is_1E nth0_trXn. Qed.
+Proof. by rewrite !coef0_is_1E coef0_trXn. Qed.
 
 
 Section Coefficient01Unit.
@@ -1180,7 +1180,7 @@ Implicit Types (f g : {trpoly R n}).
 
 Fact invr_closed_c0_is_1 : invr_closed (@coef0_is_1 R n).
 Proof.
-move=> f; rewrite !coef0_is_1E nth0_inv; move/eqP ->.
+move=> f; rewrite !coef0_is_1E coef0_inv; move/eqP ->.
 by rewrite invr1.
 Qed.
 Canonical c0_is_1_DivrPred := DivrPred invr_closed_c0_is_1.
@@ -1218,36 +1218,52 @@ End Coefficient01IDomain.
 
 Section DivisionByX.
 
-Definition mulfX (R : ringType) m (f : {trpoly R m}) :=
+Variable R : ringType.
+
+Definition mulfX m (f : {trpoly R m}) :=
   [trpoly i <= m.+1 => if i == 0%N then 0 else f`_i.-1].
-Definition divfX (R : ringType) m (f : {trpoly R m}) :=
+Definition divfX m (f : {trpoly R m}) :=
   [trpoly i <= m.-1 => f`_i.+1].
 
-Variable (R : ringType) (m : nat).
+Lemma coef_mulfX m (f : {trpoly R m}) i :
+  (mulfX f)`_i = if i == 0%N then 0 else f`_i.-1.
+Proof.
+rewrite coef_trpoly_of_fun; case: i => //= i.
+rewrite ltnS; case: leqP => // lt_mi.
+by rewrite nth_default // (leq_trans (size_trpoly f) lt_mi).
+Qed.
+Lemma coef_divfX m (f : {trpoly R m}) i : (divfX f)`_i = f`_i.+1.
+Proof.
+rewrite coef_trpoly_of_fun; case: leqP => // Hi.
+rewrite nth_default // (leq_trans (size_trpoly f)) //.
+by move: Hi; case m.
+Qed.
 
-Lemma mulfXK: cancel (@mulfX R m) (@divfX R m.+1).
+Lemma mulfXK m : cancel (@mulfX m) (@divfX m.+1).
 Proof.
 move=> p; apply/trpolyP => i Hi.
-by rewrite !coef_trpoly_of_fun ltnS Hi.
+by rewrite coef_divfX coef_mulfX.
 Qed.
 
-Lemma divfXK : {in coef0_is_0, cancel (@divfX R m.+1) (@mulfX R m)}.
+Lemma divfXK m : {in coef0_is_0, cancel (@divfX m.+1) (@mulfX m)}.
 Proof.
 move=> p Hp.
-apply/trpolyP => [[|i]] Hi; rewrite !coef_trpoly_of_fun Hi ?(eqP Hp) //.
-by rewrite -ltnS /= Hi.
+by apply/trpolyP => [[|i]] Hi; rewrite coef_mulfX coef_divfX // (eqP Hp).
 Qed.
 
-Lemma trXn_mulfXE (f : {trpoly R m}) : trXn m (mulfX f) = \X * f.
+Variable m : nat.
+Implicit Type f : {trpoly R m}.
+
+Lemma trXn_mulfXE f : trXn m (mulfX f) = \X * f.
 Proof.
 apply/trpolyP => i Hi.
-by rewrite coef_trXn coef_trpoly_of_fun coef_trpolyMX Hi (leq_trans Hi).
+by rewrite coef_trXn coef_mulfX coef_trpolyMX Hi.
 Qed.
 
 Lemma mulfXE (f : {trpoly R m}) : mulfX f = \X * trXn m.+1 f.
 Proof.
 apply/trpolyP => i Hi.
-rewrite coef_trpoly_of_fun coef_trpolyMX coef_trXn Hi.
+rewrite coef_mulfX coef_trpolyMX coef_trXn Hi.
 by case: i Hi => //= i /ltnW ->.
 Qed.
 
@@ -1255,14 +1271,13 @@ Lemma trXns_mulfX (f : {trpoly R m}) n :
   n <= m -> trXns n.+1 (mulfX f) = mulfX (trXns n f).
 Proof.
 move=> le_nm; apply/trpolyP => i le_in1.
-rewrite coef_trXn !coef_trpoly_of_fun le_in1.
-case: i le_in1 => //= i; rewrite ltnS => le_in.
-by rewrite coef_trXn ltnS le_in (leq_trans le_in le_nm).
+rewrite coef_trXn !coef_mulfX le_in1.
+by case: i le_in1 => //= i; rewrite ltnS coef_trXn => ->.
 Qed.
 
-Variable K : idomainType.
+End DivisionByX.
 
-Lemma divfXE  :
+Lemma divfXE (K : idomainType) m :
   {in @coef0_is_0 K m, forall f, divfX f = trXn m.-1 (f %/ 'X)}.
 Proof.
 move=> f.
@@ -1272,14 +1287,12 @@ rewrite [in LHS]h; apply/trpolyP => i Hi.
 by rewrite coef_poly coef_trXn ltnS Hi coefMX.
 Qed.
 
-End DivisionByX.
-
 Lemma map_trpoly_mulfX (K L : ringType) (f : {rmorphism K -> L})
   (m : nat) (g : {trpoly K m}) :
   map_trpoly f (mulfX g) = mulfX (map_trpoly f g).
 Proof.
 apply/trpolyP => i lt_im1.
-rewrite !(coef_trpoly_of_fun, coef_map, lt_im1).
+rewrite !(coef_mulfX, coef_map, lt_im1).
 by case: i {lt_im1}=> [|j]//=; rewrite rmorph0.
 Qed.
 
@@ -1288,7 +1301,7 @@ Lemma map_trpoly_divfX (K L : ringType) (f : {rmorphism K -> L})
   map_trpoly f (divfX g) = divfX (map_trpoly f g).
 Proof.
 apply/trpolyP => i lt_im1.
-by rewrite !(coef_trpoly_of_fun, coef_map, lt_im1).
+by rewrite !(coef_divfX, coef_map, lt_im1).
 Qed.
 
 
@@ -1414,7 +1427,7 @@ rewrite deriv_trpolyM -trpolyC1 deriv_trpolyC.
 move/eqP; rewrite addrC; set X := (X in X + _); rewrite (addr_eq0 X _) {}/X.
 move/eqP/(congr1 (fun x => (trXns n.-1 f ^-1) * x)).
 rewrite {1}trXnsV ?leq_pred // mulKr ?(mulrN, mulNr, mulrA) //.
-by rewrite unit_trpolyE nth0_trXn.
+by rewrite unit_trpolyE coef0_trXn.
 Qed.
 
 End DerivativeUnitRing.
@@ -1431,7 +1444,7 @@ Theorem deriv_trpolyV f :
 Proof.
 move=> fU.
 rewrite deriv_trpolyV_unit // -mulrA mulrC -mulrA !mulrN mulNr.
-rewrite trXnsV ?leq_pred // -invrM ?unit_trpolyE ?nth0_trXn //.
+rewrite trXnsV ?leq_pred // -invrM ?unit_trpolyE ?coef0_trXn //.
 by rewrite -{1}rmorphM ?leq_pred.
 Qed.
 
@@ -1745,7 +1758,7 @@ Proof.
 have [->| /negbTE c_neq0] := eqVneq c 0.
   by rewrite trpolyC0 comp_trpoly0r.
 rewrite comp_trpoly_coef0_neq0 //.
-by rewrite coef0_is_0E nth0_trXn coefC eqxx negbT.
+by rewrite coef0_is_0E coef0_trXn coefC eqxx negbT.
 Qed.
 
 (* TODO : use the coef trick to add canonical structures *)
@@ -1849,9 +1862,7 @@ Fixpoint lagrfix_rec o : {trpoly R o} :=
 Definition lagrfix := lagrfix_rec n.+1.
 
 Lemma coef0_is_0_lagrfix_rec o : lagrfix_rec o \in coef0_is_0.
-Proof.
-by rewrite coef0_is_0E; case: o => [|o]; rewrite ?coef0 ?coef_poly.
-Qed.
+Proof. by rewrite coef0_is_0E; case: o => [|o]; rewrite ?coef0 ?coef_poly. Qed.
 Lemma coef0_is_0_lagrfix : lagrfix \in coef0_is_0.
 Proof. exact: coef0_is_0_lagrfix_rec. Qed.
 
@@ -1897,7 +1908,7 @@ Proof.
 by rewrite lagrfix_divP unit_trpolyE coef0_comp_trpoly -unit_trpolyE.
 Qed.
 
-Lemma lagrfix_invP : (mulfX g^-1) \So lagrfix = \X.
+Lemma lagrfix_invPr : (mulfX g^-1) \So lagrfix = \X.
 Proof.
 have lag0 := coef0_is_0_lagrfix.
 have tlag0 : trXns n lagrfix \in coef0_is_0.
@@ -1936,13 +1947,13 @@ case Hsz : (size f) => [|[|sz]].
 Qed.
 
 Lemma divfX_unitE f : (divfX f \is a GRing.unit) = (f`_1 \is a GRing.unit).
-Proof. by rewrite unit_trpolyE coef_trpoly_of_fun. Qed.
+Proof. by rewrite unit_trpolyE coef_divfX. Qed.
 
 Lemma lagrunit_comp : {in lagrunit &, forall f g, lagrunit (f \So g) }.
 Proof.
 rewrite /lagrunit => f g /andP [f0 f1] /andP [g0 g1].
 rewrite coef0_is_0_comp f0 /=.
-rewrite unit_trpolyE coef_trpoly_of_fun /= -/(_`_1).
+rewrite unit_trpolyE coef_divfX /= -/(_`_1).
 by rewrite coef1_comp_trpoly // unitrM -!divfX_unitE f1 g1.
 Qed.
 
@@ -1952,24 +1963,49 @@ rewrite /lagrunit => f /andP [H0 H1].
 by rewrite coef0_is_0_lagrfix divfX_lagrfix_unit // unitrV.
 Qed.
 
-Lemma lagrinvP : {in lagrunit, forall f, f \So (lagrinv f) = \X }.
+Lemma lagrinvPr : {in lagrunit, forall f, f \So (lagrinv f) = \X }.
 Proof.
 rewrite /lagrinv/lagrunit => f /andP [H0 H1].
-have /lagrfix_invP : (divfX f)^-1 \is a GRing.unit by rewrite unitrV.
+have /lagrfix_invPr : (divfX f)^-1 \is a GRing.unit by rewrite unitrV.
 by rewrite invrK divfXK.
 Qed.
 
-(** Standard group theoretic argument: right inverse is inverse *)
-Lemma lagrinvPr : {in lagrunit, forall f, (lagrinv f) \So f = \X }.
+Lemma lagrinvPl : {in lagrunit, forall f, (lagrinv f) \So f = \X }.
 Proof.
 move=> f Hf.
+(** Standard group theoretic argument: right inverse is inverse *)
 have idemp_neutral g : lagrunit g -> g \So g = g -> g = \X.
-  move=> Hinv Hid; rewrite -(comp_trpolyXr g) // -(lagrinvP Hinv).
+  move=> Hinv Hid; rewrite -(comp_trpolyXr g) // -(lagrinvPr Hinv).
   by rewrite comp_trpolyA {}Hid.
 apply idemp_neutral; first exact: lagrunit_comp (lagrunitV Hf) Hf.
-rewrite comp_trpolyA -[X in (X \So f)]comp_trpolyA lagrinvP //.
+rewrite comp_trpolyA -[X in (X \So f)]comp_trpolyA lagrinvPr //.
 by rewrite comp_trpolyXr.
 Qed.
+
+Section LagrangeTheorem.
+
+Variable g : {trpoly R n}.
+Hypothesis gU : g \is a GRing.unit.
+
+Lemma lagrfix_invPl : lagrfix g \So (mulfX g^-1) = \X.
+Proof.
+have -> : lagrfix g = lagrinv (mulfX g^-1) by rewrite /lagrinv mulfXK invrK.
+apply: lagrinvPl.
+rewrite /lagrunit unfold_in coef0_is_0E coef_mulfX /= eqxx /=.
+by rewrite divfX_unitE coef_mulfX /= -/(_`_0) -unit_trpolyE unitrV.
+Qed.
+
+Theorem LagrangeX i k :
+  i <= k -> (lagrfix g ^+ k)`_i *+ i = (g ^+ i)`_(i - k) *+ k.
+Proof.
+have := congr1 (fun s => s^+ k) lagrfix_invPl.
+Admitted.
+
+(** Gessel's "Lagrange Inversion" section 4.2 
+Theorem Lagrange2 (h : {trpoly R n.+1}) i :
+  (h \So lagrfix)`_i.+1 = ((h^`()%trpoly * g ^+ i.+1)`_i) / i.+1%:R.
+*)
+End LagrangeTheorem.
 
 End Lagrange.
 
@@ -2038,10 +2074,10 @@ Qed.
 Lemma expC (c : R) : exp (c %:S) = (c == 0)%:R %:S :> {trpoly R n}.
 Proof.
 case (boolP (c %:S \in @coef0_is_0 R n)) => [| p0N0].
-- rewrite coef0_is_0E nth0_trXn coefC /= => /eqP ->.
+- rewrite coef0_is_0E coef0_trXn coefC /= => /eqP ->.
   by rewrite eq_refl trpolyC0 trpolyC1 exp0.
 - rewrite exp_coef0_isnt_0 //.
-  move: p0N0; rewrite coef0_is_0E nth0_trXn coefC /= => /negbTE ->.
+  move: p0N0; rewrite coef0_is_0E coef0_trXn coefC /= => /negbTE ->.
   by rewrite rmorph0.
 Qed.
 
@@ -2370,7 +2406,7 @@ Theorem deriv_log f :
   f \in coef0_is_1 -> (log f)^`() = f^`() / (trXns n.-1 f).
 Proof.
 case: n f => [|m] f.
-  rewrite [f]trpoly_is_cst coef0_is_1E nth0_trXn coefC eqxx => /eqP ->.
+  rewrite [f]trpoly_is_cst coef0_is_1E coef0_trXn coefC eqxx => /eqP ->.
   by rewrite !deriv_trpoly0p mul0r.
 move => f0_is_1.
 rewrite log_coef0_is_1 //.
