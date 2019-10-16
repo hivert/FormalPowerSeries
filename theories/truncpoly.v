@@ -1837,6 +1837,7 @@ Section Lagrange.
 Variables R : comUnitRingType.
 Variable n : nat.
 
+
 Section LagrangeFixPoint.
 
 Variable g : {trpoly R n}.
@@ -1891,6 +1892,10 @@ Qed.
 
 Lemma lagrfix_divP : divfX lagrfix = g \So trXns n lagrfix.
 Proof. by rewrite {1}lagrfixP mulfXK. Qed.
+Lemma divfX_lagrfix_unit : divfX lagrfix \is a GRing.unit.
+Proof.
+by rewrite lagrfix_divP unit_trpolyE coef0_comp_trpoly -unit_trpolyE.
+Qed.
 
 Lemma lagrfix_invP : (mulfX g^-1) \So lagrfix = \X.
 Proof.
@@ -1904,7 +1909,7 @@ rewrite [X in mulfX X]trXns_comp // trXns_trXns // trXns_id.
 rewrite mulfXE -/(trXns _ _) mulrA commr_trpolyX rmorphV //=.
 rewrite -mulrA -trXn_mulfXE -/(trXns _ _) trXns_mulfX //.
 rewrite trXnsM // !trXns_trXns // -trXnsM // divrr; first last.
-  by rewrite unit_trpolyE coef0_comp_trpoly -unit_trpolyE.
+  by rewrite -lagrfix_divP divfX_lagrfix_unit.
 by rewrite trXns1 mulfXE -/(trXns _ _) trXns1 mulr1.
 Qed.
 
@@ -1912,18 +1917,62 @@ End LagrangeFixPoint.
 
 Implicit Types (f g : {trpoly R n.+1}).
 
+Definition lagrunit f := (f \in coef0_is_0) && (divfX f \is a GRing.unit).
 Definition lagrinv f := lagrfix (divfX f)^-1.
 
-Lemma Lagrange f :
-  f \in coef0_is_0 -> divfX f \is a GRing.unit -> f \So (lagrinv f) = \X.
+Lemma coef1_comp_trpoly f g :
+  f \in coef0_is_0 -> g \in coef0_is_0 -> (f \So g)`_1 = f`_1 * g`_1.
 Proof.
-rewrite /lagrinv => f0 f1.
+move=> f0 g0.
+rewrite comp_trpoly_coef0_eq0 // coef_trXn /= -!/(_`_1) coef_comp_poly.
+case Hsz : (size f) => [|[|sz]].
+- by rewrite big_ord0 nth_default ?mul0r // Hsz.
+- rewrite big_ord_recl (eqP f0) big_ord0.
+  by rewrite [f`_1]nth_default ?Hsz ?mul0r ?add0r.
+- rewrite big_ord_recl (eqP f0) mul0r add0r.
+  rewrite big_ord_recl /= -!/(_`_ 1) big1 ?addr0 // => [[i /= _]] _.
+  rewrite /bump /= -!/(_`_ 1) !add1n.
+  have /(trXnX_eq0 (eqP g0)) : 1 < i.+2 by [].
+  move=> /(congr1 (fun p : {trpoly R 1} => p`_1)).
+  rewrite coef0 coef_trXn (ltnSn 0) => ->.
+  by rewrite mulr0.
+Qed.
+
+Lemma divfX_unitE f : (divfX f \is a GRing.unit) = (f`_1 \is a GRing.unit).
+Proof. by rewrite unit_trpolyE coef_trpoly_of_fun. Qed.
+
+Lemma lagrunit_comp : {in lagrunit &, forall f g, lagrunit (f \So g) }.
+Proof.
+rewrite /lagrunit => f g /andP [f0 f1] /andP [g0 g1].
+rewrite coef0_is_0_comp f0 /=.
+rewrite unit_trpolyE coef_trpoly_of_fun /= -/(_`_1).
+by rewrite coef1_comp_trpoly // unitrM -!divfX_unitE f1 g1.
+Qed.
+
+Lemma lagrunitV : {in lagrunit, forall f, lagrunit (lagrinv f) }.
+Proof.
+rewrite /lagrunit => f /andP [H0 H1].
+by rewrite coef0_is_0_lagrfix divfX_lagrfix_unit // unitrV.
+Qed.
+
+Lemma lagrinvP : {in lagrunit, forall f, f \So (lagrinv f) = \X }.
+Proof.
+rewrite /lagrinv/lagrunit => f /andP [H0 H1].
 have /lagrfix_invP : (divfX f)^-1 \is a GRing.unit by rewrite unitrV.
 by rewrite invrK divfXK.
 Qed.
 
-(** TODO : use standard group argument to show that this is also the left *)
-(*  inverse, so that we have a group.                                     *)
+(** Standard group theoretic argument: right inverse is inverse *)
+Lemma lagrinvPr : {in lagrunit, forall f, (lagrinv f) \So f = \X }.
+Proof.
+move=> f Hf.
+have idemp_neutral g : lagrunit g -> g \So g = g -> g = \X.
+  move=> Hinv Hid; rewrite -(comp_trpolyXr g) // -(lagrinvP Hinv).
+  by rewrite comp_trpolyA {}Hid.
+apply idemp_neutral; first exact: lagrunit_comp (lagrunitV Hf) Hf.
+rewrite comp_trpolyA -[X in (X \So f)]comp_trpolyA lagrinvP //.
+by rewrite comp_trpolyXr.
+Qed.
 
 End Lagrange.
 
