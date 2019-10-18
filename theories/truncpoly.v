@@ -2071,7 +2071,7 @@ Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 
 Variable n : nat.
 
-Theorem Lagrange_Bürmann (g : {trpoly R n.+1}) i k :
+Theorem Lagrange_BürmannXn (g : {trpoly R n.+1}) i k :
   g \in GRing.unit ->
   k <= i <= n.+2 -> ((lagrfix g) ^+ k)`_i *+ i = (g ^+ i)`_(i - k) *+ k.
 Proof.
@@ -2156,10 +2156,47 @@ rewrite !coef_poly subSn //= !ltnS.
 by case: leqP.
 Qed.
 
-(** Gessel's "Lagrange Inversion" section 4.2 
-Theorem Lagrange2 (h : {trpoly R n.+1}) i :
-  (h \So lagrfix)`_i.+1 = ((h^`()%trpoly * g ^+ i.+1)`_i) / i.+1%:R.
-*)
+
+Theorem Lagrange_Bürmann (g : {trpoly R n.+1}) (h : {trpoly R n.+2}) i  :
+  g \in GRing.unit ->
+  (h \So (lagrfix g))`_i.+1 = ((h^`()%trpoly * g ^+ i.+1)`_i) / i.+1%:R.
+Proof.
+move=> gU.
+have lg0 := coef0_is_0_lagrfix g.
+rewrite (trpoly_def h) !(raddf_sum, mulr_suml, raddf_sum, coef_sum).
+apply eq_bigr => [[k /=]]; rewrite ltnS => le_kn2 _.
+rewrite !linearZ /= -/(_`_i.+1) -scalerAl !coefZ -mulrA; congr (_ * _).
+case: k le_kn2 => [_|k lt_kn2].
+  by rewrite expr0 comp_trpoly1 coef1 deriv_trpoly1 mul0r coef0 mul0r.
+rewrite rmorphX /= comp_trpolyX // -/(_`_i.+1).
+rewrite [LHS]coef_trpoly [in RHS]coef_trpoly ltnS.
+case: leqP => [le_in1|_]; last by rewrite mul0r.
+case: (ltnP i k) => [lt_ik | le_ki].
+  rewrite !val_exp_trpoly coef_trXn ltnS le_in1.
+  rewrite coefX_eq0 ?mulr0 ?(eqP lg0) ?ltnS //.
+  rewrite [X in X / _](_ : _ = 0) ?mul0r //.
+  rewrite coef_trpolyM le_in1; apply big1 => [[j /=]]; rewrite ltnS => le_ji _.
+  rewrite coef_poly ltnS (leq_trans le_ji le_in1) -/(_`_j.+1).
+  rewrite -(mulr1 (\X ^+ _)) coef_trpolyMXn ltnS (leq_ltn_trans le_ji lt_ik).
+  by rewrite mul0rn mul0r.
+apply (mulIr (nat_unit i)); rewrite divrK // mulr_natr.
+rewrite Lagrange_BürmannXn //; last by rewrite !ltnS le_ki le_in1.
+rewrite coef_trpolyM le_in1 subSS.
+have Hki : k < i.+1 by [].
+rewrite (bigD1 (Ordinal Hki)) //= !coef_poly lt_kn2 -/(_`_k.+1).
+rewrite -(mulr1 (\X ^+ _)) coef_trpolyMXn ltnn lt_kn2 coef1 subnn.
+rewrite -[((0 == 0)%N%:R *+ _)]mulr_natr mul1r mulrC mulr_natr.
+rewrite big1 ?addr0 // => [[j] /=] lt_ji1 Hj.
+have {Hj} neq : j != k.
+  by move: Hj; apply contra => /eqP Heq; apply/eqP/val_inj.
+rewrite coef_poly; case: ltnP => _; last by rewrite mul0r.
+rewrite -/(_`_j.+1) coef_trpolyMXn.
+case: ltnP => [_|]; first by rewrite mul0rn mul0r.
+rewrite ltnS => le_kj.
+rewrite subSS coef1 -/(leq j k).
+rewrite [j <= k]leq_eqVlt (negbTE neq) [j < k]ltnNge le_kj /=.
+by rewrite if_same mul0rn mul0r.
+Qed.
 
 End LagrangeTheorem.
 
