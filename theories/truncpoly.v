@@ -687,11 +687,9 @@ Proof. exact: trXn0. Qed.
 Lemma trXns1 : @trXns m n 1 = 1.
 Proof. exact: trXn1. Qed.
 
-Fact trXns_is_additive : additive (@trXns m n).
-Proof. by move=> f g; rewrite !trXnsE !raddfB. Qed.
-Canonical trXns_additive := Additive trXns_is_additive.
 Fact trXns_is_linear : linear (@trXns m n).
 Proof. by move=> c f g; rewrite !trXnsE !linearP. Qed.
+Canonical trXns_additive := Additive trXns_is_linear.
 Canonical trXns_linear := AddLinear trXns_is_linear.
 
 Hypothesis H : n <= m.
@@ -1104,18 +1102,19 @@ Fact map_trpoly_is_additive : additive map_trpoly.
 Proof. by move => x y; apply/trpoly_inj => /=; rewrite rmorphB. Qed.
 Canonical map_trpoly_additive := Additive map_trpoly_is_additive.
 
+Lemma map_trpolyZ (c : K) g : map_trpoly (c *: g) = (f c) *: (map_trpoly g).
+Proof. by apply/trpolyP => i le_in; rewrite coef_trpolyE /= map_polyZ. Qed.
+Canonical map_trpoly_linear := let R := {trpoly K n} in
+  AddLinear (map_trpolyZ : scalable_for (f \; *:%R) map_trpoly).
+
 Fact map_trpoly_is_multiplicative : multiplicative map_trpoly.
 Proof.
 split => [x y|]; first by rewrite map_trpolyM.
 by apply/trpoly_inj => /=; rewrite rmorph1.
 Qed.
 Canonical map_trpoly_rmorphism := AddRMorphism map_trpoly_is_multiplicative.
-
-Lemma map_trpolyZ (c : K) g : map_trpoly (c *: g) = (f c) *: (map_trpoly g).
-Proof. by apply/trpolyP => i le_in; rewrite coef_trpolyE /= map_polyZ. Qed.
-Canonical map_trpoly_linear := let R := {trpoly K n} in
-  AddLinear (map_trpolyZ : scalable_for (f \; *:%R) map_trpoly).
 Canonical map_trpoly_lrmorphism := [lrmorphism of map_trpoly].
+
 
 (* Tests *)
 Fact test_map_trpoly0 : map_trpoly 0 = 0.
@@ -1760,6 +1759,7 @@ case: i lt_in1 => [|i]/=; first by rewrite mulr0 addr0.
 rewrite ltnS => lt_in.
 by rewrite coefD coefZ mulrDl mulrA.
 Qed.
+Canonical prim_trpoly_additive := Additive prim_trpoly_is_linear.
 Canonical prim_trpoly_linear := Linear prim_trpoly_is_linear.
 
 (* tests *)
@@ -1987,36 +1987,35 @@ by rewrite comp_trpoly_coef0_neq0 // coef0_eq0E coef_trpolyC.
 Qed.
 
 
-Fact comp_trpoly_is_additive :
-  {in @coef0_eq0 R n, forall f, additive (comp_trpoly f)}.
-Proof.
-by move=> f f0_eq0 u v; rewrite !comp_trpoly_coef0_eq0 // !rmorphB.
-Qed.
-Canonical comp_trpoly_additive f (Hf : f \in coef0_eq0) :=
-  Additive (comp_trpoly_is_additive Hf).
+Section CompCanonicals.
 
-Fact comp_trpoly_is_linear :
-  {in @coef0_eq0 R n, forall f, linear (comp_trpoly f)}.
-Proof.
-move=> f f0_eq0 a q r.
-by rewrite !comp_trpoly_coef0_eq0 // !rmorphD /= !linearZ.
-Qed.
-Canonical comp_trpoly_linear f (Hf : f \in coef0_eq0) :=
-  Linear (comp_trpoly_is_linear Hf).
+Variable f : {trpoly R n}.
 
-Fact comp_trpoly_is_rmorphism :
-  {in @coef0_eq0 R n, forall f, rmorphism (comp_trpoly f)}.
+Fact comp_trpoly_is_linear : linear (comp_trpoly f).
 Proof.
-move=> f f0_eq0.
-split; first exact: comp_trpoly_is_additive.
+case: (boolP (f \in coef0_eq0)) => Hf a q r.
+- by rewrite !comp_trpoly_coef0_eq0 // !rmorphD /= !linearZ.
+- rewrite !comp_trpoly_coef0_neq0 // coeftrD coeftrZ.
+  by rewrite raddfD /= -!/(_`_0) trpolyCM -alg_trpolyC mulr_algl.
+Qed.
+Canonical comp_trpoly_additive := Additive comp_trpoly_is_linear.
+Canonical comp_trpoly_linear := Linear comp_trpoly_is_linear.
+
+Fact comp_trpoly_is_rmorphism : multiplicative (comp_trpoly f).
+Proof.
 split => [g1 g2|]; last exact: comp_trpoly1.
-rewrite /comp_trpoly f0_eq0 //.
-rewrite mul_trpoly_val /= -trXn_comp_polyl ?(eqP f0_eq0) //.
-rewrite rmorphM /= -trXn_mul /=.
-by rewrite -[RHS]trpolyK mul_trpoly_val /= trXn_trXn.
+case: (boolP (f \in coef0_eq0)) => Hf.
+- rewrite !comp_trpoly_coef0_eq0 // mul_trpoly_val /=.
+  rewrite -trXn_comp_polyl -?coef_trpolyE ?(eqP Hf) //.
+  rewrite rmorphM /= -trXn_mul /=.
+  by rewrite -[RHS]trpolyK mul_trpoly_val /= trXn_trXn.
+- by rewrite !comp_trpoly_coef0_neq0 // coef0_trpolyM -rmorphM.
 Qed.
-Canonical comp_trpoly_rmorphism f (Hf : f \in coef0_eq0) :=
-  RMorphism (comp_trpoly_is_rmorphism Hf).
+
+Canonical comp_trpoly_rmorphism := AddRMorphism comp_trpoly_is_rmorphism.
+Canonical comp_trpoly_lrmorphism := [lrmorphism of (comp_trpoly f)].
+
+End CompCanonicals.
 
 
 Lemma comp_trpolyXr f : n != 0%N -> f \So \X = f.
@@ -2526,7 +2525,6 @@ Implicit Types (f g : {trpoly R n}).
 
 Lemma fact_unit m : m`!%:R \is a @GRing.unit R.
 Proof. by have:= fact_gt0 m; rewrite lt0n; case: m`!. Qed.
-
 
 Theorem expD : {in (@coef0_eq0 R n) &, {morph exp : f g / f + g >-> f * g}}.
 Proof.
