@@ -2125,17 +2125,19 @@ Proof.
 by rewrite lagrfix_divP unit_trpolyE coef0_comp_trpoly -unit_trpolyE.
 Qed.
 
-Lemma lagrfix_invPr : (mulfX g^-1) \So lagrfix = \X.
+Lemma lagrfix_inv f :
+  f \in coef0_eq0 -> f = mulfX (g \So trXns n f) -> (mulfX g^-1) \So f = \X.
 Proof.
-have lag0 := coef0_eq0_lagrfix.
-have tlag0 : trXns n lagrfix \in coef0_eq0.
-  by rewrite coef0_eq0_trXns coef0_eq0_lagrfix.
+move=> f0 Heq.
+have tinv0 : trXns n f \in coef0_eq0 by rewrite coef0_eq0_trXns.
 rewrite mulfXE rmorphM /= comp_trpolyX //.
-rewrite {1}lagrfixP.
-rewrite mulfXM trXns_comp // trXns_trXns // trXns_id.
+rewrite {1}Heq mulfXM trXns_comp // trXns_trXns // trXns_id.
 rewrite rmorphV //= divrr ?mulfX1 //.
 by rewrite unit_trpolyE coef0_comp_trpoly -unit_trpolyE.
 Qed.
+
+Lemma lagrfix_invPr : (mulfX g^-1) \So lagrfix = \X.
+Proof. exact: (lagrfix_inv coef0_eq0_lagrfix lagrfixP). Qed.
 
 End LagrangeFixPoint.
 
@@ -2191,6 +2193,28 @@ rewrite comp_trpolyA -[X in (X \So f)]comp_trpolyA lagrinvPr //.
 by rewrite comp_trpolyXr.
 Qed.
 
+Lemma lagrinvPr_uniq f g :
+  f \in lagrunit -> f \So g = \X -> g = lagrinv f.
+Proof.
+move=> f_lag Heq.
+have g0 : g \in coef0_eq0.
+  rewrite -[_ \in _]negbK; apply/negP => H.
+  move: Heq; rewrite comp_trpoly_coef0_neq0 //.
+  move => /(congr1 (fun s : {trpoly _ _} => s`_1)).
+  rewrite coef_trpolyX coef_trpolyC /= => /esym/eqP.
+  by rewrite oner_eq0.
+move: Heq => /(congr1 (fun s => lagrinv f \So s)).
+by rewrite comp_trpolyA lagrinvPl // comp_trpolyX // comp_trpolyXr.
+Qed.
+
+Lemma lagrinvPl_uniq f g :
+  f \in lagrunit -> g \So f = \X -> g = lagrinv f.
+Proof.
+move=> f_lag /(congr1 (fun s => s \So lagrinv f)).
+rewrite -comp_trpolyA lagrinvPr // comp_trpolyXr // comp_trpolyX //.
+exact: coef0_eq0_lagrfix.
+Qed.
+
 Lemma lagrfix_invPl :
   {in GRing.unit, forall g : {trpoly R n}, lagrfix g \So (mulfX g^-1) = \X}.
 Proof.
@@ -2198,6 +2222,15 @@ move=> g gU.
 rewrite lagrfixE; apply: lagrinvPl.
 rewrite /lagrunit unfold_in coef0_eq0E coef_mulfX /= eqxx /=.
 by rewrite divfX_unitE coef_mulfX /= -/(_`_0) -unit_trpolyE unitrV.
+Qed.
+
+Lemma lagrfix_uniq (g : {trpoly R n}) : g \in GRing.unit ->
+  forall f, f = mulfX (g \So trXns n f) -> f = lagrfix g.
+Proof.
+move=> gU f Hf.
+rewrite lagrfixE; apply lagrinvPr_uniq.
+- by rewrite /lagrunit unfold_in coef0_eq0E coef_mulfX mulfXK unitrV /= eqxx.
+- by apply: lagrfix_inv => //; rewrite Hf coef0_eq0E coef_mulfX.
 Qed.
 
 End Lagrange.
