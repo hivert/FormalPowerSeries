@@ -154,4 +154,54 @@ rewrite (CatV i) factS [i.+1 * _]mulnC mulnA.
 by rewrite -{3}(addnK i i) addnn divnMA bin_factd // double_gt0.
 Qed.
 
+
+Section CatLagrange.
+
+Local Open Scope ring_scope.
+Local Open Scope trpoly_scope.
+
+Lemma one_plusX_2_unit n : ((1 + \X) ^+ 2 : {trpoly Rat n}) \is a GRing.unit.
+Proof.
+rewrite unit_trpolyE coef0_trpolyM coeftrD coef_trpoly1.
+by rewrite coef_trpolyX mulr0 addr0 mulr1.
+Qed.
+
+Proposition FC1_eq n : (FC n.+2 - 1) = lagrfix ((1 + \X) ^+ 2).
+Proof.
+apply: (lagrfix_uniq (one_plusX_2_unit _)).
+rewrite {1}FC_eq -addrA addrC subrK.
+rewrite rmorphX rmorphD /= comp_trpoly1 comp_trpolyX //; first last.
+  rewrite coef0_eq0E coef_trXn coeftrB coef_trpoly1.
+  by rewrite coef_trpoly_of_fun /= C0 subrr.
+rewrite -(trXns1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
+apply trpolyP => i Hi.
+rewrite coef_trpolyXM coef_mulfX coef_trXns.
+by case: i Hi.
+Qed.
+
+Theorem CatLagrange i : (i.+1 * (C i) = 'C(i.*2, i))%N.
+Proof.
+case: i => [|i]; first by rewrite C0 mul1n bin0.
+apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
+have:= (congr1 (fun s : {trpoly _ _} => s`_i.+1) (FC1_eq i)).
+rewrite coef_trpoly coeftrD coef_trpoly_of_fun ltnS leqnSn.
+rewrite coeftrN coef_trpoly1 subr0 /= => ->.
+rewrite -/(_`_i.+1) coef_lagrfix ?one_plusX_2_unit //.
+rewrite -exprM mul2n addrC exprD1n coeftr_sum.
+have Hord : (i < (i.+1).*2.+1)%N.
+  by rewrite ltnS doubleS -addnn -!addnS leq_addr.
+rewrite (bigD1 (Ordinal Hord)) //= -!/(_`_i.+1).
+rewrite coeftrMn coef_trpolyXn // eqxx leqnSn /= (_ : 1%:R = 1) //.
+rewrite big1 ?addr0 => [|[j /= Hj]]; first last.
+  rewrite -val_eqE /= => {Hj} /negbTE Hj.
+  by rewrite coeftrMn coef_trpolyXn eq_sym Hj andbF mul0rn.
+rewrite ltnS in Hord.
+rewrite -bin_sub // -{2}addnn -addSnnS addnK.
+by rewrite mulrA -natrM mul_bin_left -addnn addnK natrM mulrC mulKr.
+Qed.
+
+End CatLagrange.
+
 End Catalan.
+
+

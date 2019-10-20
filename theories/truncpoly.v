@@ -765,8 +765,9 @@ apply/trpolyP => i _.
 by rewrite !mul_trpoly_val /= trXn_mull trXn_mulr commr_polyX.
 Qed.
 
-Lemma coef_trpolyX i : (\X : {trpoly R n.+1})`_i = (i == 1%N)%:R.
-Proof. by rewrite coef_trpolyE val_trpolyX coefZ coefX mul1r. Qed.
+Lemma coef_trpolyX i :
+  (\X : {trpoly R n})`_i = (n != 0%N)%:R * (i == 1%N)%:R.
+Proof. by rewrite coef_trpolyE val_trpolyX coefZ coefX. Qed.
 
 Lemma coef_trpolyXM f i :
   (\X * f)`_i = if i == 0%N then 0 else if i <= n then f`_i.-1 else 0.
@@ -1353,7 +1354,8 @@ Qed.
 
 Lemma mulfX1 m : mulfX 1 = \X :> {trpoly R m.+1}.
 Proof.
-by apply/trpolyP => [] [|[|i]] _; rewrite coef_mulfX coef_trpolyX coef_trpoly1.
+by apply/trpolyP => [] [|[|i]] _;
+  rewrite coef_mulfX coef_trpolyX // ?coef_trpoly1 ?mulr1 ?mulr0.
 Qed.
 Lemma divfXX m : divfX (\X : {trpoly R m.+1}) = 1 :> {trpoly R m}.
 Proof. by rewrite -[RHS]mulfXK mulfX1. Qed.
@@ -2202,7 +2204,7 @@ have g0 : g \in coef0_eq0.
   move: Heq; rewrite comp_trpoly_coef0_neq0 //.
   move => /(congr1 (fun s : {trpoly _ _} => s`_1)).
   rewrite coef_trpolyX coef_trpolyC /= => /esym/eqP.
-  by rewrite oner_eq0.
+  by rewrite mulr1 oner_eq0.
 move: Heq => /(congr1 (fun s => lagrinv f \So s)).
 by rewrite comp_trpolyA lagrinvPl // comp_trpolyX // comp_trpolyXr.
 Qed.
@@ -2309,6 +2311,14 @@ rewrite -linearZ /= !scaler_nat -(derivX_trpoly g d.+1) -/(_`_d.+1).
 by rewrite coeftrB coef_mulfX coef_deriv_trpoly /= -!/(_`_d.+1) coeftrMn subrr.
 Qed.
 
+Theorem coef_lagrfix (g : {trpoly R n.+1}) i :
+  g \in GRing.unit -> i < n.+2 -> (lagrfix g)`_i.+1 = (g ^+ i.+1)`_i / i.+1%:R.
+Proof.
+move/Lagrange_Bürmann_exp => HL lt_in2.
+have /HL : 1 <= i.+1 <= n.+2 by rewrite lt_in2.
+rewrite subSS subn0 mulr1n expr1 => <-.
+by rewrite -mulr_natr mulrK.
+Qed.
 
 Theorem Lagrange_Bürmann (g : {trpoly R n.+1}) (h : {trpoly R n.+2}) i  :
   g \in GRing.unit ->
