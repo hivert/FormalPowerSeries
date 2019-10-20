@@ -2100,22 +2100,24 @@ Variable g : {trpoly R n}.
 Hypothesis gU : g \is a GRing.unit.
 
 
-Fixpoint lagrfix_rec o : {trpoly R o} :=
-  if o is o'.+1 then mulfX ((trXns o' g) \So (lagrfix_rec o')) else 0.
-Definition lagrfix := lagrfix_rec n.+1.
+(** We iterate f := x (g o f) until fixpoint is reached. *)
+(** At each step, precision is incremented.              *)
+Fixpoint lagriter o : {trpoly R o} :=
+  if o is o'.+1 then mulfX ((trXns o' g) \So (lagriter o')) else 0.
+Definition lagrfix := lagriter n.+1.
 
-Lemma coef0_eq0_lagrfix_rec o : lagrfix_rec o \in coef0_eq0.
+Lemma coef0_eq0_lagriter o : lagriter o \in coef0_eq0.
 Proof.
 by rewrite coef0_eq0E; case: o => [|o]; rewrite ?coef_trpoly0 ?coef_mulfX.
 Qed.
 Lemma coef0_eq0_lagrfix : lagrfix \in coef0_eq0.
-Proof. exact: coef0_eq0_lagrfix_rec. Qed.
+Proof. exact: coef0_eq0_lagriter. Qed.
 
 Lemma lagrfixP : lagrfix = mulfX (g \So trXns n lagrfix).
 Proof.
 rewrite /lagrfix.
 suff rec o : o <= n ->
-     lagrfix_rec o.+1 = mulfX (trXns o g \So trXns o (lagrfix_rec o.+1)).
+     lagriter o.+1 = mulfX (trXns o g \So trXns o (lagriter o.+1)).
   by rewrite [LHS](rec n (leqnn n)) trXns_id.
 elim: o => [_ | o IHo /ltnW{}/IHo IHo]; apply trpolyP => i.
   case: i => [_|i]; first by rewrite !coef_mulfX.
@@ -2124,9 +2126,9 @@ elim: o => [_ | o IHo /ltnW{}/IHo IHo]; apply trpolyP => i.
   by rewrite comp_trpoly0r !coef_trpolyC coef0_comp_trpoly.
 case: i => [_|i]; first by rewrite !coef_mulfX.
 rewrite ltnS => le_io1 /=.
-rewrite -!/(_`_ i.+1) !coef_mulfX /= -/(lagrfix_rec o.+1) -!/(_`_ i.+1).
-have lag0 := coef0_eq0_lagrfix_rec o.+1.
-move: (lagrfix_rec o.+1) => LR in IHo lag0 *.
+rewrite -!/(_`_ i.+1) !coef_mulfX /= -/(lagriter o.+1) -!/(_`_ i.+1).
+have lag0 := coef0_eq0_lagriter o.+1.
+move: (lagriter o.+1) => LR in IHo lag0 *.
 have Xlag0 : trXns o.+1 (mulfX (trXns o.+1 g \So LR)) \in coef0_eq0.
   by rewrite coef0_eq0E coef_trXns coef_mulfX.
 rewrite !coef_comp_trpoly //; apply eq_bigr => k _; congr (_ * _).
