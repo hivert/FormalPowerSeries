@@ -58,8 +58,8 @@ Local Open Scope trpoly_scope.
 Variable n : nat.
 Definition FC : {trpoly Rat n} := [trpoly i => (C i)%:R].
 
-Lemma FC_in_coef0_is_1 : FC \in coef0_is_1.
-Proof. by rewrite coef0_is_1E coef_trpoly_of_fun C0. Qed.
+Lemma FC_in_coef0_eq1 : FC \in coef0_eq1.
+Proof. by rewrite coef0_eq1E coef_trpoly_of_fun C0. Qed.
 
 Proposition FC_eq : FC = 1 + \X * FC ^+ 2.
 Proof.
@@ -80,8 +80,8 @@ Proof. by rewrite scaler_nat -[f *+ i]mulr_natr mulrC. Qed.
 
 Theorem XFCE : \X * FC = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
 Proof.
-have co1 : 1 - 4%:R *: \X \in @coef0_is_1 Rat n.
-  by rewrite mulr_nat coef0_is_1E coefD mulrC coefN coef_trpolyXM coef1 subr0.
+have co1 : 1 - 4%:R *: \X \in @coef0_eq1 Rat n.
+  by rewrite mulr_nat coef0_eq1E coefD mulrC coefN coef_trpolyXM coef1 subr0.
 have: (2%:R *: \X * FC - 1) ^+ 2 = 1 - 4%:R *: \X.
   apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
   rewrite mulrA -subr_eq0 opprB [_ - 1]addrC addrA addrK addrC addrA.
@@ -90,7 +90,7 @@ have: (2%:R *: \X * FC - 1) ^+ 2 = 1 - 4%:R *: \X.
 move/(sqrtE nat_unit) => /(_ co1) [HeqP | HeqN].
   exfalso; move: HeqP => /(congr1 (fun x : {trpoly _ _ } => x`_0)).
   rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_trpolyXM coef1.
-  rewrite (eqP (coef0_is_1_expr _ _)) /= => /eqP.
+  rewrite (eqP (coef0_eq1_expr _ _)) /= => /eqP.
   rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
   by have:= charRat 2; rewrite !inE Habs /= eq_refl.
 have neq20 : 2%:R != 0 :> Rat by rewrite Num.Theory.pnatr_eq0.
