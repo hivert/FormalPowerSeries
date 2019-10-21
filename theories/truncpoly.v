@@ -2101,7 +2101,7 @@ Hypothesis gU : g \is a GRing.unit.
 
 
 (** We iterate f := x (g o f) until fixpoint is reached. *)
-(** At each step, precision is incremented.              *)
+(** At each step, the precision is incremented.          *)
 Fixpoint lagriter o : {trpoly R o} :=
   if o is o'.+1 then mulfX ((trXns o' g) \So (lagriter o')) else 0.
 Definition lagrfix := lagriter n.+1.
@@ -2286,15 +2286,16 @@ have Xg0 : mulfX g^-1 \in coef0_eq0 by rewrite coef0_eq0E coef_mulfX.
 (* The RHS is ((\X ^+ k.+1)^`() * g ^+ i.+1)`_i                        *)
 have:= congr1 (fun s => (s ^+ k.+1)^`()) (lagrfix_invPl gU).
 rewrite -rmorphX /= {1}(trpoly_def (lagrfix g ^+ k.+1)) rmorph_sum /=.
-move HLGR : (lagrfix g ^+ k.+1) => LGR.
+move: (lagrfix g ^+ k.+1) => LGRF.
 rewrite raddf_sum /= derivX_trpoly deriv_trpolyX mulr1 /= trXns_trpolyX.
 move=> /(congr1 (fun s => (s * g ^+ i.+1)`_i)).
-rewrite mulrnAl -mulrnAr coef_trpolyXnM ltnNge le_ki le_in /= coeftrMn => <-.
+rewrite mulrnAl -mulrnAr.
+rewrite coef_trpolyXnM ltnNge le_ki le_in /= coeftrMn => <- {k le_ki}.
 rewrite mulr_suml coeftr_sum -/(_`_i.+1).
 (* We extract the i.+1 term of the sum                                 *)
 have Hi : i.+1 < n.+3 by rewrite ltnS (leq_ltn_trans le_in).
 rewrite (bigD1 (Ordinal Hi)) //= -/(_`_i.+1).
-move: (LGR`_i.+1) => Co.
+move: (LGRF`_i.+1) => Co.
 rewrite !linearZ /= -scalerAl coeftrZ rmorphX /= comp_trpolyX //.
 rewrite derivX_trpoly /= !mulrnAl coeftrMn /= mulrnAr -mulrnAl.
 rewrite -mulrA coefM_trpoly le_in big_ord_recr /=.
@@ -2311,7 +2312,7 @@ rewrite !big1 ?add0r ?addr0 ?mulr1 //; first last.
   by rewrite coef_mulfX_exp_lt // mul0r.
 move=> [j Hj]; rewrite -val_eqE /= {Hi} => Hneq.
 rewrite !linearZ /= -scalerAl coeftrZ rmorphX /= comp_trpolyX //.
-rewrite [X in _ * X](_ : _ = 0) ?mulr0 // {LGR HLGR k le_ki}.
+rewrite [X in _ * X](_ : _ = 0) ?mulr0 // {LGRF}.
 (* We don't have the notion of residue. As a consequence the following *)
 (* is a little bit convoluted...                                       *)
 (* First, lets get rid of the first mulfX...                           *)
