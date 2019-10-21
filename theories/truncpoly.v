@@ -2265,7 +2265,7 @@ Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Lemma mulfX_deriv_expE n (g : {trpoly R n.+1}) i :
   (g ^+ i.+1 - mulfX (g^`())%trpoly * g ^+ i)`_i.+1 = 0.
 Proof.
-rewrite mulfXM mulrC rmorphX /=  -/(_`_i.+1).
+rewrite mulfXM mulrC rmorphX /= -/(_`_i.+1).
 apply (mulrI (nat_unit i)); rewrite mulr0 -!coeftrZ scalerBr.
 rewrite -linearZ /= !scaler_nat -(derivX_trpoly g i.+1) -/(_`_i.+1).
 by rewrite coeftrB coef_mulfX coef_deriv_trpoly /= -!/(_`_i.+1) coeftrMn subrr.
@@ -2349,13 +2349,16 @@ exact: mulfX_deriv_expE.
 Qed.
 
 Theorem coef_lagrfix n (g : {trpoly R n}) i :
-  g \in GRing.unit -> i < n.+1 -> (lagrfix g)`_i.+1 = (g ^+ i.+1)`_i / i.+1%:R.
+  g \in GRing.unit -> (lagrfix g)`_i.+1 = (g ^+ i.+1)`_i / i.+1%:R.
 Proof.
-move/Lagrange_Bürmann_exp => HL lt_in1.
+move/Lagrange_Bürmann_exp => HL.
+case: (ltnP i n.+1) => [lt_in1 | le_ni]; first last.
+  by rewrite coef_trpoly ltnNge le_ni /= coef_trpoly leqNgt le_ni /= mul0r.
 have /HL : 1 <= i.+1 <= n.+1 by rewrite lt_in1.
 rewrite subSS subn0 mulr1n expr1 => <-.
 by rewrite -mulr_natr mulrK.
 Qed.
+
 
 Theorem Lagrange_Bürmann n (g : {trpoly R n}) (h : {trpoly R n.+1}) i  :
   g \in GRing.unit ->
@@ -2388,6 +2391,7 @@ rewrite subSS derivX_trpoly /= trXns_trpolyX deriv_trpolyX mulr1.
 rewrite mulrnAl -mulrnAr coef_trpolyXnM le_in1 ltnNge le_ki /=.
 by rewrite coeftrMn.
 Qed.
+
 
 (** This form of statement doesn't allow to compute the n.+2 coefficient *)
 Theorem Lagrange_Bürmann_exp2 n (g : {trpoly R n.+1}) i k :
@@ -2427,11 +2431,13 @@ by rewrite derivX_trpoly /= coeftrMn mulrC rmorphX /= mulr_natr.
 Qed.
 
 Theorem Lagrange_Bürmann2 n (g h : {trpoly R n.+1}) i :
-  g \in GRing.unit -> i <= n.+1 ->
-        (h \So (trXns n.+1 (lagrfix g)))`_i =
-        ((1 - mulfX (g^`()%trpoly) / g) * h * g ^+ i)`_i.
+  g \in GRing.unit ->
+  (h \So (trXns n.+1 (lagrfix g)))`_i =
+  ((1 - mulfX (g^`()%trpoly) / g) * h * g ^+ i)`_i.
 Proof.
-move=> uG le_in1.
+move=> uG.
+case: (leqP i n.+1) => [le_in1 | lt_n1i]; first last.
+  by rewrite coef_trpoly leqNgt lt_n1i /= coef_trpoly leqNgt lt_n1i.
 rewrite (trpoly_def h) !(raddf_sum, mulr_suml, mulr_sumr, coeftr_sum) /=.
 apply eq_bigr => [[k /=]]; rewrite ltnS => le_kn2 _.
 rewrite !linearZ /= -mulrA mulrC -!scalerAl !coeftrZ; congr (_ * _).
