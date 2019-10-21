@@ -2262,6 +2262,15 @@ Section LagrangeTheorem.
 Variables R : comUnitRingType.
 Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 
+Lemma mulfX_deriv_expE n (g : {trpoly R n.+1}) i :
+  (g ^+ i.+1 - mulfX (g^`())%trpoly * g ^+ i)`_i.+1 = 0.
+Proof.
+rewrite mulfXM mulrC rmorphX /=  -/(_`_i.+1).
+apply (mulrI (nat_unit i)); rewrite mulr0 -!coeftrZ scalerBr.
+rewrite -linearZ /= !scaler_nat -(derivX_trpoly g i.+1) -/(_`_i.+1).
+by rewrite coeftrB coef_mulfX coef_deriv_trpoly /= -!/(_`_i.+1) coeftrMn subrr.
+Qed.
+
 
 Theorem Lagrange_Bürmann_exp n (g : {trpoly R n}) i k :
   g \in GRing.unit ->
@@ -2333,13 +2342,10 @@ move: lt_ji; rewrite -subn_gt0.
 case: (i - j)%N (leq_subr j i) => // d lt_di _ {j le_jn1}.
 (* We gather all the [g] and conclude                                  *)
 rewrite mulfXM derivV_trpoly //= -/(_`_d.+1).
-rewrite !mulNr raddfN /= mulrDl mul1r mulNr mulfXM -/(_`_d.+1).
-rewrite -mulrA -rmorphV ?unitrX // -mulrA -!rmorphM /= -/(_`_d.+1).
-rewrite {2}exprS !mulrA -[_ * g]mulrA expr2 -mulrA mulKr ?unitrMr //.
-rewrite mulrC rmorphX /= -/(_`_d.+1).
-apply (mulIr (nat_unit d)); rewrite mul0r [LHS]mulrC -coeftrZ scalerBr.
-rewrite -linearZ /= !scaler_nat -(derivX_trpoly g d.+1) -/(_`_d.+1).
-by rewrite coeftrB coef_mulfX coef_deriv_trpoly /= -!/(_`_d.+1) coeftrMn subrr.
+rewrite !mulNr raddfN /= -/(_`_d.+1) -trXnsV // -mulrA -trXnsM // -!mulfXM.
+rewrite mulrDl mul1r mulNr -mulrA.
+rewrite {2}exprS !mulrA -[_ * g]mulrA -expr2 divrK ?unitrX //.
+exact: mulfX_deriv_expE.
 Qed.
 
 Theorem coef_lagrfix n (g : {trpoly R n}) i :
@@ -2381,6 +2387,61 @@ rewrite Lagrange_Bürmann_exp //; last by rewrite !ltnS le_ki le_in1.
 rewrite subSS derivX_trpoly /= trXns_trpolyX deriv_trpolyX mulr1.
 rewrite mulrnAl -mulrnAr coef_trpolyXnM le_in1 ltnNge le_ki /=.
 by rewrite coeftrMn.
+Qed.
+
+(** This form of statement doesn't allow to compute the n.+2 coefficient *)
+Theorem Lagrange_Bürmann_exp2 n (g : {trpoly R n.+1}) i k :
+  g \in GRing.unit ->
+  k <= i <= n.+1 -> ((lagrfix g) ^+ k)`_i =
+                    ((1 - mulfX (g^`()%trpoly) / g) * \X ^+ k * g ^+ i)`_i.
+Proof.
+move=> gU.
+case: k i => [|k] [|i] Hki //.
+- by rewrite !expr0 !mulr1 coeftrB coef0_trpolyM coef_mulfX mul0r subr0.
+- rewrite !expr0 !mulr1 coef_trpoly1 exprS mulrA !mulrBl mul1r.
+  by rewrite divrK //= -!/(_`_i.+1) -exprS mulfX_deriv_expE.
+move: Hki; rewrite !ltnS => /andP [le_ki le_in].
+have le_in1 := (leq_trans le_in (leqnSn _)).
+rewrite -mulrA [\X^+_ * _]mulrC mulrA mulrC !mulrBl mul1r.
+rewrite (exprS g i) mulrA divrK // -exprS.
+rewrite (exprS \X k) -mulrA coef_trpolyXM /= ltnS le_in -/(_`_i.+1).
+apply (mulIr (nat_unit i)).
+rewrite mulr_natr Lagrange_Bürmann_exp // ?ltnS ?le_ki ?le_in1 //.
+have := erefl (\X ^+ k * mulfX (g ^+ i.+1))^`().
+rewrite {2}mulfXE mulrA [_ * \X]mulrC -exprS.
+rewrite [X in _ = X]derivM_trpoly derivX_trpoly /=.
+rewrite trXns_trXns // trXns_id trXns_trpolyX deriv_trpolyX mulr1 mulrnAl.
+move/(congr1 (fun s : {trpoly R _} => s`_i)).
+rewrite coeftrD coeftrMn [(\X^+k * _)`_i]coef_trpolyXnM le_in1 ltnNge le_ki /=.
+set X := (X in _ = _ + X); move=> /(congr1 (fun s => s - X)).
+rewrite addrK => <-.
+rewrite {}/X deriv_trXns [\Xo(n.+2) ^+ k.+1]exprS rmorphM /= trXns_trpolyX.
+rewrite [\X * _]mulrC -!mulrA -mulfXE rmorphX /= trXns_trpolyX -/(_`_i.+1).
+rewrite coef_deriv_trpoly.
+rewrite !coef_trpolyXnM le_in1 ltnS le_in1 ltnNge (leq_trans le_ki (leqnSn _)).
+rewrite ltnNge le_ki /= coef_mulfX -/(leq _ _) ltnNge le_ki /=.
+rewrite subSn //= coeftrB mulrBl mulr_natr; congr (_ - _).
+rewrite mulfXM !coef_mulfX -/(leq _ _).
+case: leqP; rewrite ?mul0r // => lt_ki.
+by rewrite derivX_trpoly /= coeftrMn mulrC rmorphX /= mulr_natr.
+Qed.
+
+Theorem Lagrange_Bürmann2 n (g h : {trpoly R n.+1}) i :
+  g \in GRing.unit -> i <= n.+1 ->
+        (h \So (trXns n.+1 (lagrfix g)))`_i =
+        ((1 - mulfX (g^`()%trpoly) / g) * h * g ^+ i)`_i.
+Proof.
+move=> uG le_in1.
+rewrite (trpoly_def h) !(raddf_sum, mulr_suml, mulr_sumr, coeftr_sum) /=.
+apply eq_bigr => [[k /=]]; rewrite ltnS => le_kn2 _.
+rewrite !linearZ /= -mulrA mulrC -!scalerAl !coeftrZ; congr (_ * _).
+rewrite rmorphX /= comp_trpolyX ?coef0_eq0_trXns ?coef0_eq0_lagrfix //.
+rewrite -rmorphX coef_trXns le_in1.
+case: (leqP k i) => [le_ki | lt_ik]; first last.
+  rewrite coefX_trpoly_eq0 ?coef0_eq0_lagrfix //.
+  by rewrite -mulrA coef_trpolyXnM lt_ik.
+rewrite Lagrange_Bürmann_exp2 ?le_in1 ?andbT //.
+by rewrite [in RHS]mulrC mulrA.
 Qed.
 
 End LagrangeTheorem.
