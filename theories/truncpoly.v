@@ -880,9 +880,7 @@ Canonical trpoly_comRingType :=
 Canonical trpoly_algType := Eval hnf in CommAlgType R {trpoly R n}.
 
 Lemma hmul_trpolyC : commutative (@hmul_trpoly R n).
-Proof.
-by move=> f1 f2; apply/trpolyP => /= i; rewrite !coef_poly mulrC.
-Qed.
+Proof. by move=> f1 f2; apply/trpolyP => i; rewrite !coef_poly mulrC. Qed.
 
 End TruncPolyTheoryComRing.
 
@@ -897,7 +895,7 @@ Definition unit_trpoly : pred {trpoly R n} := fun f => f`_0 \in GRing.unit.
 Fixpoint inv_trpoly_rec f bound m :=
   if bound is b.+1 then
     if (m <= b)%N then inv_trpoly_rec f b m
-    else - f`_0%N^-1 * (\sum_(i < m) f`_i.+1 * (inv_trpoly_rec f b (m - i.+1)%N))
+    else -f`_0%N^-1 * (\sum_(i < m) f`_i.+1 * (inv_trpoly_rec f b (m - i.+1)%N))
   else f`_0%N^-1.
 Definition inv_trpoly f : {trpoly R n} :=
   if unit_trpoly f then [trpoly i <= n => inv_trpoly_rec f i i] else f.
@@ -914,8 +912,8 @@ Proof.
 move=> s_unit lt_mn.
 rewrite /inv_trpoly s_unit coef_trpoly_of_fun /= ltnn lt_mn; congr (- _ * _).
 apply: eq_bigr => [[i]/=]; rewrite ltnS => le_im _.
-rewrite coef_trpoly_of_fun (leq_trans (leq_subr _ _) (ltnW lt_mn)); congr (_ * _).
-rewrite /bump /= subSS.
+rewrite coef_trpoly_of_fun (leq_trans (leq_subr _ _) (ltnW lt_mn)).
+congr (_ * _); rewrite /bump /= subSS.
 move: (m - i)%N (leq_subr i m) {le_im} => {i} i le_im.
 move: le_im => /subnKC <-; elim: (m - i)%N => [|k IHl]; first by rewrite addn0.
 by rewrite addnS /= leq_addr.
@@ -1579,6 +1577,21 @@ apply/trpoly_inj; rewrite !deriv_trpolyE deriv_trXn /=.
 by rewrite trXn_trXn // derivM rmorphD !rmorphM.
 Qed.
 
+(* Noncommutative version *)
+Theorem derivX_trpoly_nc n (f : {trpoly R n}) k :
+  (f ^+ k)^`() =
+  \sum_(i < k) (trXns n.-1 f) ^+ i * (f^`())%trpoly * (trXns n.-1 f) ^+ (k.-1-i).
+Proof.
+have Hn := leq_pred n.
+case: k; first by rewrite !expr0 deriv_trpoly1 big_ord0.
+elim=> [|k IHk] /=.
+  by rewrite !expr1 big_ord_recl big_ord0 addr0 subnn expr0 mul1r mulr1.
+rewrite exprS derivM_trpoly big_ord_recl subn0 expr0 mul1r rmorphX /=.
+congr (_ + _).
+rewrite {}IHk mulr_sumr; apply eq_bigr => i _.
+by rewrite /bump /= add1n subSS !mulrA -exprS.
+Qed.
+
 End MoreDerivative.
 
 
@@ -1591,22 +1604,15 @@ Implicit Types (f g : {trpoly R n}).
 Theorem derivX_trpoly f k :
   (f ^+ k)^`() = (trXns n.-1 f) ^+ (k.-1) * (f^`())%trpoly *+ k.
 Proof.
-case: k; first by rewrite !expr0 deriv_trpoly1 mulr0n.
-elim=> [|k IHk] /=; first by rewrite !expr1 expr0 mul1r mulr1n.
-rewrite exprS derivM_trpoly {}IHk /=.
-rewrite -mulrnAr mulrA -exprS mulrC rmorphX ?leq_pred //= => _.
-by rewrite -mulrDr -mulrS -mulrnAr.
+have Hn := leq_pred n.
+rewrite derivX_trpoly_nc -{9}(card_ord k) -sumr_const.
+apply eq_bigr => [] [i /= Hi] _.
+by rewrite mulrC mulrA -!rmorphX -rmorphM /= -exprD subnK //; case: k Hi.
 Qed.
 
 Theorem derivX_trpoly_bis f k :
   (f ^+ k)^`() = (f^`())%trpoly * (trXns n.-1 f) ^+ (k.-1) *+ k.
-Proof.
-case: k; first by rewrite !expr0 deriv_trpoly1 mulr0n.
-elim=> [|k IHk] /=; first by rewrite !expr1 expr0 mulr1 mulr1n.
-rewrite exprS derivM_trpoly {}IHk /=.
-rewrite -mulrnAr mulrA [_ * _^`()%trpoly]mulrC.
-by rewrite mulrnAr -mulrA -exprS rmorphX ?leq_pred.
-Qed.
+Proof. by rewrite derivX_trpoly mulrC. Qed.
 
 End DerivativeComRing.
 
@@ -1617,7 +1623,7 @@ Variables (R : unitRingType) (n : nat).
 Implicit Types (f g : {trpoly R n}).
 
 (* Noncommutative version *)
-Theorem derivV_trpoly_unit f :
+Theorem derivV_trpoly_nc f :
   f \is a GRing.unit ->
   (f ^-1)^`() = - trXns n.-1 (f^-1) * (f^`()%trpoly) * trXns n.-1 (f^-1).
 Proof.
@@ -1644,7 +1650,7 @@ Theorem derivV_trpoly f :
   f \is a GRing.unit -> (f ^-1)^`() = - (f^`()%trpoly) / trXns n.-1 (f ^+ 2).
 Proof.
 move=> fU.
-rewrite derivV_trpoly_unit // -mulrA mulrC -mulrA !mulrN mulNr.
+rewrite derivV_trpoly_nc // -mulrA mulrC -mulrA !mulrN mulNr.
 rewrite trXnsV ?leq_pred // -invrM ?unit_trpolyE ?coef0_trXn //.
 by rewrite -{1}rmorphM ?leq_pred.
 Qed.
