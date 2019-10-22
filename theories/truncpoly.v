@@ -2012,7 +2012,23 @@ End CompLinear.
 
 Section CompRMoprhism.
 
-Variables (R : comRingType) (n : nat) (f : {trpoly R n}).
+Variables (R : comRingType) (n : nat).
+Implicit Types (f g h : {trpoly R n}) (p q : {poly R}).
+
+Lemma comp_trpolyA f g h : f \So (g \So h) = (f \So g) \So h.
+Proof.
+case (boolP (h \in coef0_eq0)) => [h0_eq0 | h0_neq0]; first last.
+  rewrite !(comp_trpoly_coef0_neq0 _ h0_neq0).
+  by rewrite comp_trpolyCf coef0_comp_trpoly.
+case (boolP (g \in coef0_eq0)) => [g0_eq0 | g0_neq0]; first last.
+  by rewrite !(comp_trpoly_coef0_neq0 f) ?comp_trpolyC // coef0_eq0_comp.
+rewrite comp_trpoly_coef0_eq0 ?coef0_eq0_comp //.
+rewrite !comp_trpoly_coef0_eq0 //.
+rewrite -trXn_comp_polyr comp_polyA trXn_comp_polyl //.
+by move: h0_eq0; rewrite coef0_eq0E => /eqP.
+Qed.
+
+Variable f : {trpoly R n}.
 
 Fact comp_trpoly_is_rmorphism : multiplicative (comp_trpoly f).
 Proof.
@@ -2036,19 +2052,6 @@ Section CompositionWithX.
 Variables (R : comRingType) (n : nat).
 Implicit Types (f g h : {trpoly R n}) (p q : {poly R}).
 
-Lemma comp_trpolyA f g h : f \So (g \So h) = (f \So g) \So h.
-Proof.
-case (boolP (h \in coef0_eq0)) => [h0_eq0 | h0_neq0]; first last.
-  rewrite !(comp_trpoly_coef0_neq0 _ h0_neq0).
-  by rewrite comp_trpolyCf coef0_comp_trpoly.
-case (boolP (g \in coef0_eq0)) => [g0_eq0 | g0_neq0]; first last.
-  by rewrite !(comp_trpoly_coef0_neq0 f) ?comp_trpolyC // coef0_eq0_comp.
-rewrite comp_trpoly_coef0_eq0 ?coef0_eq0_comp //.
-rewrite !comp_trpoly_coef0_eq0 //.
-rewrite -trXn_comp_polyr comp_polyA trXn_comp_polyl //.
-by move: h0_eq0; rewrite coef0_eq0E => /eqP.
-Qed.
-
 Lemma comp_trpolyXr f : f \So \X = f.
 Proof.
 case: n f => [|n'] f.
@@ -2066,7 +2069,7 @@ move=> /comp_trpoly_coef0_eq0 ->.
 by rewrite val_trpolySX comp_polyX trpolyK.
 Qed.
 
-Lemma comp_trpolyXn i : {in coef0_eq0, forall f, \X^+i \So f = f^+ i}.
+Lemma comp_trpolyXn i : {in coef0_eq0, forall f, \X ^+ i \So f = f ^+ i}.
 Proof.
 move=> f Hf; elim: i => [|i IHi]; first by rewrite !expr0 comp_trpoly1.
 by rewrite !exprS rmorphM /= IHi comp_trpolyX.
