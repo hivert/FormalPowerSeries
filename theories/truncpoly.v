@@ -1853,7 +1853,7 @@ End MoreExpPoly.
 
 Section MoreCompPoly.
 
-Variable (R : comRingType).
+Variable (R : ringType).
 Implicit Type (p q : {poly R}).
 
 Lemma trXn_comp_polyr n p q :
@@ -1870,26 +1870,11 @@ Lemma trXn_comp_polyl n p q :
   q`_0 = 0 -> trXn n (p \Po q) = trXn n ((trpoly (trXn n p)) \Po q).
 Proof.
 move => q0_eq0; apply/trXnP => i le_in.
-rewrite -{1}(poly_cat p n.+1) comp_polyD coefD comp_polyM !trXnE.
-rewrite rmorphX /= comp_polyX [X in _ + X](_ : _ = 0) ?addr0 //.
-rewrite coefM; apply big1 => [] [j /=]; rewrite ltnS => le_ji _.
-by rewrite coefX_eq0 ?mul0r // ltnS (leq_trans le_ji le_in).
-Qed.
-
-Lemma coef_comp_poly_cX p c i : (p \Po (c *: 'X))`_i = c ^+ i * p`_i.
-Proof.
-rewrite coef_comp_poly.
-rewrite (eq_bigr (fun j : 'I_ _ =>
-                    c ^+ j * p`_j * (i == j)%:R)) => [|j _]; first last.
-  rewrite -mulr_algl exprMn_comm; last exact: commr_polyX.
-  by rewrite -in_algE -rmorphX mulr_algl coefZ coefXn mulrA [p`_j * _]mulrC.
-case: (ltnP i (size p)) => [lt_isz | le_szi].
-- rewrite (bigD1 (Ordinal lt_isz)) //= big1 ?addr0; first last.
-    move=> [j /= lt_jsz]; rewrite -val_eqE /= eq_sym => /negbTE ->.
-    by rewrite mulr0.
-  by rewrite eqxx mulr1.
-- rewrite nth_default // mulr0 big1 // => [] [j /= lt_jsz] _.
-  by rewrite (gtn_eqF (leq_trans lt_jsz le_szi)) mulr0.
+rewrite -{1}(poly_cat p n.+1) comp_polyD coefD !trXnE.
+rewrite [X in _ + X](_ : _ = 0) ?addr0 //.
+rewrite coef_comp_poly; apply big1 => [] [j /=] le_jsz _.
+rewrite coefXnM; case: ltnP => [] Hi; first by rewrite mul0r.
+by rewrite coefX_eq0 ?mulr0 // (leq_ltn_trans le_in Hi).
 Qed.
 
 End MoreCompPoly.
@@ -2069,6 +2054,22 @@ Lemma comp_trpolyXn i : {in coef0_eq0, forall f, \X^+i \So f = f^+ i}.
 Proof.
 move=> f Hf; elim: i => [|i IHi]; first by rewrite !expr0 comp_trpoly1.
 by rewrite !exprS rmorphM /= IHi comp_trpolyX.
+Qed.
+
+Lemma coef_comp_poly_cX p c i : (p \Po (c *: 'X))`_i = c ^+ i * p`_i.
+Proof.
+rewrite coef_comp_poly.
+rewrite (eq_bigr (fun j : 'I_ _ =>
+                    c ^+ j * p`_j * (i == j)%:R)) => [|j _]; first last.
+  rewrite -mulr_algl exprMn_comm; last exact: commr_polyX.
+  by rewrite -in_algE -rmorphX mulr_algl coefZ coefXn mulrA [p`_j * _]mulrC.
+case: (ltnP i (size p)) => [lt_isz | le_szi].
+- rewrite (bigD1 (Ordinal lt_isz)) //= big1 ?addr0; first last.
+    move=> [j /= lt_jsz]; rewrite -val_eqE /= eq_sym => /negbTE ->.
+    by rewrite mulr0.
+  by rewrite eqxx mulr1.
+- rewrite nth_default // mulr0 big1 // => [] [j /= lt_jsz] _.
+  by rewrite (gtn_eqF (leq_trans lt_jsz le_szi)) mulr0.
 Qed.
 
 Lemma coef_comp_trpoly_cX f c i : (f \So (c *: \X))`_i = c ^+ i * f`_i.
