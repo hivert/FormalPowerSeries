@@ -2069,10 +2069,19 @@ move=> /comp_trpoly_coef0_eq0 ->.
 by rewrite val_trpolySX comp_polyX trpolyK.
 Qed.
 
+(** The following proof doesn't require R to be commutative *)
 Lemma comp_trpolyXn i : {in coef0_eq0, forall f, \X ^+ i \So f = f ^+ i}.
 Proof.
-move=> f Hf; elim: i => [|i IHi]; first by rewrite !expr0 comp_trpoly1.
-by rewrite !exprS rmorphM /= IHi comp_trpolyX.
+move=> f Hf; apply/trpolyP => j Hj.
+rewrite coef_comp_trpoly //.
+case: (ltnP i j.+1) => [lt_ij1 | lt_ji].
+- rewrite (bigD1 (Ordinal lt_ij1)) //= big1 ?addr0.
+  + rewrite ltnS in lt_ij1.
+    by rewrite coef_trpolyXn eqxx (leq_trans lt_ij1 Hj) mul1r.
+  + move=> [k Hk]; rewrite -val_eqE /= coef_trpolyXn => /negbTE ->.
+    by rewrite andbF mul0r.
+- rewrite coefX_trpoly_eq0 // big1 // => [] [k /=]; rewrite ltnS => Hk _.
+  by rewrite coef_trpolyXn (ltn_eqF (leq_ltn_trans Hk lt_ji)) andbF mul0r.
 Qed.
 
 Lemma coef_comp_poly_cX p c i : (p \Po (c *: 'X))`_i = c ^+ i * p`_i.
