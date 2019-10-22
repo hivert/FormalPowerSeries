@@ -1993,20 +1993,26 @@ End Composition.
 Notation "f \So g" := (comp_trpoly g f) : trpoly_scope.
 
 
-Section CompCanonicals.
+Section CompLinear.
 
-Variables (R : comRingType) (n : nat).
-Variables (f : {trpoly R n}).
+Variables (R : ringType) (n : nat) (f : {trpoly R n}).
 
 Fact comp_trpoly_is_linear : linear (comp_trpoly f).
 Proof.
 case: (boolP (f \in coef0_eq0)) => Hf a q r.
-- by rewrite !comp_trpoly_coef0_eq0 // !rmorphD /= !linearZ.
+- by rewrite !comp_trpoly_coef0_eq0 // !raddfD /= !linearZ.
 - rewrite !comp_trpoly_coef0_neq0 // coeftrD coeftrZ.
   by rewrite raddfD /= -!/(_`_0) trpolyCM -alg_trpolyC mulr_algl.
 Qed.
 Canonical comp_trpoly_additive := Additive comp_trpoly_is_linear.
 Canonical comp_trpoly_linear := Linear comp_trpoly_is_linear.
+
+End CompLinear.
+
+
+Section CompRMoprhism.
+
+Variables (R : comRingType) (n : nat) (f : {trpoly R n}).
 
 Fact comp_trpoly_is_rmorphism : multiplicative (comp_trpoly f).
 Proof.
@@ -2022,7 +2028,7 @@ Qed.
 Canonical comp_trpoly_rmorphism := AddRMorphism comp_trpoly_is_rmorphism.
 Canonical comp_trpoly_lrmorphism := [lrmorphism of (comp_trpoly f)].
 
-End CompCanonicals.
+End CompRMoprhism.
 
 
 Section CompositionWithX.
