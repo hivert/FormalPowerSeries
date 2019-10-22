@@ -2224,6 +2224,7 @@ have g0 : g \in coef0_eq0.
   move => /(congr1 (fun s : {trpoly _ _} => s`_1)).
   rewrite coef_trpolyX coef_trpolyC /= => /esym/eqP.
   by rewrite mulr1 oner_eq0.
+(** Standard group theoretic argument: right inverse is uniq *)
 move: Heq => /(congr1 (fun s => lagrinv f \So s)).
 by rewrite comp_trpolyA lagrinvPl // comp_trpolyX // comp_trpolyXr.
 Qed.
@@ -2232,8 +2233,16 @@ Lemma lagrinvPl_uniq f g :
   f \in lagrunit -> g \So f = \X -> g = lagrinv f.
 Proof.
 move=> f_lag /(congr1 (fun s => s \So lagrinv f)).
+(** Standard group theoretic argument: left inverse is uniq *)
 rewrite -comp_trpolyA lagrinvPr // comp_trpolyXr // comp_trpolyX //.
 exact: coef0_eq0_lagrfix.
+Qed.
+
+Lemma lagrinvK : {in lagrunit, involutive lagrinv}.
+Proof.
+(** Standard group theoretic argument: inverse is involutive *)
+move=> f Hf.
+by apply/esym/lagrinvPl_uniq; [apply: lagrunitV | apply: lagrinvPr].
 Qed.
 
 Lemma lagrfix_invPl :
