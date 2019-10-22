@@ -256,6 +256,9 @@ Variable n : nat.
 
 Implicit Types (p q r s : {poly R}) (f g : {trpoly R n}).
 
+Lemma size_trpolyE f : size f = size (trpoly f).
+Proof. by []. Qed.
+
 Lemma coef_trpolyE f i : f`_i = (trpoly f)`_i.
 Proof. by []. Qed.
 
@@ -1882,7 +1885,7 @@ End MoreCompPoly.
 
 Section Composition.
 
-Variables (R : comRingType) (n : nat).
+Variables (R : ringType) (n : nat).
 Implicit Types (f g : {trpoly R n}) (p q : {poly R}).
 
 Definition comp_trpoly m (f g : {trpoly R m}) :=
@@ -1904,8 +1907,14 @@ Proof. by move => f0_eq0 ; rewrite /comp_trpoly f0_eq0. Qed.
 Lemma coef0_comp_trpoly f g : (f \So g)`_0 = f`_0.
 Proof.
 rewrite /comp_trpoly; case: (boolP (_ \in _)); last by rewrite coef_trpolyC.
-rewrite coef0_eq0E coef_trXn {-2}[0%N]lock /= -lock => /eqP.
-by rewrite -!horner_coef0 horner_comp => ->.
+rewrite coef0_eq0E coef_trXn {-2}[0%N]lock /= -lock => /eqP g0_eq0.
+rewrite coef_comp_poly.
+case Hsz : (size (trpoly f)) => [|sz].
+  by rewrite big_ord0 nth_default // leqn0 size_trpolyE Hsz.
+rewrite big_ord_recl big1.
+- by rewrite addr0 -coef_trpolyE expr0 coef1 mulr1.
+- move=> [i /= Hi] _.
+  by rewrite /bump /= -/(_`_0) add1n exprSr coef0M -coef_trpolyE g0_eq0 !mulr0.
 Qed.
 
 Lemma coef_comp_trpoly k f g :
@@ -1979,10 +1988,15 @@ have [->| c_neq0] := eqVneq c 0.
 by rewrite comp_trpoly_coef0_neq0 // coef0_eq0E coef_trpolyC.
 Qed.
 
+End Composition.
+
+Notation "f \So g" := (comp_trpoly g f) : trpoly_scope.
+
 
 Section CompCanonicals.
 
-Variable f : {trpoly R n}.
+Variables (R : comRingType) (n : nat).
+Variables (f : {trpoly R n}).
 
 Fact comp_trpoly_is_linear : linear (comp_trpoly f).
 Proof.
@@ -1996,7 +2010,7 @@ Canonical comp_trpoly_linear := Linear comp_trpoly_is_linear.
 
 Fact comp_trpoly_is_rmorphism : multiplicative (comp_trpoly f).
 Proof.
-split => [g1 g2|]; last exact: comp_trpoly1.
+split => /= [g1 g2|]; last exact: comp_trpoly1.
 case: (boolP (f \in coef0_eq0)) => Hf.
 - rewrite !comp_trpoly_coef0_eq0 // mul_trpoly_val /=.
   rewrite -trXn_comp_polyl -?coef_trpolyE ?(eqP Hf) //.
@@ -2010,6 +2024,12 @@ Canonical comp_trpoly_lrmorphism := [lrmorphism of (comp_trpoly f)].
 
 End CompCanonicals.
 
+
+Section CompositionWithX.
+
+Variables (R : comRingType) (n : nat).
+Implicit Types (f g h : {trpoly R n}) (p q : {poly R}).
+
 Lemma comp_trpolyA f g h : f \So (g \So h) = (f \So g) \So h.
 Proof.
 case (boolP (h \in coef0_eq0)) => [h0_eq0 | h0_neq0]; first last.
@@ -2022,16 +2042,6 @@ rewrite !comp_trpoly_coef0_eq0 //.
 rewrite -trXn_comp_polyr comp_polyA trXn_comp_polyl //.
 by move: h0_eq0; rewrite coef0_eq0E => /eqP.
 Qed.
-
-End Composition.
-
-Notation "f \So g" := (comp_trpoly g f) : trpoly_scope.
-
-
-Section CompositionWithX.
-
-Variables (R : comRingType) (n : nat).
-Implicit Types (f g : {trpoly R n}) (p q : {poly R}).
 
 Lemma comp_trpolyXr f : f \So \X = f.
 Proof.
@@ -2211,7 +2221,7 @@ have idemp_neutral g : lagrunit g -> g \So g = g -> g = \X.
   move=> Hinv Hid; rewrite -(comp_trpolyXr g) // -(lagrinvPr Hinv).
   by rewrite comp_trpolyA {}Hid.
 apply idemp_neutral; first exact: lagrunit_comp (lagrunitV Hf) Hf.
-rewrite comp_trpolyA -[X in (X \So f)]comp_trpolyA lagrinvPr //.
+rewrite comp_trpolyA -[X in (X \So f) = _]comp_trpolyA lagrinvPr //.
 by rewrite comp_trpolyXr.
 Qed.
 
