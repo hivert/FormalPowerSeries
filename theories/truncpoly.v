@@ -2306,6 +2306,7 @@ Section LagrangeTheorem.
 Variables R : comUnitRingType.
 Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 
+(* TODO: nat_unit is not needed here *)
 Lemma mulfX_deriv_expE n (g : {trpoly R n.+1}) i :
   (g ^+ i.+1 - mulfX (g^`())%trpoly * g ^+ i)`_i.+1 = 0.
 Proof.
@@ -2314,7 +2315,6 @@ apply (mulrI (nat_unit i)); rewrite mulr0 -!coeftrZ scalerBr.
 rewrite -linearZ /= !scaler_nat -(derivX_trpoly g i.+1) -/(_`_i.+1).
 by rewrite coeftrB coef_mulfX coef_deriv_trpoly /= -!/(_`_i.+1) coeftrMn subrr.
 Qed.
-
 
 Theorem Lagrange_Bürmann_exp n (g : {trpoly R n}) i k :
   g \in GRing.unit ->
@@ -2566,19 +2566,6 @@ rewrite coefN big_nat big1 ?coef0 ?oppr0 // => i /andP [Hi _].
 by rewrite expr0n -[i == 0%N]negbK -lt0n Hi /= scaler0.
 Qed.
 
-End ExpLog.
-
-Arguments log {R n}.
-Arguments exp {R n}.
-
-Notation "f ^^ r" := (expr_trpoly r f) : trpoly_scope.
-
-
-Section CoefExpLog.
-
-Variables (R : unitRingType) (n : nat).
-Implicit Type f : {trpoly R n}.
-
 Lemma exp_in_coef0_eq1 f : (exp f \in coef0_eq1) = (f \in coef0_eq0).
 Proof.
 apply/idP/idP => [| Hf].
@@ -2609,7 +2596,12 @@ Qed.
 Lemma coef0_log f : (log f)`_0 = 0.
 Proof. by have := log_in_coef0_eq0 f; rewrite coef0_eq0E => /eqP. Qed.
 
-End CoefExpLog.
+End ExpLog.
+
+Arguments log {R n}.
+Arguments exp {R n}.
+
+Notation "f ^^ r" := (expr_trpoly r f) : trpoly_scope.
 
 
 Module TruncPolyUnitRing.
@@ -3103,25 +3095,40 @@ Definition pred_size_prim       := TruncPolyUnitRing.pred_size_prim       nuf.
 Definition primK                := TruncPolyUnitRing.primK                nuf.
 Definition prim_trpolyK         := TruncPolyUnitRing.prim_trpolyK         nuf.
 Definition deriv_trpolyK        := TruncPolyUnitRing.deriv_trpolyK        nuf.
+Definition derivXn_trpoly       := TruncPolyUnitRing.derivXn_trpoly.
 Definition expD                 := TruncPolyUnitRing.expD                 nuf.
 Definition expN                 := TruncPolyUnitRing.expN                 nuf.
 Definition expB                 := TruncPolyUnitRing.expB                 nuf.
 Definition deriv_trpoly_eq0_cst := TruncPolyUnitRing.deriv_trpoly_eq0_cst nuf.
+Definition deriv_trpoly_ex_eq0  := TruncPolyUnitRing.deriv_trpoly_ex_eq0  nuf.
 Definition deriv_trpoly_eq0     := TruncPolyUnitRing.deriv_trpoly_eq0     nuf.
+Definition deriv_trpoly_ex_eq   := TruncPolyUnitRing.deriv_trpoly_ex_eq   nuf.
 Definition deriv_trpoly_eq      := TruncPolyUnitRing.deriv_trpoly_eq      nuf.
 Definition deriv_exp            := TruncPolyUnitRing.deriv_exp            nuf.
 Definition deriv_log            := TruncPolyUnitRing.deriv_log            nuf.
 Definition expK                 := TruncPolyUnitRing.expK                 nuf.
-Definition log_inj              := TruncPolyUnitRing.log_inj              nuf.
+Definition exp_inj              := TruncPolyUnitRing.exp_inj              nuf.
 Definition logK                 := TruncPolyUnitRing.logK                 nuf.
+Definition log_inj              := TruncPolyUnitRing.log_inj              nuf.
 Definition logM                 := TruncPolyUnitRing.logM                 nuf.
+Definition logV                 := TruncPolyUnitRing.logV                 nuf.
+Definition log_div              := TruncPolyUnitRing.log_div              nuf.
 Definition expr_trpolyn         := TruncPolyUnitRing.expr_trpolyn         nuf.
 Definition expr_trpoly0         := TruncPolyUnitRing.expr_trpoly0         nuf.
 Definition expr_trpoly1         := TruncPolyUnitRing.expr_trpoly1         nuf.
 Definition expr_trpolyN         := TruncPolyUnitRing.expr_trpolyN         nuf.
+Definition expr_trpolyN1        := TruncPolyUnitRing.expr_trpolyN1        nuf.
+Definition expr_trpolyNn        := TruncPolyUnitRing.expr_trpolyNn        nuf.
 Definition expr_trpolyD         := TruncPolyUnitRing.expr_trpolyD         nuf.
 Definition expr_trpolyB         := TruncPolyUnitRing.expr_trpolyB         nuf.
 Definition expr_trpolyM         := TruncPolyUnitRing.expr_trpolyM         nuf.
+Definition sqrrK                := TruncPolyUnitRing.sqrrK                nuf.
+Definition sqrtK                := TruncPolyUnitRing.sqrtK                nuf.
+Definition coef1cX              := TruncPolyUnitRing.coef1cX.
+Definition deriv1cX             := TruncPolyUnitRing.deriv1cX.
+Definition coef_expr1cX         := TruncPolyUnitRing.coef_expr1cX         nuf.
+Definition coef_expr1X          := TruncPolyUnitRing.coef_expr1X          nuf.
+Definition sqrtE                := TruncPolyUnitRing.sqrtE                nuf.
 
 End TruncPolyField.
 
