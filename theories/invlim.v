@@ -30,6 +30,9 @@ Unset Printing Implicit Defensive.
 
 Reserved Notation "{ 'invlim' S }"
          (at level 0, format "{ 'invlim'  S }").
+Reserved Notation "\pi_ Q" (at level 0, format "\pi_ Q").
+Reserved Notation "\pi" (at level 0, format "\pi").
+
 Reserved Notation "''pi_' i" (at level 8, i at level 2, format "''pi_' i").
 
 Reserved Notation "\Sum_( i : t ) F"
@@ -129,7 +132,7 @@ Open Scope order_scope.
 (** Inverse systems and inverse limits                                     *)
 (*                                                                         *)
 (***************************************************************************)
-Section InverseLimit.
+Section InverseSystem.
 
 Variables (disp : unit) (I : dirType disp).
 
@@ -150,12 +153,115 @@ Record invsys : Type := InvSys {
 (** notation {invlim S} and to get the inhabitant of I.                    *)
 Definition invsys_obj of invsys := Ob.
 Definition invsys_mor of invsys := bonding.
+
 Definition isthread of invsys := fun thr : forall i, Ob i =>
   forall i j, forall (Hij : i <= j), bonding Hij (thr j) = thr i.
 Definition iscompat of invsys := fun T (mors : forall i, T -> Ob i) =>
   forall i j, forall (Hij : i <= j), bonding Hij \o mors j =1 mors i.
 
-Variable Sys : invsys.
+End InverseSystem.
+
+
+
+(***************************************************************************)
+(** Interface for inverse limits                                           *)
+(*                                                                         *)
+(***************************************************************************)
+Module InvLim.
+
+Section Defs.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> Type.
+Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
+Variable Sys : invsys bonding.
+
+Section Mixin.
+
+Variable Tinv : Type.
+
+Record mixin_of := Mixin {
+  invlim_proj : forall i, Tinv -> Ob i;
+  invlim_ind  : forall (T : Type) (f : forall i, T -> Ob i),
+      (iscompat Sys f) -> T -> Tinv;
+  _ : iscompat Sys invlim_proj;
+  _ : forall T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f),
+      forall i, invlim_proj i \o invlim_ind Hcomp =1 f i;
+  _ : forall T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f),
+      forall (ind : T -> Tinv),
+        (forall i, invlim_proj i \o ind =1 f i) ->
+        ind =1 invlim_ind Hcomp
+  }.
+
+End Mixin.
+
+Notation class_of := mixin_of.
+
+Record invLimType := InvLimTypePack {
+  invlim_sort :> Type;
+  invlim_class : class_of invlim_sort
+}.
+
+Variable ilT : invLimType.
+Definition pi_phant of phant ilT := invlim_proj (invlim_class ilT).
+Local Notation "\pi" := (pi_phant (Phant ilT)).
+Definition ind_phant of phant ilT := invlim_ind (invlim_class ilT).
+Local Notation "\ind" := (ind_phant (Phant ilT)).
+
+Lemma proj_compat : iscompat Sys \pi.
+Proof. by rewrite /pi_phant; case: ilT => /= [Tinv []]. Qed.
+
+Lemma ind_commute T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) :
+  forall i, \pi i \o \ind Hcomp =1 f i.
+Proof. by rewrite /pi_phant /ind_phant; case: ilT => /= [Tinv []]. Qed.
+
+Lemma ind_uniq T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) :
+  forall (ind : T -> ilT),
+    (forall i, \pi i \o ind =1 f i) -> ind =1 \ind Hcomp.
+Proof.
+rewrite /pi_phant /ind_phant.
+case: ilT => /= [Tinv [pi /= ind comp comm uniq]] indT commT t.
+by apply: uniq; apply commT.
+Qed.
+
+Lemma invlimE (x y : ilT) : (forall i, \pi i x = \pi i y) -> x = y.
+Proof.
+move=> Heq.
+pose fx : forall i : I, unit -> Ob i := fun i tt => \pi i x.
+have compf : iscompat Sys fx.
+  rewrite /fx => i j le_ij tt /=.
+  by rewrite -/((bonding le_ij \o \pi j) x) proj_compat.
+pose ind z : unit -> ilT := fun tt => z.
+have Huniqy : forall i, \pi i \o ind y =1 fx i.
+  by move=> i tt /=; rewrite /ind /fx Heq.
+have Huniqx : forall i, \pi i \o ind x =1 fx i.
+  by move=> i tt /=; rewrite /ind /fx Heq.
+move: (ind_uniq compf Huniqx tt) (ind_uniq compf Huniqy tt).
+by rewrite /ind /ind_phant => -> ->.
+Qed.
+
+Lemma from_tread_spec (thr : forall i : I, Ob i) :
+  isthread Sys thr -> { t : ilT | forall i, \pi i t = thr i }.
+Proof.
+rewrite /isthread => Hhtr.
+pose f : forall i : I, unit -> Ob i := fun i tt => thr i.
+have compf : iscompat Sys f by rewrite /f => i j le_ij tt /=.
+exists (\ind compf tt) => i.
+by rewrite -/((\pi i \o \ind compf) tt) ind_commute.
+Qed.
+
+End Defs.
+
+Notation "\pi" := (pi_phant (Phant _)).
+Notation "''pi_' i" := (pi_phant (Phant _) i).
+Notation "\ind" := (ind_phant (Phant _)).
+
+
+
+
+(**** Implementation ************)
+
+
 Record invlim := InvLim { ilthr :> forall i, Ob i; _ : isthread Sys ilthr; }.
 
 Definition invlim_of of phantom invsys Sys := invlim.
