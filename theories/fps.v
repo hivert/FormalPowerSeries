@@ -1052,7 +1052,7 @@ Proof.
 move=> s_unit; rewrite /inv_series s_unit coefs_series /= ltnn; congr (- _ * _).
 apply: eq_bigr => [[i]/=]; rewrite ltnS => Hi _.
 rewrite coefs_series; congr (_ * _).
-move: Hi => /subnKC <-; elim: (n - i)%N => [|{n} n IHn]; first by rewrite addn0.
+move: Hi => /subnKC <-; elim: (n - i)%N => [|{}n IHn]; first by rewrite addn0.
 by rewrite addnS /= leq_addr.
 Qed.
 Lemma coefsS_inv_seriesr s n :
@@ -1064,8 +1064,8 @@ move=> s_unit; rewrite /inv_seriesr s_unit coefs_series /= ltnn; congr (- _ * _)
 apply: eq_bigr => [[i]/=]; rewrite ltnS => Hi _.
 rewrite coefs_series; congr (_ * _).
 rewrite /bump /= subSS.
-move: (n - i)%N (leq_subr i n) {Hi} => {i} i Hi.
-move: Hi => /subnKC <-; elim: (n - i)%N => [|{n} n IHn]; first by rewrite addn0.
+move: (n - i)%N (leq_subr i n) {Hi} => {}i Hi.
+move: Hi => /subnKC <-; elim: (n - i)%N => [|{}n IHn]; first by rewrite addn0.
 by rewrite addnS /= leq_addr.
 Qed.
 
@@ -1303,7 +1303,7 @@ Lemma coefsHugeSum F n (fpI : finpredType I) (p : fpI) :
   (\Sum_( i : I ) F i)``_n = \sum_(i <- enum_finpred p) (F i)``_n.
 Proof.
 rewrite /HugeSum=> Hsum Hsub; case: pselect; last by move=> /(_ Hsum).
-move=> /= {Hsum} Hsum; rewrite coefs_series.
+move=> /= {}Hsum; rewrite coefs_series.
 rewrite [RHS](bigID [pred t | (F t)``_n != 0]) /=.
 rewrite [X in (_ + X)]big1 ?addr0; last by move=> i; rewrite negbK => /eqP.
 rewrite -[RHS]big_filter; apply: perm_big.

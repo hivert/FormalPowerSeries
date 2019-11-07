@@ -29,6 +29,7 @@ Unset Printing Implicit Defensive.
 Import GRing.Theory.
 Local Open Scope ring_scope.
 
+Declare Scope tfps_scope.
 Delimit Scope tfps_scope with tfps.
 
 Reserved Notation "{ 'tfps' R n }"
@@ -245,7 +246,7 @@ Notation "{ 'tfps' R n }" :=  (tfps_of n (Phant R)).
 Arguments coeftfps_head {R n} h i%N p%R.
 Notation coeftfps i := (coeftfps_head tt i).
 
-Hint Resolve size_tfps.
+Hint Resolve size_tfps : core.
 
 
 Section CoefTFPS.
@@ -913,7 +914,7 @@ rewrite /inv_tfps s_unit coef_tfps_of_fun /= ltnn lt_mn; congr (- _ * _).
 apply: eq_bigr => [[i]/=]; rewrite ltnS => le_im _.
 rewrite coef_tfps_of_fun (leq_trans (leq_subr _ _) (ltnW lt_mn)).
 congr (_ * _); rewrite /bump /= subSS.
-move: (m - i)%N (leq_subr i m) {le_im} => {i} i le_im.
+move: (m - i)%N (leq_subr i m) {le_im} => {}i le_im.
 move: le_im => /subnKC <-; elim: (m - i)%N => [|k IHl]; first by rewrite addn0.
 by rewrite addnS /= leq_addr.
 Qed.
@@ -1183,8 +1184,8 @@ Section Coefficient01.
 Variables (R : ringType) (n : nat).
 Implicit Types (f g : {tfps R n}).
 
-Definition coef0_eq0 : pred_class := fun f : {tfps R n} => f`_0 == 0.
-Definition coef0_eq1 : pred_class := fun f : {tfps R n} => f`_0 == 1.
+Definition coef0_eq0 := fun f : {tfps R n} => f`_0 == 0.
+Definition coef0_eq1 := fun f : {tfps R n} => f`_0 == 1.
 
 Lemma coef0_eq0E f : (f \in coef0_eq0) = (f`_0 == 0).
 Proof. by rewrite -topredE. Qed.

@@ -1,6 +1,8 @@
 -R theories/ Combi
 -arg -w
 -arg -notation-overridden
+-arg -w
+-arg -ambiguous-paths
 theories/fps.v
 theories/invlim.v
 theories/natbar.v

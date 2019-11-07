@@ -47,7 +47,7 @@ Local Definition Rat := [fieldType of rat].
 Local Definition char_Rat := Num.Theory.char_num [numDomainType of Rat].
 Local Definition nat_unit := nat_unit_field char_Rat.
 Local Definition fact_unit := fact_unit char_Rat.
-Hint Resolve char_Rat nat_unit.
+Hint Resolve char_Rat nat_unit : core.
 
 Section GenSeries.
 
