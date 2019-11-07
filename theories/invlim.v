@@ -169,18 +169,14 @@ End InverseSystem.
 (***************************************************************************)
 Module InvLim.
 
-Section Defs.
+Section ClassDefs.
 
 Variables (disp : unit) (I : dirType disp).
 Variable Ob : I -> Type.
 Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
 
-Section Mixin.
-
-Variable Tinv : Type.
-
-Record mixin_of := Mixin {
+Record mixin_of (Tinv : Type) := Mixin {
   invlim_proj : forall i, Tinv -> Ob i;
   invlim_ind  : forall (T : Type) (f : forall i, T -> Ob i),
       (iscompat Sys f) -> T -> Tinv;
@@ -193,78 +189,546 @@ Record mixin_of := Mixin {
         ind =1 invlim_ind Hcomp
   }.
 
-End Mixin.
+Record class_of T := Class {base : Choice.class_of T; mixin : mixin_of T}.
+Local Coercion base : class_of >->  Choice.class_of.
 
-Notation class_of := mixin_of.
+Structure type := Pack { sort; _ : class_of sort }.
+Local Coercion sort : type >-> Sortclass.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c.
+Let xT := let: Pack T _ := cT in T.
+Notation xclass := (class : class_of xT).
 
-Record invLimType := InvLimTypePack {
-  invlim_sort :> Type;
-  invlim_class : class_of invlim_sort
-}.
+Definition pack m :=
+  fun b bT & phant_id (Choice.class bT) b => Pack (@Class T b m).
 
-Variable ilT : invLimType.
-Definition pi_phant of phant ilT := invlim_proj (invlim_class ilT).
+(* Inheritance *)
+Definition eqType := @Equality.Pack cT xclass.
+Definition choiceType := @Choice.Pack cT xclass.
+
+End ClassDefs.
+
+
+Module Import Exports.
+Coercion base : class_of >-> Choice.class_of.
+Coercion sort : type >-> Sortclass.
+Coercion eqType : type >-> Equality.type.
+Canonical eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical choiceType.
+Notation invLimType := type.
+Notation InvLimMixin := Mixin.
+
+Section InternalTheory.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> Type.
+Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
+Variable Sys : invsys bonding.
+Variable ilT : invLimType Sys.
+
+Definition pi_phant of phant ilT := invlim_proj (mixin (class ilT)).
 Local Notation "\pi" := (pi_phant (Phant ilT)).
-Definition ind_phant of phant ilT := invlim_ind (invlim_class ilT).
+Definition ind_phant of phant ilT := invlim_ind (mixin (class ilT)).
 Local Notation "\ind" := (ind_phant (Phant ilT)).
 
 Lemma proj_compat : iscompat Sys \pi.
-Proof. by rewrite /pi_phant; case: ilT => /= [Tinv []]. Qed.
+Proof. by rewrite /pi_phant; case: ilT => /= [Tinv [eqM []]]. Qed.
 
 Lemma ind_commute T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) :
   forall i, \pi i \o \ind Hcomp =1 f i.
-Proof. by rewrite /pi_phant /ind_phant; case: ilT => /= [Tinv []]. Qed.
+Proof. by rewrite /pi_phant /ind_phant; case: ilT => /= [Tinv [eqM []]]. Qed.
+
+Lemma piindE  T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) i x :
+  \pi i (\ind Hcomp x) = f i x.
+Proof. exact: ind_commute. Qed.
 
 Lemma ind_uniq T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) :
   forall (ind : T -> ilT),
     (forall i, \pi i \o ind =1 f i) -> ind =1 \ind Hcomp.
 Proof.
 rewrite /pi_phant /ind_phant.
-case: ilT => /= [Tinv [pi /= ind comp comm uniq]] indT commT t.
-by apply: uniq; apply commT.
+case: ilT => /= [Tinv [eqM /= [pi ind comp comm uniq]]] indT commT t /=.
+by apply uniq; apply commT.
 Qed.
 
-Lemma invlimE (x y : ilT) : (forall i, \pi i x = \pi i y) -> x = y.
-Proof.
-move=> Heq.
-pose fx : forall i : I, unit -> Ob i := fun i tt => \pi i x.
-have compf : iscompat Sys fx.
-  rewrite /fx => i j le_ij tt /=.
-  by rewrite -/((bonding le_ij \o \pi j) x) proj_compat.
-pose ind z : unit -> ilT := fun tt => z.
-have Huniqy : forall i, \pi i \o ind y =1 fx i.
-  by move=> i tt /=; rewrite /ind /fx Heq.
-have Huniqx : forall i, \pi i \o ind x =1 fx i.
-  by move=> i tt /=; rewrite /ind /fx Heq.
-move: (ind_uniq compf Huniqx tt) (ind_uniq compf Huniqy tt).
-by rewrite /ind /ind_phant => -> ->.
-Qed.
+End InternalTheory.
 
-Lemma from_tread_spec (thr : forall i : I, Ob i) :
-  isthread Sys thr -> { t : ilT | forall i, \pi i t = thr i }.
-Proof.
-rewrite /isthread => Hhtr.
-pose f : forall i : I, unit -> Ob i := fun i tt => thr i.
-have compf : iscompat Sys f by rewrite /f => i j le_ij tt /=.
-exists (\ind compf tt) => i.
-by rewrite -/((\pi i \o \ind compf) tt) ind_commute.
-Qed.
+End Exports.
+End InvLim.
+Export InvLim.Exports.
 
-End Defs.
+Notation InvLimType T m := (@InvLim.pack _ _ _ _ _ T m _ _ id).
+Notation "[ 'invLimType' 'of' T 'for' cT ]" :=
+  (@InvLim.clone _ _ _ _ _ T cT _ idfun)
+  (at level 0, format "[ 'invLimType'  'of'  T  'for'  cT ]") : form_scope.
+Notation "[ 'invLimType' 'of' T ]" :=
+  (@InvLim.clone _ _ _ _ _ T _ _ id)
+  (at level 0, format "[ 'invLimType'  'of'  T ]") : form_scope.
 
 Notation "\pi" := (pi_phant (Phant _)).
 Notation "''pi_' i" := (pi_phant (Phant _) i).
 Notation "\ind" := (ind_phant (Phant _)).
 
 
+Section Theory.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> Type.
+Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
+Variable Sys : invsys bonding.
+Variable ilT : invLimType Sys.
+
+Lemma invlimE (x y : ilT) : (forall i, 'pi_i x = 'pi_i y) -> x = y.
+Proof.
+move=> Heq.
+pose fx : forall i : I, unit -> Ob i := fun i tt => 'pi_i x.
+have compf : iscompat Sys fx.
+  rewrite /fx => i j le_ij tt /=.
+  by rewrite -/((bonding le_ij \o 'pi_j) x) proj_compat.
+pose ind z : unit -> ilT := fun tt => z.
+have Huniqy : forall i, 'pi_i \o ind y =1 fx i.
+  by move=> i tt /=; rewrite /ind /fx Heq.
+have Huniqx : forall i, 'pi_i \o ind x =1 fx i.
+  by move=> i tt /=; rewrite /ind /fx Heq.
+move: (ind_uniq compf Huniqx tt) (ind_uniq compf Huniqy tt).
+by rewrite /ind /ind_phant => -> ->.
+Qed.
+
+Lemma from_thread_spec (thr : forall i : I, Ob i) :
+  isthread Sys thr -> { t : ilT | forall i, 'pi_i t = thr i }.
+Proof.
+rewrite /isthread => Hhtr.
+pose f : forall i : I, unit -> Ob i := fun i tt => thr i.
+have compf : iscompat Sys f by rewrite /f => i j le_ij tt /=.
+exists (\ind compf tt) => i.
+by rewrite -/(('pi_i \o \ind compf) tt) ind_commute.
+Qed.
+Definition ilthr thr (Hthr : isthread Sys thr) :=
+  let: exist res _ := from_thread_spec Hthr in res.
+
+Lemma invLimP thr (Hthr : isthread Sys thr) :
+  forall i, 'pi_i (ilthr Hthr) = thr i.
+Proof. by rewrite /ilthr; case: from_thread_spec. Qed.
+
+Lemma ilprojE (x : ilT) :
+  forall i j, forall (Hij : i <= j), bonding Hij ('pi_j x) = 'pi_i x.
+Proof. by move=> i j Hij; have /= -> := (proj_compat Hij x). Qed.
+
+Lemma ilprojP : iscompat Sys (pi_phant (ilT := ilT) (Phant _)).
+Proof. move=> i j Hij x /=; exact: ilprojE. Qed.
+
+End Theory.
+Arguments ilthr {disp I Ob bonding Sys ilT thr}.
+Notation "\pi" := (pi_phant (Phant _)).
+Notation "''pi_' i" := (pi_phant (Phant _) i).
+Notation "\ind" := (ind_phant (Phant _)).
+
+
+(****************************************************************************)
+(** Inverse limits in various algebraic categories                          *)
+(**                                                                         *)
+(** We don't deal with multiplicative groups as they are all assumed finite *)
+(** in mathcomp.                                                            *)
+(****************************************************************************)
+Open Scope ring_scope.
+Import GRing.Theory.
+
+Section InvLimitEqType.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> eqType.
+Variable bonding : forall i j, (i <= j)%O -> Ob j -> Ob i.
+
+Variable Sys : invsys bonding.
+Variable T : invLimType Sys.
+Implicit Type x y : T.
+
+Lemma invlimPn x y : reflect (exists i, 'pi_i x != 'pi_i y) (x != y).
+Proof.
+apply (iffP idP) => [neq|[i]]; last by apply/contra => /eqP ->.
+apply/asboolP; rewrite asbool_existsNb; apply/contra: neq => /asboolP Hx.
+by apply/eqP/invlimE => /= i; apply/eqP.
+Qed.
+
+End InvLimitEqType.
+
+
+
+Section InvLimitZModType.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> zmodType.
+Variable bonding : forall i j, (i <= j)%O -> {additive (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type x y : Tinv.
+
+Fact ilzeroP : isthread Sys (fun i => 0 : Ob i).
+Proof. by move=> i j Hij; rewrite raddf0. Qed.
+Definition ilzero : Tinv := ilthr ilzeroP.
+
+Fact iloppP x : isthread Sys (fun i => - ('pi_i x)).
+Proof. by move=> i j Hij; rewrite raddfN (ilprojE x). Qed.
+Definition ilopp x : Tinv := ilthr (iloppP x).
+
+Fact iladdP x y : isthread Sys (fun i => 'pi_i x + 'pi_i y).
+Proof. by move=> i j Hij; rewrite raddfD (ilprojE x) (ilprojE y). Qed.
+Definition iladd x y : Tinv := ilthr (iladdP x y).
+
+Program Definition invlim_zmodMixin :=
+  @ZmodMixin Tinv ilzero ilopp iladd _ _ _ _.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP addrA. Qed.
+Next Obligation. by move=> a b; apply invlimE=> i; rewrite !invLimP addrC. Qed.
+Next Obligation. by move=> b; apply invlimE=> i; rewrite !invLimP add0r. Qed.
+Next Obligation. by move=> b; apply invlimE=> i; rewrite !invLimP addNr. Qed.
+Canonical invlim_zmodType :=
+  Eval hnf in ZmodType Tinv invlim_zmodMixin.
+
+Fact ilproj_is_additive i : additive 'pi_i.
+Proof. by move=> x y; rewrite !invLimP. Qed.
+Canonical ilproj_additive i := Additive (ilproj_is_additive i).
+
+Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
+Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
+
+(** The universal induced map is a Z-module morphism *)
+Section UniversalProperty.
+
+Variable (T : zmodType) (f : forall i, {additive T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+
+Fact ilind_is_additive : additive (\ind Hcomp).
+Proof.
+by move=> t u; apply invlimE=> i; rewrite raddfB /= !piindE raddfB.
+Qed.
+Canonical ilind_additive := Additive ilind_is_additive.
+
+End UniversalProperty.
+
+End InvLimitZModType.
+
+
+Section InvLimitRing.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> ringType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type x y : Tinv.
+
+Fact iloneP : isthread Sys (fun i => 1 : Ob i).
+Proof. by move=> i j Hij; rewrite rmorph1. Qed.
+Definition ilone : Tinv := ilthr iloneP.
+
+Fact ilmulP x y : isthread Sys (fun i => 'pi_i x * 'pi_i y).
+Proof. by move=> i j Hij; rewrite rmorphM (ilprojE x) (ilprojE y). Qed.
+Definition ilmul x y : Tinv := ilthr (ilmulP x y).
+
+Program Definition invlim_ringMixin :=
+  @RingMixin [zmodType of Tinv] ilone ilmul _ _ _ _ _ _.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP mulrA. Qed.
+Next Obligation. by move=> a; apply invlimE=> i; rewrite !invLimP mul1r. Qed.
+Next Obligation. by move=> a; apply invlimE=> i; rewrite !invLimP mulr1. Qed.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP mulrDl. Qed.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP mulrDr. Qed.
+Next Obligation.
+apply/negP => /eqP/(congr1 (fun x => 'pi_(invsys_inh Sys) x)) /= /eqP.
+by rewrite !invLimP; exact/negP/oner_neq0.
+Qed.
+Canonical invlim_ringType :=
+  Eval hnf in RingType Tinv invlim_ringMixin.
+
+Fact ilproj_is_multiplicative i : multiplicative 'pi_i.
+Proof. by split => [x y|]; rewrite !invLimP. Qed.
+Canonical ilproj_multiplicative i := AddRMorphism (ilproj_is_multiplicative i).
+
+Section UniversalProperty.
+
+Variable (T : ringType) (f : forall i, {rmorphism T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+
+Fact ilind_is_multiplicative : multiplicative (\ind Hcomp).
+Proof.
+split.
+- by move=> t u; apply invlimE=> i; rewrite !piindE !rmorphM /= !piindE.
+- by apply invlimE=> i; rewrite piindE !rmorph1.
+Qed.
+Canonical ilind_multiplicative := AddRMorphism ilind_is_multiplicative.
+
+End UniversalProperty.
+
+End InvLimitRing.
+
+
+Section InvLimitComRing.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> comRingType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type x y : Tinv.
+
+Fact ilmulC x y : x * y = y * x.
+Proof. by apply invlimE=> i; rewrite !invLimP mulrC. Qed.
+Canonical invlim_comRingType :=
+  Eval hnf in ComRingType Tinv ilmulC.
+
+End InvLimitComRing.
+
+
+Section InvLimitUnitRing.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> unitRingType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type x y : Tinv.
+
+Definition ilunit x := `[forall i, 'pi_i x \is a GRing.unit].
+
+Fact inv_isunitP x :
+  (forall i, 'pi_i x \is a GRing.unit) -> isthread Sys (fun i => ('pi_i x)^-1).
+Proof.
+by move=> Hunit i j ilej; rewrite /= rmorphV ?(ilprojE x) // Hunit.
+Qed.
+Definition ilinv x : Tinv :=
+  if pselect (forall i, 'pi_i x \is a GRing.unit) is left Pf
+  then ilthr (inv_isunitP Pf) else x.
+
+
+Fact ilmulVr : {in ilunit, left_inverse 1 ilinv *%R}.
+Proof.
+move=> x /forallbP Hinv; apply invlimE=> i.
+rewrite /ilinv; case: pselect => /= [H |/(_ Hinv)//].
+by rewrite !invLimP mulVr // Hinv.
+Qed.
+Fact ilmulrV : {in ilunit, right_inverse 1 ilinv *%R}.
+Proof.
+move=> x /forallbP Hinv; apply invlimE=> i.
+rewrite /ilinv; case: pselect => /= [H |/(_ Hinv)//].
+by rewrite !invLimP mulrV // Hinv.
+Qed.
+Fact ilunitP x y : y * x = 1 /\ x * y = 1 -> ilunit x.
+Proof.
+move=> [Hxy Hyx]; apply/forallbP => i; apply/unitrP.
+by exists ('pi_i y); rewrite -!rmorphM Hxy Hyx /= rmorph1.
+Qed.
+Fact ilinv0id : {in [predC ilunit], ilinv =1 id}.
+Proof.
+move=> x; rewrite inE /= => /forallbP Hx.
+by rewrite /ilinv; case: pselect => /= [/= H|//]; have:= Hx H.
+Qed.
+Canonical invlim_unitRingMixin :=
+  Eval hnf in UnitRingMixin ilmulVr ilmulrV ilunitP ilinv0id.
+Canonical invlim_unitRingType :=
+  Eval hnf in UnitRingType Tinv invlim_unitRingMixin.
+
+End InvLimitUnitRing.
+
+
+Section InvLimitComUnitRing.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> comUnitRingType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Canonical invlim_comUnitRingType := Eval hnf in [comUnitRingType of Tinv].
+
+End InvLimitComUnitRing.
+
+
+Section InvLimitIDomain.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> idomainType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type (x y : Tinv).
+
+Fact ilmul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
+Proof.
+move=> H; case: (altP (x =P 0)) => //= /il_neq0 [i Hi].
+move: H; apply contra_eqT => /il_neq0 [j Hj].
+have [k ilek jlek] := directedP i j.
+have {Hi} /negbTE Hx : 'pi_k x != 0.
+  move: Hi; apply contra => /eqP/(congr1 (bonding ilek)).
+  by rewrite (ilprojE x) raddf0 => ->.
+have {Hj} /negbTE Hy : 'pi_k y != 0.
+  move: Hj; apply contra => /eqP/(congr1 (bonding jlek)).
+  by rewrite (ilprojE y) raddf0 => ->.
+apply/negP => /eqP/(congr1 'pi_k)/eqP.
+by rewrite rmorph0 rmorphM mulf_eq0 Hx Hy.
+Qed.
+
+Canonical invlim_idomainType :=
+  Eval hnf in IdomainType Tinv ilmul_eq0.
+
+End InvLimitIDomain.
+
+
+Section InvLimitLinear.
+
+Variables (disp : unit) (I : dirType disp).
+Variables (R : ringType).
+Variable Ob : I -> lmodType R.
+Variable bonding : forall i j, (i <= j)%O -> {linear (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type (x y : Tinv) (r : R).
+
+Fact ilscaleP r x : isthread Sys (fun i => r *: 'pi_i x).
+Proof. by move=> i j Hij; rewrite linearZ (ilprojE x). Qed.
+Definition ilscale r x : Tinv := ilthr (ilscaleP r x).
+
+Program Definition invlim_lmodMixin :=
+  @LmodMixin R [zmodType of Tinv] ilscale _ _ _ _.
+Next Obligation. by apply invlimE=> i /=; rewrite !invLimP scalerA. Qed.
+Next Obligation. by move=> x; apply invlimE=> i; rewrite !invLimP scale1r. Qed.
+Next Obligation. by move=> r x y; apply invlimE=> i; rewrite !invLimP scalerDr. Qed.
+Next Obligation. by move=> r s; apply invlimE=> i; rewrite !invLimP scalerDl. Qed.
+
+Canonical invlim_lmodType :=
+  Eval hnf in LmodType R Tinv invlim_lmodMixin.
+
+Fact ilproj_is_linear i : linear 'pi_i.
+Proof. by move=> c x y; rewrite !invLimP. Qed.
+Canonical ilproj_linear i := AddLinear (ilproj_is_linear i).
+
+Section UniversalProperty.
+
+Variable (T : lmodType R) (f : forall i, {linear T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+
+Fact ilind_is_linear : linear (\ind Hcomp).
+Proof.
+by move=> r t u; apply invlimE=> i; rewrite !invLimP !piindE !linearP.
+Qed.
+Canonical ilind_linear := AddLinear ilind_is_linear.
+
+End UniversalProperty.
+
+End InvLimitLinear.
+
+
+Section InvLimitLalg.
+
+Variables (disp : unit) (I : dirType disp).
+Variables (R : ringType).
+Variable Ob : I -> lalgType R.
+Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type (x y : Tinv) (r : R).
+
+
+Fact ilscaleAl r x y : ilscale r (x * y) = ilscale r x * y.
+Proof. by apply invlimE=> i /=; rewrite !invLimP scalerAl. Qed.
+Canonical invlim_lalgType :=
+  Eval hnf in LalgType R Tinv ilscaleAl.
+
+Canonical ilproj_lrmorphism i := AddLRMorphism (ilproj_is_linear i).
+
+Section UniversalProperty.
+
+Variable (T : lalgType R) (f : forall i, {lrmorphism T -> (Ob i)}).
+Hypothesis Hcomp : iscompat Sys f.
+Canonical ilind_lrmorphism := AddLRMorphism (ilind_is_linear Tinv Hcomp).
+
+End UniversalProperty.
+
+End InvLimitLalg.
+
+
+Section InvLimitAlg.
+
+Variables (disp : unit) (I : dirType disp).
+Variables (R : comRingType).
+Variable Ob : I -> algType R.
+Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+Implicit Type (x y : Tinv) (r : R).
+
+Fact ilscaleAr r x y : ilscale r (x * y) = x * ilscale r y.
+Proof. by apply invlimE=> i /=; rewrite !invLimP scalerAr. Qed.
+Canonical invlim_algType :=
+  Eval hnf in AlgType R Tinv ilscaleAr.
+
+End InvLimitAlg.
+
+
+Section InvLimitUnitAlg.
+
+Variables (disp : unit) (I : dirType disp).
+Variables (R : comUnitRingType).
+Variable Ob : I -> unitAlgType R.
+Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+
+Canonical invlim_unitalgType := [unitAlgType R of Tinv].
+
+End InvLimitUnitAlg.
+
+
+Section InvLimitField.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> fieldType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable Tinv : invLimType Sys.
+
+Fact invlim_fieldMixin : GRing.Field.mixin_of [unitRingType of Tinv].
+Proof.
+move=> x /il_neq0 [i Hi].
+rewrite unfold_in /= /ilunit; apply/forallbP => j; rewrite unitfE.
+have [k ilek jlek] := directedP i j.
+have {Hi} : 'pi_k x != 0.
+  move: Hi; apply contra => /eqP/(congr1 (bonding ilek)).
+  by rewrite (ilprojE x) raddf0 => ->.
+by rewrite -(ilprojE x jlek) fmorph_eq0.
+Qed.
+Canonical invlim_fieldType :=
+  Eval hnf in FieldType Tinv invlim_fieldMixin.
+
+End InvLimitField.
+
+Close Scope ring_scope.
 
 
 (**** Implementation ************)
+Section Implem.
 
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> Type.
+Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
+Variable Sys : invsys bonding.
 
-Record invlim := InvLim { ilthr :> forall i, Ob i; _ : isthread Sys ilthr; }.
+Record invlim := InvLim {
+                     invlimthr :> forall i, Ob i;
+                     _ : isthread Sys invlimthr;
+                   }.
 
-Definition invlim_of of phantom invsys Sys := invlim.
+Definition invlim_of of phantom (invsys bonding) Sys := invlim.
 Identity Coercion type_invlim_of : invlim_of >-> invlim.
 
 Local Notation "{ 'invlim' S }" := (invlim_of (Phantom _ S)).
@@ -274,7 +738,7 @@ Canonical invlimp_eqType := EqType {invlim Sys} gen_eqMixin.
 Canonical invlim_choiceType := ChoiceType invlim gen_choiceMixin.
 Canonical invlimp_choiceType := ChoiceType {invlim Sys} gen_choiceMixin.
 
-End InverseLimit.
+End Implem.
 Notation "{ 'invlim' S }" := (invlim_of (Phantom _ S)).
 
 
@@ -287,13 +751,13 @@ Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
 Implicit Type x y : {invlim Sys}.
 
-Definition ilproj i : {invlim Sys} -> Ob i := (ilthr (Sys := Sys))^~ i.
+Definition ilproj i : {invlim Sys} -> Ob i := (invlimthr (Sys := Sys))^~ i.
 
-Lemma ilprojE x :
+Lemma invlimprojE x :
   forall i j, forall (Hij : i <= j), bonding Hij (ilproj j x) = ilproj i x.
 Proof. by case: x. Qed.
 
-Lemma ilprojP : iscompat Sys ilproj.
+Lemma invlimprojP : iscompat Sys ilproj.
 Proof. by move=> i j Hij [thr Hthr]; apply Hthr. Qed.
 
 Local Notation "''pi_' i" := (ilproj i).
@@ -328,411 +792,139 @@ Qed.
 Lemma ilindE (un : T -> invlim Sys) :
   (forall i, 'pi_i \o un =1 f i) -> un =1 ilind.
 Proof.
-move=> H x; apply invlimP=> i.
+move=> H x; apply invlimP => i.
 by rewrite -/(('pi_i \o un) _) H ilindP.
 Qed.
 
 End UniversalProperty.
 
 End InverseLimitTheory.
-Notation "'pi_ i" := (ilproj i) : ring_scope.
 
 
-(****************************************************************************)
-(** Inverse limits in various algebraic categories                          *)
-(**                                                                         *)
-(** We don't deal with multiplicative groups as they are all assumed finite *)
-(** in mathcomp.                                                            *)
-(****************************************************************************)
-Open Scope ring_scope.
-Import GRing.Theory.
-
-Section InvLimitEqType.
+Section InterSpec.
 
 Variables (disp : unit) (I : dirType disp).
-Variable Ob : I -> eqType.
+Variable Ob : I -> choiceType.
 Variable bonding : forall i j, (i <= j)%O -> Ob j -> Ob i.
-
 Variable Sys : invsys bonding.
-Implicit Type x y : {invlim Sys}.
 
-Lemma invlimPn x y : reflect (exists i, 'pi_i x != 'pi_i y) (x != y).
-Proof.
-apply (iffP idP) => [neq|[i]]; last by apply/contra => /eqP ->.
-apply/asboolP; rewrite asbool_existsNb; apply/contra: neq => /asboolP Hx.
-by apply/eqP/invlimP => /= i; apply/eqP.
-Qed.
+Program Definition invlim_Mixin :=
+  @InvLimMixin disp I Ob bonding Sys {invlim Sys}
+               (ilproj (Sys := Sys)) (ilind (Sys := Sys)) _ _ _.
+Next Obligation. by move=> i j Hij x; apply: invlimprojE. Qed.
+Next Obligation. by move=> x /=; rewrite ilindP. Qed.
+Next Obligation. by move=> x; apply: (ilindE Hcomp). Qed.
+Canonical invlim_invlimType := InvLimType {invlim Sys} invlim_Mixin.
 
-End InvLimitEqType.
+End InterSpec.
 
 
-Section InvLimitZModType.
+Open Scope ring_scope.
+Section Canonicals.
 
 Variables (disp : unit) (I : dirType disp).
+
+Section ZModule.
 Variable Ob : I -> zmodType.
-Variable bonding : forall i j, (i <= j)%O -> {additive (Ob j) -> (Ob i)}.
+Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
 Variable Sys : invsys bonding.
+Let zmodType := [zmodType of [invLimType of {invlim Sys}]].
+Canonical invlimp_zmodType := [zmodType of {invlim Sys} for zmodType].
+End ZModule.
 
-Implicit Type x y : {invlim Sys}.
-
-Fact ilzeroP : isthread Sys (fun i => 0 : Ob i).
-Proof. by move=> i j Hij; rewrite raddf0. Qed.
-Definition ilzero : {invlim Sys} := InvLim ilzeroP.
-
-Fact iloppP x : isthread Sys (fun i => - ('pi_i x)).
-Proof. by move=> i j Hij; rewrite raddfN (ilprojE x). Qed.
-Definition ilopp x : {invlim Sys} := InvLim (iloppP x).
-
-Fact iladdP x y : isthread Sys (fun i => 'pi_i x + 'pi_i y).
-Proof. by move=> i j Hij; rewrite raddfD (ilprojE x) (ilprojE y). Qed.
-Definition iladd x y : {invlim Sys} := InvLim (iladdP x y).
-
-Program Definition invlim_zmodMixin :=
-  @ZmodMixin {invlim Sys} ilzero ilopp iladd _ _ _ _.
-Next Obligation. by move=> a b c; apply invlimP=> i; rewrite /= addrA. Qed.
-Next Obligation. by move=> a b; apply invlimP=> i; rewrite /= addrC. Qed.
-Next Obligation. by move=> b; apply invlimP=> i; rewrite /= add0r. Qed.
-Next Obligation. by move=> b; apply invlimP=> i; rewrite /= addNr. Qed.
-Canonical invlim_zmodType :=
-  Eval hnf in ZmodType (invlim Sys) invlim_zmodMixin.
-Canonical invlimp_zmodType :=
-  Eval hnf in ZmodType {invlim Sys} invlim_zmodMixin.
-
-Fact ilproj_is_additive i : additive (ilproj (Sys := Sys) i).
-Proof. by []. Qed.
-Canonical ilproj_additive i := Additive (ilproj_is_additive i).
-
-Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
-Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
-
-(** The universal induced map is a Z-module morphism *)
-Section UniversalProperty.
-
-Variable (T : zmodType) (f : forall i, {additive T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
-
-Fact ilind_is_additive : additive (ilind Hcomp).
-Proof.
-by move=> t u; apply invlimP=> i; rewrite ilindP !raddfB /= !ilindP.
-Qed.
-Canonical ilind_additive := Additive ilind_is_additive.
-
-End UniversalProperty.
-
-End InvLimitZModType.
-
-
-Section InvLimitRing.
-
-Variables (disp : unit) (I : dirType disp).
+Section Ring.
 Variable Ob : I -> ringType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let ringType := [ringType of [invLimType of {invlim Sys}]].
+Canonical invlimp_ringType := [ringType of {invlim Sys} for ringType].
+End Ring.
 
-Implicit Type (x y : {invlim Sys}).
-
-Fact iloneP : isthread Sys (fun i => 1 : Ob i).
-Proof. by move=> i j Hij; rewrite rmorph1. Qed.
-Definition ilone : {invlim Sys} := InvLim iloneP.
-
-Fact ilmulP x y : isthread Sys (fun i => 'pi_i x * 'pi_i y).
-Proof. by move=> i j Hij; rewrite rmorphM (ilprojE x) (ilprojE y). Qed.
-Definition ilmul x y : {invlim Sys} := InvLim (ilmulP x y).
-
-Program Definition invlim_ringMixin :=
-  @RingMixin [zmodType of {invlim Sys}] ilone ilmul _ _ _ _ _ _.
-Next Obligation. by move=> a b c; apply invlimP=> i; rewrite /= mulrA. Qed.
-Next Obligation. by move=> a; apply invlimP=> i; rewrite /= mul1r. Qed.
-Next Obligation. by move=> a; apply invlimP=> i; rewrite /= mulr1. Qed.
-Next Obligation. by move=> a b c; apply invlimP=> i /=; rewrite /= mulrDl. Qed.
-Next Obligation. by move=> a b c; apply invlimP=> i /=; rewrite /= mulrDr. Qed.
-Next Obligation.
-apply/negP => /eqP/(congr1 (fun x => x (invsys_inh Sys))) /= /eqP.
-exact/negP/oner_neq0.
-Qed.
-Canonical invlim_ringType :=
-  Eval hnf in RingType (invlim Sys) invlim_ringMixin.
-Canonical invlimp_ringType :=
-  Eval hnf in RingType {invlim Sys} invlim_ringMixin.
-
-Fact ilproj_is_multiplicative i : multiplicative (ilproj (Sys := Sys) i).
-Proof. by []. Qed.
-Canonical ilproj_multiplicative i := AddRMorphism (ilproj_is_multiplicative i).
-
-Section UniversalProperty.
-
-Variable (T : ringType) (f : forall i, {rmorphism T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
-
-Fact ilind_is_multiplicative : multiplicative (ilind Hcomp).
-Proof.
-split.
-- by move=> t u; apply invlimP=> i; rewrite ilindP rmorphM /= !ilindP.
-- by apply invlimP=> i; rewrite ilindP !rmorph1.
-Qed.
-Canonical ilind_multiplicative := AddRMorphism ilind_is_multiplicative.
-
-End UniversalProperty.
-
-End InvLimitRing.
-
-
-Section InvLimitComRing.
-
-Variables (disp : unit) (I : dirType disp).
+Section ComRing.
 Variable Ob : I -> comRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let comRingType := [comRingType of [invLimType of {invlim Sys}]].
+Canonical invlimp_comRingType := [comRingType of {invlim Sys} for comRingType].
+End ComRing.
 
-Implicit Type (x y : {invlim Sys}).
-
-Fact ilmulC x y : x * y = y * x.
-Proof. by apply invlimP=> i; rewrite /= mulrC. Qed.
-Canonical invlim_comRingType :=
-  Eval hnf in ComRingType (invlim Sys) ilmulC.
-Canonical invlimp_comRingType :=
-  Eval hnf in ComRingType {invlim Sys} ilmulC.
-
-End InvLimitComRing.
-
-
-Section InvLimitUnitRing.
-
-Variables (disp : unit) (I : dirType disp).
+Section UnitRing.
 Variable Ob : I -> unitRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let unitRingType := [unitRingType of [invLimType of {invlim Sys}]].
+Canonical invlimp_unitRingType := [unitRingType of {invlim Sys} for unitRingType].
+End UnitRing.
 
-Implicit Type (x y : {invlim Sys}).
-
-Definition ilunit x := `[forall i, 'pi_i x \is a GRing.unit].
-
-Fact inv_isunitP x :
-  (forall i, 'pi_i x \is a GRing.unit) -> isthread Sys (fun i => ('pi_i x)^-1).
-Proof.
-by move=> Hunit i j ilej; rewrite /= rmorphV ?(ilprojE x) // Hunit.
-Qed.
-Definition ilinv x : {invlim Sys} :=
-  if pselect (forall i, 'pi_i x \is a GRing.unit) is left Pf
-  then InvLim (inv_isunitP Pf) else x.
-
-
-Fact ilmulVr : {in ilunit, left_inverse 1 ilinv *%R}.
-Proof.
-move=> x /forallbP Hinv; apply invlimP=> i.
-rewrite /ilinv; case: pselect => /= [_|/(_ Hinv)//].
-by rewrite mulVr // Hinv.
-Qed.
-Fact ilmulrV : {in ilunit, right_inverse 1 ilinv *%R}.
-Proof.
-move=> x /forallbP Hinv; apply invlimP=> i.
-rewrite /ilinv; case: pselect => /= [_|/(_ Hinv)//].
-by rewrite mulrV // Hinv.
-Qed.
-Fact ilunitP x y : y * x = 1 /\ x * y = 1 -> ilunit x.
-Proof.
-move=> [Hxy Hyx]; apply/forallbP => i; apply/unitrP.
-by exists ('pi_i y); rewrite -!rmorphM Hxy Hyx.
-Qed.
-Fact ilinv0id : {in [predC ilunit], ilinv =1 id}.
-Proof.
-move=> x; rewrite inE /= => /forallbP Hx.
-by rewrite /ilinv; case: pselect => /= [/= H|//]; have:= Hx H.
-Qed.
-Canonical invlim_unitRingMixin :=
-  Eval hnf in UnitRingMixin ilmulVr ilmulrV ilunitP ilinv0id.
-Canonical invlim_unitRingType :=
-  Eval hnf in UnitRingType (invlim Sys) invlim_unitRingMixin.
-Canonical invlimp_unitRingType :=
-  Eval hnf in UnitRingType {invlim Sys} invlim_unitRingMixin.
-
-End InvLimitUnitRing.
-
-
-Section InvLimitComUnitRing.
-
-Variables (disp : unit) (I : dirType disp).
+Section ComUnitRing.
 Variable Ob : I -> comUnitRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Canonical invlimp_comUnitRingType := [comUnitRingType of {invlim Sys}].
+End ComUnitRing.
 
-Canonical invlim_comUnitRingType :=
-  Eval hnf in [comUnitRingType of invlim Sys].
-Canonical invlimp_comUnitRingType :=
-  Eval hnf in [comUnitRingType of {invlim Sys}].
-
-End InvLimitComUnitRing.
-
-
-Section InvLimitIDomain.
-
-Variables (disp : unit) (I : dirType disp).
+Section IDomain.
 Variable Ob : I -> idomainType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let idomainType := [idomainType of [invLimType of {invlim Sys}]].
+Canonical invlimp_idomainType := [idomainType of {invlim Sys} for idomainType].
+End IDomain.
 
-Implicit Type (x y : {invlim Sys}).
-
-Fact ilmul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
-Proof.
-move=> H; case: (altP (x =P 0)) => //= /il_neq0 [i Hi].
-move: H; apply contra_eqT => /il_neq0 [j Hj].
-have [k ilek jlek] := directedP i j.
-have {Hi} /negbTE Hx : 'pi_k x != 0.
-  move: Hi; apply contra => /eqP/(congr1 (bonding ilek)).
-  by rewrite (ilprojE x) raddf0 => ->.
-have {Hj} /negbTE Hy : 'pi_k y != 0.
-  move: Hj; apply contra => /eqP/(congr1 (bonding jlek)).
-  by rewrite (ilprojE y) raddf0 => ->.
-apply/negP => /eqP/(congr1 'pi_k)/eqP.
-by rewrite rmorph0 rmorphM mulf_eq0 Hx Hy.
-Qed.
-
-Canonical invlim_idomainType :=
-  Eval hnf in IdomainType (invlim Sys) ilmul_eq0.
-Canonical invlimp_idomainType :=
-  Eval hnf in IdomainType {invlim Sys} ilmul_eq0.
-
-End InvLimitIDomain.
-
-
-Section InvLimitLinear.
-
-Variables (disp : unit) (I : dirType disp).
+Section Linear.
 Variables (R : ringType).
 Variable Ob : I -> lmodType R.
 Variable bonding : forall i j, (i <= j)%O -> {linear (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let lmodType := [lmodType R of [invLimType of {invlim Sys}]].
+Canonical invlimp_lmodType := [lmodType R of {invlim Sys} for lmodType].
+End Linear.
 
-Implicit Type (x y : {invlim Sys}) (r : R).
-
-Fact ilscaleP r x : isthread Sys (fun i => r *: 'pi_i x).
-Proof. by move=> i j Hij; rewrite linearZ (ilprojE x). Qed.
-Definition ilscale r x : {invlim Sys} := InvLim (ilscaleP r x).
-
-Program Definition invlim_lmodMixin :=
-  @LmodMixin R [zmodType of {invlim Sys}] ilscale _ _ _ _.
-Next Obligation. by apply invlimP=> i /=; rewrite scalerA. Qed.
-Next Obligation. by move=> x; apply invlimP=> i /=; rewrite scale1r. Qed.
-Next Obligation. by move=> r x y; apply invlimP=> i /=; rewrite scalerDr. Qed.
-Next Obligation. by move=> r s; apply invlimP=> i /=; rewrite scalerDl. Qed.
-
-Canonical invlim_lmodType :=
-  Eval hnf in LmodType R (invlim Sys) invlim_lmodMixin.
-Canonical invlimp_lmodType :=
-  Eval hnf in LmodType R {invlim Sys} invlim_lmodMixin.
-
-Fact ilproj_is_linear i : linear (ilproj (Sys := Sys) i).
-Proof. by []. Qed.
-Canonical ilproj_linear i := AddLinear (ilproj_is_linear i).
-
-Section UniversalProperty.
-
-Variable (T : lmodType R) (f : forall i, {linear T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
-
-Fact ilind_is_linear : linear (ilind Hcomp).
-Proof.
-by move=> r t u; apply invlimP=> i; rewrite !ilindP !linearP /= !ilindP.
-Qed.
-Canonical ilind_linear := AddLinear ilind_is_linear.
-
-End UniversalProperty.
-
-End InvLimitLinear.
-
-
-Section InvLimitLalg.
-
-Variables (disp : unit) (I : dirType disp).
+Section Lalg.
 Variables (R : ringType).
 Variable Ob : I -> lalgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let lalgType := [lalgType R of [invLimType of {invlim Sys}]].
+Canonical invlimp_lalgType := [lalgType R of {invlim Sys} for lalgType].
+End Lalg.
 
-Implicit Type (x y : {invlim Sys}) (r : R).
-
-
-Fact ilscaleAl r x y : ilscale r (x * y) = ilscale r x * y.
-Proof. by apply invlimP=> i /=; rewrite scalerAl. Qed.
-Canonical invlim_lalgType :=
-  Eval hnf in LalgType R (invlim Sys) ilscaleAl.
-Canonical invlimp_lalgType :=
-  Eval hnf in LalgType R {invlim Sys} ilscaleAl.
-
-Canonical ilproj_lrmorphism i := AddLRMorphism (ilproj_is_linear i).
-
-Section UniversalProperty.
-
-Variable (T : lalgType R) (f : forall i, {lrmorphism T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
-Canonical ilind_lrmorphism := AddLRMorphism (ilind_is_linear Hcomp).
-
-End UniversalProperty.
-
-End InvLimitLalg.
-
-
-Section InvLimitAlg.
-
-Variables (disp : unit) (I : dirType disp).
+Section Alg.
 Variables (R : comRingType).
 Variable Ob : I -> algType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let algType := [algType R of [invLimType of {invlim Sys}]].
+Canonical invlimp_algType := [algType R of {invlim Sys} for algType].
+End Alg.
 
-Implicit Type (x y : {invlim Sys}) (r : R).
-
-
-Fact ilscaleAr r x y : ilscale r (x * y) = x * ilscale r y.
-Proof. by apply invlimP=> i /=; rewrite scalerAr. Qed.
-Canonical invlim_algType :=
-  Eval hnf in AlgType R (invlim Sys) ilscaleAr.
-Canonical invlimp_algType :=
-  Eval hnf in AlgType R {invlim Sys} ilscaleAr.
-
-End InvLimitAlg.
-
-
-Section InvLimitUnitAlg.
-
-Variables (disp : unit) (I : dirType disp).
-Variables (R : comUnitRingType).
+Section UnitAlg.
+Variables (R : comRingType).
 Variable Ob : I -> unitAlgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Canonical invlimp_unitAlgType := [unitAlgType R of {invlim Sys}].
+End UnitAlg.
 
-Canonical invlim_unitalgType := [unitAlgType R of (invlim Sys)].
-Canonical invlimp_unitalgType := [unitAlgType R of {invlim Sys}].
-
-End InvLimitUnitAlg.
-
-
-Section InvLimitField.
-
-Variables (disp : unit) (I : dirType disp).
+Section Field.
 Variable Ob : I -> fieldType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
+Let fieldType := [fieldType of [invLimType of {invlim Sys}]].
+Canonical invlimp_fieldType := [fieldType of {invlim Sys} for fieldType].
+End Field.
 
-Fact invlim_fieldMixin : GRing.Field.mixin_of [unitRingType of {invlim Sys}].
-Proof.
-move=> x /il_neq0 [i Hi].
-rewrite unfold_in /= /ilunit; apply/forallbP => j; rewrite unitfE.
-have [k ilek jlek] := directedP i j.
-have {Hi} : 'pi_k x != 0.
-  move: Hi; apply contra => /eqP/(congr1 (bonding ilek)).
-  by rewrite (ilprojE x) raddf0 => ->.
-by rewrite -(ilprojE x jlek) fmorph_eq0.
-Qed.
-Canonical invlim_fieldType :=
-  Eval hnf in FieldType (invlim Sys) invlim_fieldMixin.
-Canonical invlimp_fieldType :=
-  Eval hnf in FieldType {invlim Sys} invlim_fieldMixin.
-
-End InvLimitField.
+End Canonicals.
 
 
+Section Test.
+Variable (R : comRingType).
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> algType R.
+Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Ob j -> Ob i}.
+Variable Sys : invsys bonding.
+Let test := [algType R of {invlim Sys}].
+End Test.
 
 (***************************************************************************)
 (** Valuation in inverse limits                                            *)
@@ -764,19 +956,22 @@ Qed.
 
 Lemma lt_valuatP x n : reflect ('pi_n x = 0) (Nat n < valuat x)%O.
 Proof.
-apply (iffP idP); case: valuatP => [v Hv vmin /= |->] //.
+apply (iffP idP); case: valuatP => [v Hv vmin /= |->].
 - by rewrite ltEnatbar; apply vmin.
+- by rewrite raddf0.
 - apply contra_eqT; rewrite ltEnatbar -leqNgt => vlen.
   apply/contra: Hv => /eqP/(congr1 (bonding vlen)).
   by rewrite (ilprojE x) raddf0 => ->.
+- by [].
 Qed.
 
 Lemma le_valuatP x n :
   reflect (forall i, (i < n)%N -> 'pi_i x = 0) (Nat n <= valuat x)%O.
 Proof.
 apply (iffP idP).
-- case: valuatP => [v Hv vmin /= |->] //.
-  by rewrite leEnatbar => nlev i /leq_trans/(_ nlev); apply vmin.
+- case: valuatP => [v Hv vmin /= |-> _ i _].
+  + by rewrite leEnatbar => nlev i /leq_trans/(_ nlev); apply vmin.
+  + by rewrite raddf0.
 - case: n => // n; first exact: le0bar.
   move=> /(_ n)/(_ (ltnSn _)) /lt_valuatP.
   by case: (valuat x)=> // v; rewrite ltEnatbar leEnatbar.
@@ -798,7 +993,7 @@ Proof. by case: valuatP => [v | //]; rewrite raddf0 eqxx. Qed.
 Lemma valuat0P x : (valuat x == Inf) = (x == 0).
 Proof.
 apply/eqP/eqP=> [valx|->]; last exact: valuat0.
-by apply/invlimP=> i; rewrite raddf0; apply/lt_valuatP; rewrite valx.
+by apply/invlimE=> i; rewrite raddf0; apply/lt_valuatP; rewrite valx.
 Qed.
 
 Lemma valuatN x : valuat (- x) = valuat x.
@@ -851,7 +1046,7 @@ Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
 
 End Valuation.
 
-
+(*
 From mathcomp Require Import finmap.
 
 Section CommHugeOp.
@@ -950,3 +1145,4 @@ Qed.
  *)
 
 End CommHugeOp.
+*)

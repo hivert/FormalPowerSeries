@@ -117,6 +117,11 @@ End Padics.
 
 Definition padic_int (p : nat) (p_pr : prime p) := {invlim padic_invsys p_pr}.
 
+Section Tests.
+Variables (p : nat) (p_pr : prime p).
+Canonical padic_unit_ring := Eval hnf in [unitRingType of padic_int p_pr].
+End Tests.
+
 
 Section PadicTheory.
 
@@ -140,7 +145,7 @@ Qed.
 Fact padic_mul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
 Proof.
 case: (altP (x =P 0)) => //= /il_neq0 [/= i Hneq0] Hxy.
-apply/eqP/invlimP=> /= j.
+apply/eqP/invlimE=> /= j.
 move: Hxy => /(congr1 'pi_(i+j)%N); rewrite raddf0 rmorphM /=.
 move: Hneq0.
 have:= leq_addr i j; rewrite -leEnat => Hij; rewrite -(ilprojE y Hij).
@@ -153,11 +158,16 @@ have {}xmod : (x %% p^(i.+1) != 0)%N.
   move: xmod; apply contra => /eqP Heq.
   by rewrite Zp_nat; apply/eqP/val_inj; rewrite /= truncexp.
 move=> /(congr1 val); rewrite /= (truncexp p_pr (i + j)) => /eqP xymod.
-apply val_inj; rewrite /= truncexp // => {Hx Hy}.
+apply val_inj; rewrite /= {1}truncexp // => {Hx Hy}.
 have xn0 : (0 < x)%N.
   by apply/contraR: xmod; rewrite -leqNgt leqn0 => /eqP ->; rewrite mod0n.
-case: (ltnP 0%N y)=> [yn0|]; last by rewrite leqn0 => /eqP ->; rewrite mod0n.
+case: (ltnP 0%N y)=> [yn0|]; first last.
+  rewrite leqn0 => /eqP ->; rewrite mod0n.
+  (** TODO: rewrite raddd0. should be sufficient *)
+  by rewrite (raddf0 (ilproj_additive [invLimType of padic_int p_pr] j)).
 have xyn0 : (0 < x * y)%N by rewrite muln_gt0 xn0 yn0.
+(** TODO: rewrite raddd0. should be sufficient *)
+rewrite (raddf0 (ilproj_additive [invLimType of padic_int p_pr] j)).
 apply/eqP; rewrite -/(dvdn _ _) pfactor_dvdn //.
 move: xymod; rewrite -/(dvdn _ _) pfactor_dvdn // lognM //.
 move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
@@ -172,8 +182,6 @@ End PadicTheory.
 
 Section Tests.
 Variables (p : nat) (p_pr : prime p).
-Canonical padic_unit_ring := Eval hnf in [unitRingType of padic_int p_pr].
-
 
 Fact padicN1_thread :
   isthread (padic_invsys p_pr) (fun n => inord (p ^ n.+1 - 1)).
@@ -187,8 +195,8 @@ Definition ZpN1 : {invlim padic_invsys p_pr} := InvLim padicN1_thread.
 
 Lemma ZpN1E : ZpN1 = -1.
 Proof.
-apply invlimP => /= n; apply val_inj => /=.
-rewrite inordK truncexp // ?expN1lt //.
+apply/invlimE => /= n; rewrite rmorphN rmorph1; apply val_inj => /=.
+rewrite inordK ?truncexp // ?expN1lt //.
 by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
 Qed.
 

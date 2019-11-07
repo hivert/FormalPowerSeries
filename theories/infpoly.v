@@ -145,7 +145,7 @@ Check [algType R of {invlim infpoly_sys R}].
 
 Goal forall (r : R) (x y : {invlim infpoly_sys R}),
   'pi_2 (r *: (x * y)) = 'pi_2 y * 'pi_2 (r *: x).
-Proof. by move=> r x y; rewrite linearZ /= mulrC scalerAr. Qed.
+Proof. by move=> r x y; rewrite !linearZ /= mulrC -scalerAr rmorphM /=. Qed.
 
 End Tests.
 
