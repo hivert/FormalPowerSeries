@@ -149,7 +149,7 @@ rewrite /padic_bond /Zmn {Hij Hji} [(j + i)%N]addnC.
 move: ('pi_(i + j)%N x) ('pi_(i + j)%N y) => {x y} [x Hx] [y Hy].
 rewrite /inZp /= -(natr_Zp (Ordinal _)) /=.
 rewrite truncexp // (Zp_nat_mod (expgt1 p_pr i)) => xmod.
-have {xmod} xmod : (x %% p^(i.+1) != 0)%N.
+have {}xmod : (x %% p^(i.+1) != 0)%N.
   move: xmod; apply contra => /eqP Heq.
   by rewrite Zp_nat; apply/eqP/val_inj; rewrite /= truncexp.
 move=> /(congr1 val); rewrite /= (truncexp p_pr (i + j)) => /eqP xymod.

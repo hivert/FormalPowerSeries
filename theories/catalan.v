@@ -44,27 +44,26 @@ Example C5 : C 5 = 42. Proof. by rewrite !Csimpl. Qed.
 Import GRing.Theory.
 
 Local Definition Rat := [fieldType of rat].
-Local Definition charRat := Num.Theory.char_num [numDomainType of Rat].
-Local Definition nat_unit := nat_unit_field charRat.
-Local Definition fact_unit := TruncPolyUnitRing.fact_unit nat_unit.
-Hint Resolve nat_unit.
-Hint Resolve fact_unit.
+Local Definition char_Rat := Num.Theory.char_num [numDomainType of Rat].
+Local Definition nat_unit := nat_unit_field char_Rat.
+Local Definition fact_unit := fact_unit char_Rat.
+Hint Resolve char_Rat nat_unit : core.
 
 Section GenSeries.
 
 Local Open Scope ring_scope.
-Local Open Scope trpoly_scope.
+Local Open Scope tfps_scope.
 
 Variable n : nat.
-Definition FC : {trpoly Rat n} := [trpoly i => (C i)%:R].
+Definition FC : {tfps Rat n} := [tfps i => (C i)%:R].
 
 Lemma FC_in_coef0_eq1 : FC \in coef0_eq1.
-Proof. by rewrite coef0_eq1E coef_trpoly_of_fun C0. Qed.
+Proof. by rewrite coef0_eq1E coef_tfps_of_fun C0. Qed.
 
 Proposition FC_eq : FC = 1 + \X * FC ^+ 2.
 Proof.
-rewrite /FC; apply/trpolyP => i le_in.
-rewrite coef_trpoly_of_fun coefD coef1 coef_trpolyXM le_in.
+rewrite /FC; apply/tfpsP => i le_in.
+rewrite coef_tfps_of_fun coefD coef1 coef_tfpsXM le_in.
 case: i le_in => [|i] lt_in; first by rewrite C0 addr0.
 rewrite add0r CS /= expr2 coef_trXn (ltnW lt_in) coefM natr_sum.
 apply eq_bigr => [[j]]; rewrite /= ltnS => le_ji _.
@@ -73,26 +72,26 @@ rewrite (leq_trans (leq_ltn_trans le_ji lt_in) (leqnSn _)).
 by rewrite ltnS (leq_trans (leq_subr _ _) (ltnW lt_in)).
 Qed.
 
-Import TruncPolyUnitRing.
+(* Import TFPSUnitRing. *)
 
-Lemma mulr_nat i (f : {trpoly Rat n}) : i%:R *: f = i%:R * f.
+Lemma mulr_nat i (f : {tfps Rat n}) : i%:R *: f = i%:R * f.
 Proof. by rewrite scaler_nat -[f *+ i]mulr_natr mulrC. Qed.
 
 Theorem XFCE : \X * FC = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
 Proof.
 have co1 : 1 - 4%:R *: \X \in @coef0_eq1 Rat n.
-  by rewrite mulr_nat coef0_eq1E coefD mulrC coefN coef_trpolyXM coef1 subr0.
+  by rewrite mulr_nat coef0_eq1E coefD mulrC coefN coef_tfpsXM coef1 subr0.
 have: (2%:R *: \X * FC - 1) ^+ 2 = 1 - 4%:R *: \X.
   apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
   rewrite mulrA -subr_eq0 opprB [_ - 1]addrC addrA addrK addrC addrA.
   rewrite -{1}(mulr1 (4%:R * _)) -[X in _ + X + _]mulrA -mulrDr -FC_eq.
   by rewrite -[_ *+ 2]mulr_natl !mulrA -natrM subrr.
-move/(sqrtE nat_unit) => /(_ co1) [HeqP | HeqN].
-  exfalso; move: HeqP => /(congr1 (fun x : {trpoly _ _ } => x`_0)).
-  rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_trpolyXM coef1.
+move/(sqrtE char_Rat) => /(_ co1) [HeqP | HeqN].
+  exfalso; move: HeqP => /(congr1 (fun x : {tfps _ _ } => x`_0)).
+  rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_tfpsXM coef1.
   rewrite (eqP (coef0_eq1_expr _ _)) /= => /eqP.
   rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
-  by have:= charRat 2; rewrite !inE Habs /= eq_refl.
+  by have:= char_Rat 2; rewrite !inE Habs /= eq_refl.
 have neq20 : 2%:R != 0 :> Rat by rewrite Num.Theory.pnatr_eq0.
 apply (scalerI neq20); rewrite scalerA divff // scale1r -HeqN.
 by rewrite addrC subrK scalerAl.
@@ -101,8 +100,8 @@ Qed.
 Theorem coefFC i : (i < n)%N -> FC`_i = i.*2`!%:R / i`!%:R /i.+1`!%:R.
 Proof.
 move=> Hi.
-have:= congr1 (fun x : {trpoly _ _ } => x`_i.+1) XFCE.
-rewrite coef_trpolyXM Hi ![X in (X = _)]/= => ->.
+have:= congr1 (fun x : {tfps _ _ } => x`_i.+1) XFCE.
+rewrite coef_tfpsXM Hi ![X in (X = _)]/= => ->.
 rewrite coefZ coefB coef1 sub0r -scaleNr coef_expr1cX ?{}Hi //.
 rewrite mulrN mulrA -mulNr; congr (_ / (i.+1)`!%:R).
 rewrite -[4]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
@@ -124,13 +123,13 @@ rewrite mulrC invfM // !mulrA; congr (_ * _).
 rewrite mul2n -{2}[i.*2.+1]addn1 [X in X / _]mulrC -mulrA; congr (_ * _).
 rewrite -[i.*2.+2]addn1 addSnnS -mul2n -[X in (_ + X)%N]muln1.
 rewrite -mulnDr addn1 natrM mulfK //.
-by have /charf0P -> := charRat.
+by have /charf0P -> := char_Rat.
 Qed.
 
 End GenSeries.
 
 Theorem Cat_rat i : ((C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> Rat)%R.
-Proof. by rewrite -(coefFC (ltnSn i)) coef_trpoly_of_fun (ltnW _). Qed.
+Proof. by rewrite -(coefFC (ltnSn i)) coef_tfps_of_fun (ltnW _). Qed.
 
 Theorem CatM i : C i * i`! * i.+1`! = i.*2`!.
 Proof.
@@ -158,24 +157,24 @@ Qed.
 Section CatLagrange.
 
 Local Open Scope ring_scope.
-Local Open Scope trpoly_scope.
+Local Open Scope tfps_scope.
 
-Lemma one_plusX_2_unit n : ((1 + \X) ^+ 2 : {trpoly Rat n}) \is a GRing.unit.
+Lemma one_plusX_2_unit n : ((1 + \X) ^+ 2 : {tfps Rat n}) \is a GRing.unit.
 Proof.
-rewrite unit_trpolyE coef0_trpolyM coeftrD coef_trpoly1.
-by rewrite coef_trpolyX mulr0 addr0 mulr1.
+rewrite unit_tfpsE coef0_tfpsM coeftD coef_tfps1.
+by rewrite coef_tfpsX mulr0 addr0 mulr1.
 Qed.
 
 Proposition FC1_eq n : (FC n.+1 - 1) = lagrfix ((1 + \X) ^+ 2).
 Proof.
 apply: (lagrfix_uniq (one_plusX_2_unit _)).
 rewrite {1}FC_eq -addrA addrC subrK.
-rewrite rmorphX rmorphD /= comp_trpoly1 comp_trpolyX //; first last.
-  rewrite coef0_eq0E coef_trXn coeftrB coef_trpoly1.
-  by rewrite coef_trpoly_of_fun /= C0 subrr.
-rewrite -(trXns1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
-apply trpolyP => i Hi.
-rewrite coef_trpolyXM coef_mulfX coef_trXns.
+rewrite rmorphX rmorphD /= comp_tfps1 comp_tfpsX //; first last.
+  rewrite coef0_eq0E coef_trXn coeftB coef_tfps1.
+  by rewrite coef_tfps_of_fun /= C0 subrr.
+rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
+apply tfpsP => i Hi.
+rewrite coef_tfpsXM coef_mulfX coef_trXnt.
 by case: i Hi.
 Qed.
 
@@ -183,18 +182,18 @@ Theorem CatLagrange i : (i.+1 * (C i) = 'C(i.*2, i))%N.
 Proof.
 case: i => [|i]; first by rewrite C0 mul1n bin0.
 apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
-have:= (congr1 (fun s : {trpoly Rat i.+1} => s`_i.+1) (FC1_eq i)).
-rewrite coef_trpoly coeftrD coef_trpoly_of_fun ltnSn.
-rewrite coeftrN coef_trpoly1 subr0 /= => ->.
-rewrite -/(_`_i.+1) coef_lagrfix ?one_plusX_2_unit //.
-rewrite -exprM mul2n addrC exprD1n coeftr_sum.
+have:= (congr1 (fun s : {tfps Rat i.+1} => s`_i.+1) (FC1_eq i)).
+rewrite coef_tfps coeftD coef_tfps_of_fun ltnSn.
+rewrite coeftN coef_tfps1 subr0 /= => ->.
+rewrite -/(_`_i.+1) (coef_lagrfix (nat_unit_field _)) ?one_plusX_2_unit //.
+rewrite -exprM mul2n addrC exprD1n coeft_sum.
 have Hord : (i < (i.+1).*2.+1)%N.
   by rewrite ltnS doubleS -addnn -!addnS leq_addr.
 rewrite (bigD1 (Ordinal Hord)) //= -!/(_`_i.+1).
-rewrite coeftrMn coef_trpolyXn // eqxx leqnn /= (_ : 1%:R = 1) //.
+rewrite coeftMn coef_tfpsXn // eqxx leqnn /= (_ : 1%:R = 1) //.
 rewrite big1 ?addr0 => [|[j /= Hj]]; first last.
   rewrite -val_eqE /= => {Hj} /negbTE Hj.
-  by rewrite coeftrMn coef_trpolyXn eq_sym Hj andbF mul0rn.
+  by rewrite coeftMn coef_tfpsXn eq_sym Hj andbF mul0rn.
 rewrite ltnS in Hord.
 rewrite -bin_sub // -{2}addnn -addSnnS addnK.
 by rewrite mulrA -natrM mul_bin_left -addnn addnK natrM mulrC mulKr.
@@ -203,5 +202,3 @@ Qed.
 End CatLagrange.
 
 End Catalan.
-
-

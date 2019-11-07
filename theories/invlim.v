@@ -301,7 +301,7 @@ Local Notation "''pi_' i" := (ilproj i).
 Lemma invlimP x y : (forall i, 'pi_i x = 'pi_i y) -> x = y.
 Proof.
 case: x y => [fx Hx] [fy Hy] /= H.
-have {H} H : fx = fy by apply functional_extensionality_dep.
+have {}H : fx = fy by apply functional_extensionality_dep.
 by subst fy; have -> : Hx = Hy by apply Prop_irrelevance.
 Qed.
 
