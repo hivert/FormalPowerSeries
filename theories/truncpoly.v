@@ -2655,7 +2655,7 @@ Qed.
 End PrimitiveUnitRing.
 
 
-Section ExpLogMorph.
+Section ExpMorph.
 
 Variable R : comUnitRingType.
 Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
@@ -2674,54 +2674,27 @@ Proof. by have:= fact_gt0 m; rewrite lt0n; case: m`!. Qed.
 Theorem expD : {in (@coef0_eq0 R n) &, {morph exp : f g / f + g >-> f * g}}.
 Proof.
 move=> f g f0_eq0 g0_eq0 /=.
-rewrite ?(exp_coef0_eq0, rpredD) //.
-rewrite (eq_bigr (fun i => let i' := (nat_of_ord i) in i'`!%:R^-1 *:
-         (\sum_(j < i'.+1) f ^+ (i' - j) * g ^+ j *+ 'C(i', j)))); last first.
-  by move => i _ /=; rewrite exprDn.
-rewrite (big_distrl _ _ _) /=.
-rewrite (eq_bigr (fun i => let i' := (nat_of_ord i) in (\sum_(j < i'.+1)
-        ((j`! * (i' -j)`!)%:R) ^-1 *: (f ^+ (i' - j) * g ^+ j)))); last first.
-  move => [i /= _] _.
+rewrite !exp_coef0_eq0 ?rpredD //.
+pose FG u v := (u`! * v`!)%:R ^-1 *: (g ^+ u * f ^+ v) : {tfps R n}.
+rewrite (eq_bigr
+           (fun i : 'I_n.+1 => \sum_(j < i.+1) FG j (i - j)%N)); first last.
+  move => [i /= _] _; rewrite exprDn.
   rewrite scaler_sumr; apply: eq_bigr => [[j]]; rewrite /= ltnS => le_ji _.
-  rewrite -mulrnAl scalerAl -scaler_nat scalerA -scalerAl; congr(_ *: _).
-  case: i le_ji => [|i Hi].
+  rewrite mulrC -mulrnAl scalerAl -scaler_nat scalerA -scalerAl; congr(_ *: _).
+  case: i le_ji => [|i le_ji1].
     by rewrite leqn0 => /eqP ->; rewrite fact0 bin0 mulr1 muln1.
   rewrite bin_factd //.
   rewrite natr_div ?mulKr ?fact_unit // ?natrM ?unitrM ?fact_unit //.
   by apply/dvdnP; exists 'C(i.+1, j); rewrite bin_fact.
-rewrite [in RHS](eq_bigr (fun i => let i' := (nat_of_ord i) in (\sum_(j < n.+1)
-                    ((i'`! * j`!)%:R^-1) *: (f ^+ i' * g ^+ j)))); last first.
-  move => i _.
-  rewrite (big_distrr _ _ _) /=.
-  apply: eq_bigr => j _ /=.
-  rewrite -scalerAl -scalerCA -scalerAl scalerA -invrM ?unitfE ?fact_unit //.
- by rewrite -natrM mulnC.
-have -> : \sum_(i < n.+1) \sum_(j < n.+1)
-                   (i`! * j`!)%:R^-1 *: (f ^+ i * g ^+ j)  =
-          \sum_(i < n.+1) \sum_(j < n.+1 | i + j <= n)
-                   (i`! * j`!)%:R^-1 *: (f ^+ i * g ^+ j).
-  apply: eq_bigr => [[i i_lt_Sn]] _ /=.
-  rewrite (bigID (fun j => i + (nat_of_ord j) <= n)) /=.
-  rewrite -[RHS]addr0 ; congr (_ + _).
-  apply: big1_seq => /= j; rewrite -ltnNge => /andP [n_lt_addij _].
-  by rewrite tfpsMX_eq0 // scaler0.
-rewrite [in RHS](eq_bigr (fun i => let i' := (nat_of_ord i) in \sum_(j < n.+1 |
-        i' + j < n.+1) (i'`! * j`!)%:R^-1 *: (f ^+ i' * g ^+ j))); last first.
-  move => i _ /=.
-  by apply: eq_bigr.
-rewrite (eq_bigr (fun i => let i' := (nat_of_ord i) in \sum_(j < i'.+1)
-           (j`! * (i' - j)`!)%:R^-1 *: (f ^+ j * g ^+ (i' - j)))); last first.
-  move => i _ /=.
-  rewrite -(big_mkord predT (fun j => (j`! * (i - j)`!)%:R^-1 *:
-                                                       (f ^+ (i - j) * g ^+ j))).
-  rewrite big_nat_rev big_mkord add0n.
-  apply: eq_bigr => j _.
-  by rewrite !subSS subnBA -1?ltnS // !addKn mulnC.
-by rewrite (triangular_index_bigop _
-                      (fun i j => (i`! * j`!)%:R^-1 *: (f ^+ i * g ^+ j))) /=;
-  last exact: ltnSn.
+rewrite -(triangular_index_bigop _ FG (ltnSn n)) /= {}/FG.
+rewrite mulrC (big_distrl _ _ _) /=; apply eq_bigr => i _.
+rewrite [RHS]mulr_sumr [RHS](bigID (fun j : 'I_n.+1 => i + j < n.+1)) /=.
+rewrite [X in _ + X]big1 ?addr0; first last.
+  move => j; rewrite -ltnNge ltnS => lt_nij.
+  by rewrite -scalerAr -scalerAl tfpsMX_eq0 // !scaler0.
+apply eq_bigr => j _.
+by rewrite -scalerAr -scalerAl scalerA natrM invrM // fact_unit.
 Qed.
-
 
 Lemma expN f : f \in coef0_eq0 -> exp (- f) = (exp f)^-1.
 Proof.
@@ -2732,7 +2705,7 @@ Qed.
 Lemma expB : {in (@coef0_eq0 R n) &, {morph exp : f g / f - g >-> f / g}}.
 Proof. by move=> f g hf hg; rewrite expD ?rpredN // expN. Qed.
 
-End ExpLogMorph.
+End ExpMorph.
 
 
 Section MoreDerivative.
