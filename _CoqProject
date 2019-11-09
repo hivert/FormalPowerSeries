@@ -8,8 +8,7 @@ theories/invlim.v
 theories/natbar.v
 theories/infpoly.v
 theories/padic.v
-
 theories/auxresults.v
-theories/truncpoly.v
+theories/truncps.v
 theories/catalan.v
 
