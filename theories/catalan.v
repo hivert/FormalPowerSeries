@@ -278,6 +278,21 @@ rewrite mulnC -mulnDr => ->.
 by rewrite mulnC [n * 4]mulnC.
 Qed.
 
+Theorem Cat_from_rec n : n.+1 * C n = 'C(n.*2, n).
+Proof.
+elim: n => [| n IHn] /=; first by rewrite C0 bin0.
+rewrite Catalan_rec doubleS !binS.
+have leq_n2 : n <= n.*2 by rewrite -addnn leq_addr.
+rewrite -[X in _ + _ + X]bin_sub; last exact: (leq_trans leq_n2 (leqnSn _)).
+rewrite subSn // -{4}addnn addnK binS addnn.
+rewrite addn2 -[4]/(2 * 2) -mulnA !mul2n -doubleS -doubleMl; congr _.*2.
+rewrite -IHn -{1}addnn -addnS mulnDl; congr (_ + _).
+have:= mul_bin_down n.*2 n.
+rewrite mul_bin_diag -{2}addnn addnK -{}IHn mulnA [n * n.+1]mulnC.
+rewrite -mulnA ![n.+1 * _]mulnC => /(congr1 (fun m => m %/ n.+1)).
+by rewrite !mulnK.
+Qed.
+
 End HolonomicSolution.
 
 End Catalan.
