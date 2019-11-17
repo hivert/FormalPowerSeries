@@ -260,7 +260,24 @@ rewrite -[4]/(2 + 2)%N mulrnDr addrA.
 by rewrite [_ *- _ + _]addrC subrK.
 Qed.
 
-End HolonomicSolution.
+Local Close Scope ring_scope.
+Local Close Scope tfps_scope.
 
+Proposition Catalan_rec n : n.+2 * C (n.+1) = (4 * n + 2) * C n.
+Proof.
+have := congr1 (fun x : {tfps _ _} => (x`_n.+1)%R) (FC_differential_eq n).
+rewrite coef1 coeftD !mulrDl !mul1r !coeftD.
+rewrite -!mulNrn !(mulrnAl, coeftMn, mulNr, coeftN).
+rewrite !coef_tfpsXM coef_mulfX !coef_deriv_tfps !coef_tfps_of_fun.
+rewrite /= ltnSn leqnSn /= ltnS leq_pred.
+case: n => [|n] /=; first by rewrite !Csimpl.
+move: {n} n.+1 => n; move: (C n.+1) (C n) => Cn1 Cn.
+rewrite !mulNrn addrA [X in (X - _)%R]addrC addrA -mulrSr -!mulrnA.
+move/eqP; rewrite subr_eq add0r subr_eq -natrD Num.Theory.eqr_nat => /eqP.
+rewrite mulnC -mulnDr => ->.
+by rewrite mulnC [n * 4]mulnC.
+Qed.
+
+End HolonomicSolution.
 
 End Catalan.
