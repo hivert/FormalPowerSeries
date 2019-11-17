@@ -1672,20 +1672,20 @@ Proof. by apply tfps_inj; rewrite val_deriv_tfps /= val_tfpsC derivC. Qed.
 Lemma deriv_tfps1 : 1^`() = 0.
 Proof. by rewrite -tfpsC1 deriv_tfpsC. Qed.
 
-Fact deriv_tfpsD f g : (f + g)^`() = f^`()%tfps + g^`()%tfps.
+Fact derivD_tfps f g : (f + g)^`() = f^`()%tfps + g^`()%tfps.
 Proof.
 apply/tfpsP => i le_in1.
 by rewrite coefD !coef_poly ltnS le_in1 coefD -mulrnDl.
 Qed.
 
-Fact deriv_tfpsZ (c : R) f : (c *: f)^`() = c *: f^`()%tfps.
+Fact derivZ_tfps (c : R) f : (c *: f)^`() = c *: f^`()%tfps.
 Proof.
 apply/tfpsP => i le_in1.
 by rewrite !(coef_poly, coefZ) ltnS le_in1 mulrnAr.
 Qed.
 
 Fact deriv_tfps_is_linear : linear deriv_tfps.
-Proof. by move => c f g; rewrite deriv_tfpsD deriv_tfpsZ. Qed.
+Proof. by move => c f g; rewrite derivD_tfps derivZ_tfps. Qed.
 Canonical deriv_tfps_additive := Additive deriv_tfps_is_linear.
 Canonical deriv_tfps_linear := Linear deriv_tfps_is_linear.
 
@@ -2220,13 +2220,13 @@ Hypothesis gU : g \is a GRing.unit.
 
 (** We iterate f := x (g o f) until fixpoint is reached. *)
 (** At each step, the precision is incremented.          *)
-Fixpoint lagriter O : {tfps R O} :=
-  if O is O'.+1 then mulfX ((trXnt O' g) \So (lagriter O')) else 0.
+Fixpoint lagriter ord : {tfps R ord} :=
+  if ord is ord'.+1 then mulfX (trXnt ord' g \So lagriter ord') else 0.
 Definition lagrfix := lagriter n.+1.
 
-Lemma coef0_eq0_lagriter O : lagriter O \in coef0_eq0.
+Lemma coef0_eq0_lagriter ord : lagriter ord \in coef0_eq0.
 Proof.
-by rewrite coef0_eq0E; case: O => [|O]; rewrite ?coef_tfps0 ?coef_mulfX.
+by rewrite coef0_eq0E; case: ord => [|i]; rewrite ?coef_tfps0 ?coef_mulfX.
 Qed.
 Lemma coef0_eq0_lagrfix : lagrfix \in coef0_eq0.
 Proof. exact: coef0_eq0_lagriter. Qed.
@@ -2234,25 +2234,25 @@ Proof. exact: coef0_eq0_lagriter. Qed.
 Lemma lagrfixP : lagrfix = mulfX (g \So trXnt n lagrfix).
 Proof.
 rewrite /lagrfix.
-suff rec O : O <= n ->
-     lagriter O.+1 = mulfX (trXnt O g \So trXnt O (lagriter O.+1)).
+suff rec ord : ord <= n ->
+     lagriter ord.+1 = mulfX (trXnt ord g \So trXnt ord (lagriter ord.+1)).
   by rewrite [LHS](rec n (leqnn n)) trXnt_id.
-elim: O => [_ | O IHO /ltnW{}/IHO IHO]; apply tfpsP => i.
+elim: ord => [_ | m IHm /ltnW{}/IHm IHm]; apply tfpsP => i.
   case: i => [_|i]; first by rewrite !coef_mulfX.
   rewrite ltnS leqn0 => /eqP ->.
   rewrite !coef_mulfX /= -!/(_`_0).
   by rewrite comp_tfps0r !coef_tfpsC coef0_comp_tfps.
 case: i => [_|i]; first by rewrite !coef_mulfX.
-rewrite ltnS => le_iO1 /=.
-rewrite -!/(_`_ i.+1) !coef_mulfX /= -/(lagriter O.+1) -!/(_`_ i.+1).
-have lag0 := coef0_eq0_lagriter O.+1.
-move: (lagriter O.+1) => LR in IHO lag0 *.
-have Xlag0 : trXnt O.+1 (mulfX (trXnt O.+1 g \So LR)) \in coef0_eq0.
+rewrite ltnS => le_im1 /=.
+rewrite -!/(_`_ i.+1) !coef_mulfX /= -/(lagriter m.+1) -!/(_`_ i.+1).
+have lag0 := coef0_eq0_lagriter m.+1.
+move: (lagriter m.+1) => LR in IHm lag0 *.
+have Xlag0 : trXnt m.+1 (mulfX (trXnt m.+1 g \So LR)) \in coef0_eq0.
   by rewrite coef0_eq0E coef_trXnt coef_mulfX.
 rewrite !coef_comp_tfps //; apply eq_bigr => k _; congr (_ * _).
-rewrite {}[in LHS]IHO -rmorphX coef_trXnt le_iO1.
-set X :=  (_ ^+ k in RHS); have -> : X`_i = (trXnt O.+1 X)`_i.
-  by rewrite {}/X coef_trXnt le_iO1.
+rewrite {}[in LHS]IHm -rmorphX coef_trXnt le_im1.
+set X :=  (_ ^+ k in RHS); have -> : X`_i = (trXnt m.+1 X)`_i.
+  by rewrite {}/X coef_trXnt le_im1.
 rewrite {}/X rmorphX /= trXnt_mulfX // trXnt_comp; last exact: leqnSn.
 by rewrite trXnt_trXnt.
 Qed.
