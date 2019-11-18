@@ -254,8 +254,8 @@ End TruncFPSDef.
 
 (* We need to break off the section here to let the Bind Scope directives     *)
 (* take effect.                                                               *)
-Bind Scope ring_scope with tfps_of.
-Bind Scope ring_scope with truncfps.
+Bind Scope tfps_scope with tfps_of.
+Bind Scope tfps_scope with truncfps.
 Arguments tfps {R n%N}.
 Arguments tfps_inj {R} [p1%R p2%R] : rename.
 Notation "{ 'tfps' R n }" :=  (tfps_of n (Phant R)).
@@ -466,7 +466,7 @@ Proof. by rewrite coef0. Qed.
 Lemma trXn0 : trXn n 0 = 0.
 Proof. exact: raddf0. Qed.
 
-Fact tfps_is_additive : additive (@tfps R n : {tfps R n} -> {poly R}).
+Fact tfps_is_additive : additive (tfps : {tfps R n} -> {poly R}).
 Proof. by []. Qed.
 Canonical tfps_additive := Additive tfps_is_additive.
 
@@ -553,8 +553,7 @@ Canonical tfpsC_rmorphism := AddRMorphism tfpsC_is_multiplicative.
 Lemma tfpsC1 : (1%:S : {tfps R n}) = 1.
 Proof. exact: rmorph1. Qed.
 
-Lemma tfpsCM :
-  {morph (fun x => (x%:S : {tfps R n})) : a b / a * b >-> a * b}.
+Lemma tfpsCM : {morph (@tfpsC R n) : a b / a * b >-> a * b}.
 Proof. exact: rmorphM. Qed.
 
 
@@ -582,7 +581,7 @@ by rewrite !(coefD, coefZ, coef_trXn) Hi.
 Qed.
 Canonical trXn_linear := AddLinear trXn_is_linear.
 
-Fact tfps_is_linear : linear (@tfps R n : {tfps R n} -> {poly R}).
+Fact tfps_is_linear : linear (tfps : {tfps R n} -> {poly R}).
 Proof. by []. Qed.
 Canonical tfps_linear := AddLinear tfps_is_linear.
 
@@ -687,7 +686,7 @@ Section TrXnT.
 Variable R : ringType.
 
 Definition trXnt m n : {tfps R m} -> {tfps R n} :=
-  @trXn R n \o (@tfps R m).
+  @trXn R n  \o  @tfps R m.
 
 Variables (m n p : nat).
 Implicit Type (f : {tfps R m}).
@@ -783,7 +782,7 @@ Lemma coef_tfpsX m i :
   (\X : {tfps R m})`_i = (m != 0%N)%:R * (i == 1%N)%:R.
 Proof. by rewrite coef_tfpsE val_tfpsX coefZ coefX. Qed.
 
-Lemma trXn_tfpsX m : @trXn R n (tfps \Xo(m.+1)) = \X.
+Lemma trXn_tfpsX m : trXn n (tfps \Xo(m.+1)) = \X :> {tfps R n}.
 Proof.
 case: n => [|n'].
   rewrite [RHS]tfps0X //; apply tfpsP => i.
@@ -792,7 +791,7 @@ case: n => [|n'].
 by apply tfps_inj; rewrite !val_tfpsSX.
 Qed.
 
-Lemma trXnt_tfpsX m : @trXnt R _ n \Xo(m.+1) = \X.
+Lemma trXnt_tfpsX m : trXnt n \Xo(m.+1) = \X :> {tfps R n}.
 Proof. exact: trXn_tfpsX. Qed.
 
 Lemma commr_tfpsX f : GRing.comm f \X.
@@ -1158,7 +1157,7 @@ Proof. by rewrite linearD. Qed.
 
 
 Lemma trXn_map_poly (p : {poly K}) :
-  @trXn L n (map_poly f p) = map_tfps (trXn n p).
+  trXn n (map_poly f p) = map_tfps (trXn n p).
 Proof. by apply/tfpsP => i le_in; rewrite !(coef_trXn, le_in, coef_map). Qed.
 
 Local Notation "g '^f'" := (map_tfps g).
@@ -1778,9 +1777,8 @@ Theorem derivV_tfps_nc f :
   f \is a GRing.unit ->
   (f ^-1)^`() = - trXnt n.-1 (f^-1) * f^`()%tfps * trXnt n.-1 (f^-1).
 Proof.
-move => fU.
-have:= erefl (f / f); rewrite {2}divrr //.
-move/(congr1 (@deriv_tfps R n)).
+move=> fU.
+have:= erefl (f / f); rewrite {2}divrr // => /(congr1 (@deriv_tfps R n)).
 rewrite derivM_tfps -tfpsC1 deriv_tfpsC.
 (* Coq is confused with the pattern matching :-( ?? Let's help him ! *)
 move/eqP; rewrite addrC; set X := (X in X + _); rewrite (addr_eq0 X _) {}/X.
@@ -2733,7 +2731,7 @@ by rewrite -coef_deriv primK -coef_tfpsE.
 Qed.
 
 Lemma deriv_tfpsK :
-  {in @coef0_eq0 R n.+1, cancel (@deriv_tfps R _) (@prim_tfps R _)}.
+  {in coef0_eq0, cancel (@deriv_tfps R n.+1) (@prim_tfps R n)}.
 Proof.
 move=> f; rewrite coef0_eq0E => /eqP f0_eq0.
 apply/tfpsP => i _.
@@ -2761,7 +2759,7 @@ Implicit Types (f g : {tfps R n}).
 Lemma fact_unit m : m`!%:R \is a @GRing.unit R.
 Proof. by have:= fact_gt0 m; rewrite lt0n; case: m`!. Qed.
 
-Theorem expD : {in (@coef0_eq0 R n) &, {morph exp : f g / f + g >-> f * g}}.
+Theorem expD : {in @coef0_eq0 R n &, {morph exp : f g / f + g >-> f * g}}.
 Proof.
 move=> f g f0_eq0 g0_eq0 /=.
 rewrite !exp_coef0_eq0 ?rpredD //.
@@ -2792,7 +2790,7 @@ move=> f0_eq0; apply: (@mulrI _ (exp f)); rewrite ?divrr ?exp_unit //.
 by rewrite -expD ?rpredN // subrr exp0.
 Qed.
 
-Lemma expB : {in (@coef0_eq0 R n) &, {morph exp : f g / f - g >-> f / g}}.
+Lemma expB : {in @coef0_eq0 R n &, {morph exp : f g / f - g >-> f / g}}.
 Proof. by move=> f g hf hg; rewrite expD ?rpredN // expN. Qed.
 
 End ExpMorph.

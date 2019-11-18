@@ -135,10 +135,10 @@ rewrite -mulnDr addn1 natrM mulfK //.
 by have /charf0P -> := char_Rat.
 Qed.
 
-Local Close Scope ring_scope.
-
-Theorem Cat_rat i : ((C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> Rat)%R.
+Theorem Cat_rat i : (C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> Rat.
 Proof. by rewrite -(coefFC (ltnSn i)) coef_tfps_of_fun (ltnW _). Qed.
+
+Local Close Scope ring_scope.
 
 Theorem CatM i : C i * i`! * i.+1`! = i.*2`!.
 Proof.
@@ -171,7 +171,7 @@ Section LagrangeSolution.
 Local Open Scope ring_scope.
 Local Open Scope tfps_scope.
 
-Lemma one_plusX_2_unit n : ((1 + \X) ^+ 2 : {tfps Rat n}) \is a GRing.unit.
+Lemma one_plusX_2_unit n :((1 + \X) ^+ 2 : {tfps Rat n}) \is a GRing.unit.
 Proof.
 rewrite unit_tfpsE coef0_tfpsM coeftD coef_tfps1.
 by rewrite coef_tfpsX mulr0 addr0 mulr1.
@@ -222,7 +222,7 @@ Local Open Scope ring_scope.
 Local Open Scope tfps_scope.
 
 Proposition FC_differential_eq n :
-  (1 - \X *+ 2) * (FC n.+1) + (1 - \X *+ 4) * mulfX ((FC n.+1)^`())%tfps = 1.
+  (1 - \X *+ 2) * (FC n.+1) + (1 - \X *+ 4) * mulfX (FC n.+1)^`() = 1.
 Proof.
 have:= FC_algebraic_eq n.+1; move: (FC n.+1) => F Falg.
 have X2Fu : (1 - \X *+ 2 * F) \is a GRing.unit.
@@ -230,7 +230,7 @@ have X2Fu : (1 - \X *+ 2 * F) \is a GRing.unit.
   by rewrite mulrnAl coeftMn coef_tfpsXM.
 have FalgN : \X * F ^+ 2 = F - 1.
   by apply/eqP; rewrite eq_sym subr_eq addrC -Falg.
-have -> : mulfX (F^`())%tfps = (F - 1)/(1 - \X *+ 2 * F).
+have -> : mulfX F^`() = (F - 1)/(1 - \X *+ 2 * F).
   rewrite -[LHS]divr1; apply/eqP.
   rewrite (auxresults.eq_divr (mulfX _)) ?unitr1 // ?X2Fu // mulr1.
   have /= := congr1 ((@mulfX _ _) \o (@deriv_tfps _ _)) Falg.
