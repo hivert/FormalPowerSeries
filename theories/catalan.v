@@ -232,21 +232,19 @@ have FalgN : \X * F ^+ 2 = F - 1.
   by apply/eqP; rewrite eq_sym subr_eq addrC -Falg.
 have -> : mulfX (F^`())%tfps = (F - 1)/(1 - \X *+ 2 * F).
   rewrite -[LHS]divr1; apply/eqP.
-  rewrite (auxresults.eq_divr (mulfX (F^`())%tfps) _ (unitr1 _) X2Fu).
-  rewrite mulr1; have:= congr1 (@deriv_tfps _ _) Falg.
+  rewrite (auxresults.eq_divr (mulfX _)) ?unitr1 // ?X2Fu // mulr1.
+  have /= := congr1 ((@mulfX _ _) \o (@deriv_tfps _ _)) Falg.
   rewrite derivD_tfps deriv_tfps1 add0r.
   rewrite derivM_tfps /= deriv_tfpsX mul1r derivX_tfps /= expr1.
-  move=> /(congr1 (@mulfX _ _)).
   rewrite raddfD /= -trXnt_mulfX // (mulfXE (F ^+ 2)).
   rewrite trXntM // trXnt_trXnt // trXnt_id trXnt_tfpsX.
-  rewrite [X in _ + mulfX X]mulrC -mulfXM.
+  rewrite FalgN [X in _ + mulfX X]mulrC -mulfXM.
   rewrite raddfMn /= [X in (mulfX X) *+ 2]mulrC -mulfXM.
-  move/eqP; rewrite -(subr_eq _ _ (_ _ * \X)).
-  rewrite FalgN -mulrnAr -mulrA -{1}(mulr1 (mulfX _)) -mulrBr.
-  by rewrite [_ * \X]mulrC mulrnAl mulrnAr => /eqP ->.
-rewrite mulrA -[X in X + _](mulrK X2Fu) -mulrDl.
-rewrite -[RHS]divr1; apply/eqP.
-rewrite auxresults.eq_divr ?unitr1 // mulr1 mul1r.
+  move/eqP; rewrite -(subr_eq _ _ (_ _ * \X)) => /eqP <-.
+  rewrite eq_sym -mulrnAr -mulrA -{1}(mulr1 (mulfX _)) -mulrBr.
+  by rewrite [_ * \X]mulrC mulrnAl mulrnAr.
+rewrite mulrA -[X in X + _](mulrK X2Fu) -mulrDl -[RHS]divr1.
+apply/eqP; rewrite auxresults.eq_divr ?unitr1 // mulr1 mul1r.
 rewrite -mulrA [F * _]mulrC [(1 - _ * F) * F]mulrBl -mulrA -expr2.
 rewrite mul1r mulrnAl FalgN.
 rewrite !mulrnBl opprB addrA (mulr2n F) (opprD F) addrA.
