@@ -75,6 +75,7 @@ Qed.
 End GenSeries.
 
 
+(** Extraction of the coefficient using square root and Newton's formula *)
 Section AlgebraicSolution.
 
 Local Open Scope ring_scope.
@@ -83,7 +84,6 @@ Local Open Scope tfps_scope.
 Lemma mulr_nat n i (f : {tfps Rat n}) : i%:R *: f = i%:R * f.
 Proof. by rewrite scaler_nat -[f *+ i]mulr_natr mulrC. Qed.
 
-(** Extraction of the coefficient using square root and Newton's formula *)
 Theorem FC_algebraic_solution n :
   \X * FC n = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
 Proof.
@@ -117,18 +117,16 @@ rewrite -[4]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
 rewrite exprMn -mulrA [(1 *- 2)^+ _]expr_prod -big_split /= big_ord_recl /=.
 rewrite subr0 mulNr divrr // mulN1r 2!mulrN [LHS]opprK.
 rewrite exprS !mulrA [2%:R^-1 * 2%:R]mulVf // mul1r.
-rewrite (eq_bigr (fun j => let j' := (nat_of_ord j) in (2 * j + 1)%:R)) /=;
-        first last.
+rewrite (eq_bigr (fun j : 'I_i => (2 * j + 1)%:R)) /=; last first.
   move=> j _; rewrite /bump /=.
   rewrite mulNr -mulrN opprD addrC opprK addnC natrD 2!mulrDr.
   rewrite mulrN divff // mulr1 -{2}addn1 {2}natrD addrA addrK.
   by rewrite natrD natrM.
-elim: i => [|i IHi].
-  by rewrite expr0 big_ord0 double0 fact0 mulr1.
+elim: i => [|i IHi]; first by rewrite expr0 big_ord0 double0 fact0 mulr1.
 rewrite big_ord_recr /= exprS -mulrA mulrC mulrA {}IHi.
 rewrite doubleS !factS 3!natrM.
-rewrite [_ * (i.*2)`!%:R]mulrC mulrA [_ * (i.*2)`!%:R]mulrC -!(mulrA); congr (_ * _).
-rewrite mulrC invfM // !mulrA; congr (_ * _).
+set F := (i.*2)`!%:R; rewrite [_ * F]mulrC mulrA [_ * F]mulrC -!mulrA.
+congr (_ * _); rewrite {F} mulrC invfM // !mulrA; congr (_ * _).
 rewrite mul2n -{2}[i.*2.+1]addn1 [X in X / _]mulrC -mulrA; congr (_ * _).
 rewrite -[i.*2.+2]addn1 addSnnS -mul2n -[X in (_ + X)%N]muln1.
 rewrite -mulnDr addn1 natrM mulfK //.
@@ -151,13 +149,14 @@ Qed.
 
 Theorem CatV i : C i = i.*2`! %/ (i`! * i.+1`!).
 Proof.
-have := CatM i; rewrite -mulnA => /(congr1 (fun j => j %/ (i`! * (i.+1)`!))).
+have:= CatM i; rewrite -mulnA => /(congr1 (fun j => j %/ (i`! * (i.+1)`!))).
 by rewrite mulnK // muln_gt0 !fact_gt0.
 Qed.
 
 Theorem Cat i : C i = 'C(i.*2, i) %/ i.+1.
 Proof.
-case: (ltnP 0 i)=> [Hi|]; last by rewrite leqn0=> /eqP->; rewrite C0 bin0 divn1.
+case: (ltnP 0 i)=> [Hi|]; last first.
+  by rewrite leqn0 => /eqP ->; rewrite C0 bin0 divn1.
 rewrite (CatV i) factS [i.+1 * _]mulnC mulnA.
 by rewrite -{3}(addnK i i) addnn divnMA bin_factd // double_gt0.
 Qed.
@@ -185,12 +184,12 @@ rewrite rmorphX rmorphD /= comp_tfps1 comp_tfpsX //; first last.
   rewrite coef0_eq0E coef_trXn coeftB coef_tfps1.
   by rewrite coef_tfps_of_fun /= C0 subrr.
 rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
-apply tfpsP => i Hi.
+apply/tfpsP => i le_in1.
 rewrite coef_tfpsXM coef_mulfX coef_trXnt.
-by case: i Hi.
+by case: i le_in1.
 Qed.
 
-Theorem CatLagrange i : (i.+1 * (C i))%N = 'C(i.*2, i).
+Theorem CatM_Lagrange i : (i.+1 * (C i))%N = 'C(i.*2, i).
 Proof.
 case: i => [|i]; first by rewrite C0 mul1n bin0.
 apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
@@ -211,11 +210,17 @@ rewrite -bin_sub // -{2}addnn -addSnnS addnK.
 by rewrite mulrA -natrM mul_bin_left -addnn addnK natrM mulrC mulKr.
 Qed.
 
+Local Close Scope ring_scope.
+
+Theorem Cat_Lagrange i : C i = 'C(i.*2, i) %/ i.+1.
+Proof.
+by have:= congr1 (fun m => m %/ i.+1) (CatM_Lagrange i); rewrite mulnC mulnK.
+Qed.
+
 End LagrangeSolution.
 
 
-
-(** Extraction of the coefficient using Holonomic computation *)
+(** Extraction of the coefficient using Holonomic differential equation *)
 Section HolonomicSolution.
 
 Local Open Scope ring_scope.
@@ -276,7 +281,7 @@ rewrite mulnC -mulnDr => ->.
 by rewrite mulnC [n * 4]mulnC.
 Qed.
 
-Theorem Cat_from_rec n : n.+1 * C n = 'C(n.*2, n).
+Theorem CatM_from_rec n : n.+1 * C n = 'C(n.*2, n).
 Proof.
 elim: n => [| n IHn] /=; first by rewrite C0 bin0.
 rewrite Catalan_rec doubleS !binS.
@@ -289,6 +294,11 @@ have:= mul_bin_down n.*2 n.
 rewrite mul_bin_diag -{2}addnn addnK -{}IHn mulnA [n * n.+1]mulnC.
 rewrite -mulnA ![n.+1 * _]mulnC => /(congr1 (fun m => m %/ n.+1)).
 by rewrite !mulnK.
+Qed.
+
+Theorem Cat_from_rec i : C i = 'C(i.*2, i) %/ i.+1.
+Proof.
+by have:= congr1 (fun m => m %/ i.+1) (CatM_from_rec i); rewrite mulnC mulnK.
 Qed.
 
 End HolonomicSolution.
