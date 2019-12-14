@@ -3274,3 +3274,45 @@ End TFPSField.
 End TFPSField.
 
 Export TFPSField.
+
+
+
+
+
+
+From mathcomp Require Import ssrint rat ssrnum.
+
+Section Essai.
+
+Variables R : unitRingType.
+
+Fact nat_unit_ratr_is_rmorphism :
+  (forall i, i.+1%:R \is a @GRing.unit R) <-> rmorphism (@ratr R).
+Proof.
+split=> [nat_unit | ratr_morph].
+- have injZtoQ: @injective rat int intr by apply: intr_inj.
+  have den_unit x : ((denq x)%:~R : R) \is a GRing.unit.
+    by case: (ratP x) => num den _ {num}; exact: nat_unit.
+  do 2?split; rewrite /ratr ?divr1 // => x y; last first.
+    rewrite -commr_int -!mulrA -[(denq x)%:~R^-1 * _](commrV (commr_int _ _)).
+    apply: canLR (mulKr (den_unit _)) _; rewrite !mulrA.
+    do 2!apply: canRL (mulrK (den_unit _)) _; rewrite -!rmorphM; congr _%:~R.
+    apply: injZtoQ; rewrite !rmorphM [x * y]lock /= !numqE -lock.
+    by rewrite -!mulrA mulrA mulrCA -!mulrA (mulrCA y).
+  apply: (canLR (mulrK (den_unit _))); apply: (mulIr (den_unit x)).
+  rewrite -!mulrA [(denq (x - y))%:~R * _]commr_int !mulrA.
+  rewrite mulrBl divrK ?den_unit //.
+  rewrite -[X in _ = (_ - X) * _]mulrA -[(denq y)%:~R^-1 * _](commrV (commr_int _ _)).
+  rewrite [X in _ = (_ - X) * _]mulrA -!rmorphM.
+  apply: (mulIr (den_unit y)).
+  rewrite /= -!mulrA [(denq (x - y))%:~R * _]commr_int mulrA.
+  rewrite mulrBl divrK ?den_unit //.
+  rewrite -!(rmorphM, rmorphB); congr _%:~R; apply: injZtoQ.
+  rewrite !(rmorphM, rmorphB) [_ - _]lock /= -lock !numqE.
+  by rewrite (mulrAC y) -!mulrBl -mulrA mulrAC !mulrA.
+- move=> i.
+  rewrite -ratr_nat; apply: (rmorph_unit (RMorphism ratr_morph)).
+  by rewrite unitfE Num.Theory.pnatr_eq0.
+Qed.
+
+End Essai.

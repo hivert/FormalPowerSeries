@@ -191,7 +191,7 @@ rewrite !inordK truncexp // ?expN1lt //.
 rewrite modB; try exact: expgt0; try exact: expdiv.
 by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
 Qed.
-Definition ZpN1 : {invlim padic_invsys p_pr} := InvLim padicN1_thread.
+Definition ZpN1 : {invlim padic_invsys p_pr} := MkInvLim padicN1_thread.
 
 Lemma ZpN1E : ZpN1 = -1.
 Proof.

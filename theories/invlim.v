@@ -154,8 +154,10 @@ Record invsys : Type := InvSys {
 Definition invsys_obj of invsys := Ob.
 Definition invsys_mor of invsys := bonding.
 
+(* Is section ? *)
 Definition isthread of invsys := fun thr : forall i, Ob i =>
   forall i j, forall (Hij : i <= j), bonding Hij (thr j) = thr i.
+(* Is cocone *)
 Definition iscompat of invsys := fun T (mors : forall i, T -> Ob i) =>
   forall i j, forall (Hij : i <= j), bonding Hij \o mors j =1 mors i.
 
@@ -384,7 +386,9 @@ Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP addrA. Qed
 Next Obligation. by move=> a b; apply invlimE=> i; rewrite !invLimP addrC. Qed.
 Next Obligation. by move=> b; apply invlimE=> i; rewrite !invLimP add0r. Qed.
 Next Obligation. by move=> b; apply invlimE=> i; rewrite !invLimP addNr. Qed.
-Canonical invlim_zmodType :=
+(* Not global canonical but accessible by [zmodMixin of ... by <-] *)
+(* A mettre dans un module pour avoir le canonical local *)
+Local Canonical invlim_zmodType :=
   Eval hnf in ZmodType Tinv invlim_zmodMixin.
 
 Fact ilproj_is_additive i : additive 'pi_i.
@@ -725,7 +729,7 @@ Variable Sys : invsys bonding.
 
 Record invlim := InvLim {
                      invlimthr :> forall i, Ob i;
-                     _ : isthread Sys invlimthr;
+                     _ : `[<isthread Sys invlimthr>];
                    }.
 
 Definition invlim_of of phantom (invsys bonding) Sys := invlim.
@@ -733,10 +737,17 @@ Identity Coercion type_invlim_of : invlim_of >-> invlim.
 
 Local Notation "{ 'invlim' S }" := (invlim_of (Phantom _ S)).
 
+
 Canonical invlim_eqType := EqType invlim gen_eqMixin.
 Canonical invlimp_eqType := EqType {invlim Sys} gen_eqMixin.
 Canonical invlim_choiceType := ChoiceType invlim gen_choiceMixin.
 Canonical invlimp_choiceType := ChoiceType {invlim Sys} gen_choiceMixin.
+Canonical invlimp_subType := [subType for invlimthr].
+
+Definition MkInvLim thr (thrP : isthread Sys thr) := InvLim (asboolT thrP).
+Lemma MkInvLimE thr (thrP : isthread Sys thr) :
+  val (MkInvLim thrP) = thr.
+Proof. by []. Qed.
 
 End Implem.
 Notation "{ 'invlim' S }" := (invlim_of (Phantom _ S)).
@@ -755,18 +766,18 @@ Definition ilproj i : {invlim Sys} -> Ob i := (invlimthr (Sys := Sys))^~ i.
 
 Lemma invlimprojE x :
   forall i j, forall (Hij : i <= j), bonding Hij (ilproj j x) = ilproj i x.
-Proof. by case: x. Qed.
+Proof. by case: x => [thr /asboolP] /=. Qed.
 
 Lemma invlimprojP : iscompat Sys ilproj.
-Proof. by move=> i j Hij [thr Hthr]; apply Hthr. Qed.
+Proof. by move=> i j Hij [thr /asboolP] /=. Qed.
 
 Local Notation "''pi_' i" := (ilproj i).
 
 Lemma invlimP x y : (forall i, 'pi_i x = 'pi_i y) -> x = y.
 Proof.
-case: x y => [fx Hx] [fy Hy] /= H.
-have {}H : fx = fy by apply functional_extensionality_dep.
-by subst fy; have -> : Hx = Hy by apply Prop_irrelevance.
+move=> eqxy; apply val_inj => /=.
+case: x y eqxy => [fx _] [fy _] /=.
+exact: functional_extensionality_dep.
 Qed.
 
 (** Building the universal induced map *)
@@ -780,7 +791,7 @@ Fact ilind_spec :
 Proof.
 move: Hcomp; rewrite /iscompat => Hf; pose fil t i := f i t.
 have Hfil t : isthread Sys (fil t) by rewrite /fil=> i j Hij; apply Hf.
-by exists (fun t => InvLim (Hfil t)).
+by exists (fun t => MkInvLim (Hfil t)).
 Qed.
 Definition ilind := let: exist f _ := ilind_spec in f.
 Lemma ilindP i t : 'pi_i (ilind t) = f i t.
@@ -1115,7 +1126,7 @@ Qed.
 
 Definition HugeOp F : {invlim Sys} :=
   if pselect (is_ilopable F) is left sm
-  then InvLim (ilopable_istrhead sm)
+  then MkInvLim (ilopable_istrhead sm)
   else idx.
 
 Local Notation "\Op_( c ) F" := (HugeOp (fun c => F)) (at level 0).

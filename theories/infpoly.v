@@ -163,6 +163,6 @@ case (ltnP i m) => [iltm|mlei]; case (ltnP i n) => [iltn|nlei].
 - by rewrite /cnvarbond/cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
 - by rewrite raddf0.
 Qed.
-Definition infpolyX i : {invlim infpoly_sys _} := InvLim (infpolyXP i).
+Definition infpolyX i : {invlim infpoly_sys _} := MkInvLim (infpolyXP i).
 
 End InfPolyTheory.

@@ -73,7 +73,9 @@ Canonical bond_lrmorphism := [lrmorphism of (fps_bond H)].
 
 End Canonical.
 
-Program Definition fps_invsys := InvSys (bonding := fun i j (H : (i <= j)%O) => [lrmorphism of fps_bond H]) 0%N _ _.
+Program Definition fps_invsys :=
+  InvSys (bonding := fun i j (H : (i <= j)%O) => [lrmorphism of fps_bond H])
+         0%N _ _.
 Next Obligation. exact: trXnt_id. Qed.
 Next Obligation. by move=> f; apply: trXnt_trXnt. Qed.
 
@@ -257,7 +259,7 @@ move=> i j le_ij; rewrite /fps_bond /trXnt.
 apply/tfpsP => k le_ki.
 by rewrite coef_trXn !coef_tfps_of_fun le_ki (leq_trans le_ki le_ij).
 Qed.
-Definition series_from_fun f : {series R} := InvLim (isthread_from_fun f).
+Definition series_from_fun f : {series R} := MkInvLim (isthread_from_fun f).
 
 Local Notation "\series E .X^ i" := (series_from_fun (fun i : nat => E)).
 
