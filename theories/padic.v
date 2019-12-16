@@ -72,7 +72,7 @@ End DivCompl.
 Definition padic_bond (p : nat) of (prime p) :=
   fun (i j : nat) of (i <= j)%O => @Zmn (p ^ i.+1)%N (p ^ j.+1)%N.
 
-Section Padics.
+Section PadicInvSys.
 
 Variable (p : nat).
 Local Notation Z j := 'Z_(p ^ j.+1).
@@ -91,7 +91,7 @@ Proof. by rewrite Zp_cast // expgt1. Qed.
 
 Lemma expN1lt n : (p ^ n.+1 - 1 < p ^ n.+1)%N.
 Proof.
-have := expgt1 n; case: (p ^ _)%N => // k _.
+have:= expgt1 n; case: (p ^ _)%N => // k _.
 by rewrite subSS subn0 ltnS.
 Qed.
 
@@ -113,14 +113,29 @@ Proof. exact: Zmn_is_rmorphism (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
 Canonical bond_additive := Additive bond_is_rmorphism.
 Canonical bond_rmorphism := RMorphism bond_is_rmorphism.
 
-End Padics.
+End PadicInvSys.
 
-Definition padic_int (p : nat) (p_pr : prime p) := {invlim padic_invsys p_pr}.
 
-Section Tests.
+Section Defs.
+
 Variables (p : nat) (p_pr : prime p).
-Canonical padic_unit_ring := Eval hnf in [unitRingType of padic_int p_pr].
-End Tests.
+
+Definition padic_int := {invlim padic_invsys p_pr}.
+Canonical padic_int_eqType := EqType padic_int gen_eqMixin.
+Canonical padic_int_choiceType := ChoiceType padic_int gen_choiceMixin.
+Canonical padic_int_invlimType :=
+  InvLimType padic_int (invlim_Mixin (padic_invsys p_pr)).
+Canonical padic_int_zmodType :=
+  Eval hnf in ZmodType padic_int [zmodMixin of padic_int by <-].
+Canonical padic_int_ringType :=
+  Eval hnf in RingType padic_int [ringMixin of padic_int by <-].
+Canonical padic_int_comRingType :=
+  Eval hnf in ComRingType padic_int [comRingMixin of padic_int by <-].
+Canonical padic_int_unitRingType :=
+  Eval hnf in UnitRingType padic_int [unitRingMixin of padic_int by <-].
+Canonical padic_intp_comUnitRingType := [comUnitRingType of padic_int].
+
+End Defs.
 
 
 Section PadicTheory.
@@ -130,7 +145,7 @@ Implicit Type x y : padic_int p_pr.
 
 Lemma padic_unit x : (x \is a GRing.unit) = ('pi_0%N x != 0).
 Proof.
-rewrite unfold_in /= /ilunit; apply/forallbP/idP => [/(_ 0%N) | /= Hx i].
+apply/forallbP/idP => [/(_ 0%N) | /= Hx i].
 - by apply/memPn: ('pi_0%N x); rewrite unitr0.
 - have:= leq0n i; rewrite -leEnat => Hi.
   move: (ilprojE x Hi) Hx; rewrite {Hi} /padic_bond /Zmn => <-.
@@ -191,7 +206,7 @@ rewrite !inordK truncexp // ?expN1lt //.
 rewrite modB; try exact: expgt0; try exact: expdiv.
 by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
 Qed.
-Definition ZpN1 : {invlim padic_invsys p_pr} := MkInvLim padicN1_thread.
+Definition ZpN1 : padic_int p_pr := MkInvLim padicN1_thread.
 
 Lemma ZpN1E : ZpN1 = -1.
 Proof.

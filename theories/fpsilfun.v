@@ -54,34 +54,48 @@ Section Defs.
 
 Variable R : ringType.
 
-Definition fps_bond := fun (i j : nat) of (i <= j)%O => @trXnt R j i.
+
+Fact fps_bond_key : unit. Proof. by []. Qed.
+Definition fps_bond :=
+  locked_with fps_bond_key (fun (i j : nat) of (i <= j)%O => @trXnt R j i).
+Canonical fps_bond_unlockable := [unlockable fun fps_bond].
 
 Section Canonical.
 
 Variables (i j : nat) (le_ij : (i <= j)%O).
+
+Lemma fps_bondE f : fps_bond le_ij f = trXnt i f.
+Proof. by rewrite unlock. Qed.
+
 Lemma bond_is_rmorphism : rmorphism (fps_bond le_ij).
 Proof.
-split; first exact: trXnt_is_linear.
+rewrite unlock; split; first exact: trXnt_is_linear.
 rewrite /fps_bond; apply trXnt_is_multiplicative.
 by rewrite -leEnat.
 Qed.
-Canonical bond_additive := Additive bond_is_rmorphism.
-Canonical bond_rmorphism := RMorphism bond_is_rmorphism.
+Canonical bond_additive : {additive {tfps R j} -> {tfps R i}} :=
+  Additive bond_is_rmorphism.
+Canonical bond_rmorphism : {rmorphism {tfps R j} -> {tfps R i}} :=
+  RMorphism bond_is_rmorphism.
 
 Lemma bond_is_linear : linear (fps_bond le_ij).
-Proof. exact: trXnt_is_linear. Qed.
-Canonical bond_linear := AddLinear bond_is_linear.
-Canonical bond_lrmorphism := [lrmorphism of (fps_bond le_ij)].
+Proof. by rewrite unlock; exact: trXnt_is_linear. Qed.
+Canonical bond_linear : {linear {tfps R j} -> {tfps R i}} :=
+  AddLinear bond_is_linear.
+Canonical bond_lrmorphism : {lrmorphism {tfps R j} -> {tfps R i}} :=
+  [lrmorphism of (fps_bond le_ij)].
 
 End Canonical.
 
+
 Program Definition fps_invsys :=
   InvSys (bonding :=
-            fun i j (le_ij : (i <= j)%O) => [lrmorphism of fps_bond le_ij])
+            (fun (i j : nat) (le_ij : (i <= j)%O) =>
+               [lrmorphism of (fps_bond le_ij)]))
          0%N _ _.
-Next Obligation. exact: trXnt_id. Qed.
+Next Obligation. by rewrite unlock; exact: trXnt_id. Qed.
 Next Obligation.
-by move=> f /=; rewrite /fps_bond; apply: trXnt_trXnt; rewrite -leEnat.
+by move=> f /=; rewrite unlock; apply: trXnt_trXnt; rewrite -leEnat.
 Qed.
 
 
@@ -116,7 +130,7 @@ Definition fpsproj n (f : {series R}) : {tfps R n} := [tfps i <= n => f``_i].
 
 Lemma fpsprojP : iscompat fps_invsys fpsproj.
 Proof.
-rewrite /fps_bond /= => i j; rewrite leEnat => le_ij f /=.
+rewrite /iscompat /= unlock /= => i j; rewrite leEnat => le_ij f /=.
 apply tfpsP=> k le_ki.
 by rewrite coef_trXnt le_ki !coef_tfps_of_fun le_ki (leq_trans le_ki le_ij).
 Qed.
@@ -143,7 +157,7 @@ Proof.
 rewrite /fpsind /=; apply tfpsP => j le_ji /=.
 rewrite coef_tfps_of_fun le_ji coefs_FPSeries.
 rewrite -leEnat in le_ji; rewrite -(Hcomp le_ji) /=.
-by rewrite /fps_bond coef_trXnt leqnn.
+by rewrite unlock coef_trXnt leqnn.
 Qed.
 
 Lemma fpsindE (un : T -> {series R}) :
@@ -155,9 +169,9 @@ Qed.
 
 End UniversalProperty.
 
+(** Putting fps_bond below break inference for further canonical structures *)
 Program Definition fps_invlim_Mixin :=
-  @InvLimMixin _ nat_dirType _ fps_bond fps_invsys {series R}
-               fpsproj fpsind _ _ _.
+  @InvLimMixin _ _ _ _ (*fps_bond*) fps_invsys {series R} fpsproj fpsind _ _ _.
 Next Obligation. by move=> i j le_ij x; apply: fpsprojP. Qed.
 Next Obligation. by move=> x /=; rewrite fpsindP. Qed.
 Next Obligation. by move=> x; apply: (fpsindE Hcomp). Qed.
@@ -165,13 +179,13 @@ Canonical fps_invlimType := InvLimType {series R} fps_invlim_Mixin.
 
 Canonical fps_zmodType :=
   Eval hnf in ZmodType {series R} [zmodMixin of {series R} by <-].
-
-(*
-Definition fps_ringMixin := [ringMixin of {series R} by <-].
-
 Canonical fps_ringType :=
   Eval hnf in RingType {series R} [ringMixin of {series R} by <-].
-*)
+Canonical fps_lmodType :=
+  Eval hnf in LmodType R {series R} [lmodMixin of {series R} by <-].
+Canonical fps_lalgType :=
+  Eval hnf in LalgType R {series R} [lalgMixin of {series R} by <-].
+
 End Defs.
 
 (* We need to break off the section here to let the argument scope *)
@@ -187,18 +201,7 @@ Arguments coef_series {R} s%R i%N.
 Notation "{ 'series' T }" := (fpseries_of (Phant T)).
 Notation coefs i := (coefps_head tt i).
 Notation "s ``_ i" := (coef_series s i).
-
-
-Section Debug.
-
-Variable R : ringType.
-
-Check [ringMixin of {series R} by <-].
-
-
-Check (InvLimitRing.invlim_ringMixin (Phant {series R})).
-
-Definition fps_ringMixin (R : ringType) := [ringMixin of {series R} by <-].
+Notation "\series E .X^ i" := (FPSeries (fun i : nat => E) : {series _}).
 
 
 Section CoeffSeries.
@@ -213,7 +216,7 @@ Proof. by rewrite coef_tfps_of_fun leqnn. Qed.
 Lemma coefs_pi_leqE i j : (i <= j)%N -> forall s, s``_i = ('pi_j s)`_i.
 Proof.
 rewrite -leEnat => H s.
-by rewrite coefs_piE -(ilprojE s H) /fps_bond coef_trXn leqnn.
+by rewrite coefs_piE -(ilprojE s H) /= fps_bondE coef_trXnt leqnn.
 Qed.
 
 Lemma coefsE i s : coefs i s = s``_i.
@@ -227,8 +230,7 @@ Proof. by rewrite coefs_piE rmorph1 coef1. Qed.
 
 Lemma seriesP s t : (forall n, s``_n = t``_n) <-> (s = t).
 Proof.
-split => [Hco|-> //]; apply/invlimP => /= i.
-apply/tfpsP => j le_ji.
+split => [Hco|-> //]; apply/fpsprojE => /= i; apply/tfpsP => j le_ji.
 by rewrite -!(coefs_pi_leqE le_ji) Hco.
 Qed.
 
@@ -254,7 +256,7 @@ Proof. exact: (raddf_sum (coefs_additive k)). Qed.
 
 
 Lemma isthreadC c : isthread (fps_invsys R) (fun i => c%:S%tfps).
-Proof. by move=> i j Hij; rewrite /fps_bond /= trXntC. Qed.
+Proof. by move=> i j Hij; rewrite /= fps_bondE /= trXntC. Qed.
 (* Definition seriesC c : {series R} := InvLim (isthreadC c). *)
 Definition seriesC c : {series R} := ilthr (isthreadC c).
 Local Notation "c %:S" := (seriesC c).
@@ -267,7 +269,7 @@ Proof. by apply/seriesP => i; rewrite coefs0 coefsC; case eqP. Qed.
 Lemma series1E : 1%:S = 1.
 Proof. by apply/seriesP => i; rewrite coefs1 coefsC; case eqP. Qed.
 
-Lemma seriesC_eq0 (c : R) : (c%:S == 0) = (c == 0).
+Lemma seriesC_eq0 (c : R) : (c%:S == 0 :> {series R}) = (c == 0).
 Proof.
 apply/eqP/eqP => [/(congr1 (coefs 0%N))|->]; last exact: series0E.
 by rewrite /= coefs0 coefsC.
@@ -294,7 +296,7 @@ Proof. exact: raddf_sum. Qed.
 
 Lemma isthread_poly (p : {poly R}) :
   isthread (fps_invsys R) (fun n => trXn n p).
-Proof. by move=> i j Hij; rewrite /fps_bond /trXnt /= trXn_trXn. Qed.
+Proof. by move=> i j Hij; rewrite /= fps_bondE /trXnt /= trXn_trXn. Qed.
 Definition series_poly (p : {poly R}) : {series R} := ilthr (isthread_poly p).
 
 Lemma coefs_series_poly p i : (series_poly p)``_i = p`_i.
@@ -339,29 +341,13 @@ Proof. exact: raddf_sum. Qed.
 
 Lemma poly_series_eqP s t :
   (forall n, 'pi_n s = 'pi_n t) <-> (s = t).
-Proof. by split => [|-> //]; apply: invlimP. Qed.
+Proof. by split => [|-> //]; apply: invlimE. Qed.
 
 Lemma poly_seriesC n c : tfps ('pi_n c%:S) = c%:P :> {poly R}.
 Proof. by apply/polyP => i; rewrite invLimP coef_tfpsC coefC. Qed.
 
 Lemma series_polyC c : series_poly c%:P = c%:S.
 Proof. by apply/seriesP => n; rewrite coefs_series_poly coefC coefsC. Qed.
-
-
-Lemma isthread_from_fun (f : nat -> R) :
-  isthread (fps_invsys R) (fun n => [tfps i <= n => f i ]%tfps).
-Proof.
-Proof.
-move=> i j le_ij; rewrite /fps_bond /trXnt.
-apply/tfpsP => k le_ki.
-by rewrite coef_trXn !coef_tfps_of_fun le_ki (leq_trans le_ki le_ij).
-Qed.
-Definition series_from_fun f : {series R} := MkInvLim (isthread_from_fun f).
-
-Local Notation "\series E .X^ i" := (series_from_fun (fun i : nat => E)).
-
-Lemma coefs_series E j : (\series E i .X^i)``_j = E j.
-Proof. by rewrite /series_from_fun unlock /= coef_poly ltnSn. Qed.
 
 
 Fact coefsM s t i : (s * t)``_i = \sum_(j < i.+1) s``_j * t``_(i - j).
@@ -463,5 +449,23 @@ Coercion series_poly : poly_of >-> fpseries_of.
 Arguments seriesC {R}.
 Arguments series_poly {R}.
 Notation "c %:S" := (seriesC c).
-Notation "\series E .X^ i" := (series_from_fun _ (fun i : nat => E)).
+
+
+
+Section SeriesComRing.
+
+Variable R : comRingType.
+
+Canonical fps_comRingType :=
+  Eval hnf in ComRingType {series R} [comRingMixin of {series R} by <-].
+Canonical fps_algType :=
+  Eval hnf in AlgType R {series R} [algMixin of {series R} by <-].
+
+Lemma test1 i : 'pi_i (1 : {series R}) = 1.
+Proof. exact: rmorph1. Qed.
+
+Lemma test2 i c (x : {series R}) : 'pi_i (c *: x) = c *: ('pi_i x).
+Proof. by rewrite linearZ. Qed.
+
+End SeriesComRing.
 

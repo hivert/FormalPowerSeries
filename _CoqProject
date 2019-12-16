@@ -9,6 +9,7 @@ theories/natbar.v
 theories/infpoly.v
 theories/padic.v
 theories/fpsil.v
+theories/fpsilfun.v
 theories/auxresults.v
 theories/truncps.v
 theories/catalan.v
