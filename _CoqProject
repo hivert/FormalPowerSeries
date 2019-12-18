@@ -3,14 +3,14 @@
 -arg -notation-overridden
 -arg -w
 -arg -ambiguous-paths
-theories/fps.v
+theories/fps_scratch.v
 theories/invlim.v
 theories/natbar.v
 theories/infpoly.v
 theories/padic.v
 theories/fpsil.v
-theories/fpsilfun.v
+theories/fps.v
 theories/auxresults.v
-theories/truncps.v
+theories/tfps.v
 theories/catalan.v
 

@@ -30,7 +30,7 @@ Import Order.Def.
 Import Order.Syntax.
 Import Order.Theory.
 
-Require Import auxresults truncps invlim.
+Require Import auxresults tfps invlim.
 
 Reserved Notation "{ 'series' R }"
          (at level 0, R at level 2, format "{ 'series'  R }").

@@ -19,7 +19,7 @@ From mathcomp Require Import perm ssralg poly polydiv mxpoly binomial bigop.
 From mathcomp Require Import finalg zmodp matrix mxalgebra polyXY ring_quotient.
 From mathcomp Require Import rat ssrnum.
 
-Require Import truncps.
+Require Import tfps.
 
 
 Set Implicit Arguments.
