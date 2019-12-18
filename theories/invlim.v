@@ -427,7 +427,6 @@ Canonical ilproj_additive := InvLimitZMod.ilproj_additive.
 Canonical ilind_additive := InvLimitZMod.ilind_additive.
 
 
-
 Module InvLimitRing.
 Section InvLimitRing.
 
@@ -564,7 +563,7 @@ move=> x /forallbP Hinv; apply invlimE=> i.
 rewrite /ilinv; case: pselect => /= [H |/(_ Hinv)//].
 by rewrite !invLimP mulrV // Hinv.
 Qed.
-Fact ilunitP x y : y * x = 1 /\ x * y = 1 -> ilunit x.
+Fact ilunit_impl x y : y * x = 1 /\ x * y = 1 -> ilunit x.
 Proof.
 move=> [Hxy Hyx]; apply/forallbP => i; apply/unitrP.
 by exists ('pi_i y); rewrite -!rmorphM Hxy Hyx /= rmorph1.
@@ -575,7 +574,13 @@ move=> x; rewrite inE /= => /forallbP Hx.
 by rewrite /ilinv; case: pselect => /= [/= H|//]; have:= Hx H.
 Qed.
 Definition invlim_unitRingMixin of (phant Tinv) :=
-  Eval hnf in UnitRingMixin ilmulVr ilmulrV ilunitP ilinv0id.
+  Eval hnf in UnitRingMixin ilmulVr ilmulrV ilunit_impl ilinv0id.
+Local Canonical Tinv_unitRingType :=
+  Eval hnf in UnitRingType Tinv (invlim_unitRingMixin (Phant Tinv)).
+
+Lemma ilunitP x :
+  reflect (forall i, 'pi_i x \is a GRing.unit) (x \is a GRing.unit).
+Proof. exact: forallbP. Qed.
 
 End InvLimitUnitRing.
 End InvLimitUnitRing.
@@ -584,6 +589,7 @@ Notation "[ 'unitRingMixin' 'of' U 'by' <- ]" :=
   (InvLimitUnitRing.invlim_unitRingMixin (Phant U))
   (at level 0, format "[ 'unitRingMixin'  'of'  U  'by'  <- ]") : form_scope.
 
+Definition ilunitP := InvLimitUnitRing.ilunitP.
 
 (** No more useful
 Section InvLimitComUnitRing.
@@ -594,7 +600,16 @@ Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
 
 Variable Tinv : invLimType Sys.
-Canonical invlim_comUnitRingType := Eval hnf in [comUnitRingType of Tinv].
+
+Local Canonical Tinv_zmodType :=
+  Eval hnf in ZmodType Tinv [zmodMixin of Tinv by <-].
+Local Canonical Tinv_ringType :=
+  Eval hnf in RingType Tinv [ringMixin of Tinv by <-].
+Local Canonical Tinv_unitRingType :=
+  Eval hnf in UnitRingType Tinv [unitRingMixin of Tinv by <-].
+Local Canonical Tinv_comRingType :=
+  Eval hnf in ComRingType Tinv [comRingMixin of Tinv by <-].
+Local Canonical invlim_comUnitRingType := Eval hnf in [comUnitRingType of Tinv].
 
 End InvLimitComUnitRing.
 *)
@@ -619,7 +634,7 @@ Local Canonical Tinv_unitRingType :=
   Eval hnf in UnitRingType Tinv [unitRingMixin of Tinv by <-].
 Local Canonical Tinv_comRingType :=
   Eval hnf in ComRingType Tinv [comRingMixin of Tinv by <-].
-Local Canonical invlim_comUnitRingType := Eval hnf in [comUnitRingType of Tinv].
+Local Canonical Tinv_comUnitRingType := Eval hnf in [comUnitRingType of Tinv].
 
 Fact ilmul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
 Proof.
