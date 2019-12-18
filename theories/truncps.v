@@ -1146,12 +1146,15 @@ by rewrite map_polyE (leq_trans (size_Poly _)) // size_map size_tfps.
 Qed.
 Definition map_tfps g := Tfps_of (map_tfps_subproof g).
 
+Lemma coef_map_tfps i g : (map_tfps g)`_i = F (g`_i).
+Proof. by rewrite coef_map. Qed.
+
 Lemma map_tfpsM g h : map_tfps (g * h) = (map_tfps g) * (map_tfps h).
 Proof.
 apply/tfpsP => i Hi.
-rewrite coef_map /= !coefM_tfps Hi rmorph_sum.
+rewrite coef_map_tfps !coefM_tfps Hi rmorph_sum.
 apply eq_bigr => [] [j]; rewrite /= ltnS => le_ji _.
-by rewrite rmorphM !coef_map.
+by rewrite rmorphM !coef_map_tfps.
 Qed.
 
 Fact map_tfps_is_additive : additive map_tfps.
@@ -1321,11 +1324,11 @@ End Coefficient01.
 Arguments coef0_eq0 {R n}.
 Arguments coef0_eq1 {R n}.
 
-Lemma coef0_eq0_trXnt (R : ringType) (n m : nat) (f : {tfps (R) n}) :
+Lemma coef0_eq0_trXnt (R : ringType) (n m : nat) (f : {tfps R n}) :
   (trXnt m f \in coef0_eq0) = (f \in coef0_eq0).
 Proof. by rewrite !coef0_eq0E coef0_trXn. Qed.
 
-Lemma coef0_eq1_trXnt (R : ringType) (n m : nat) (f : {tfps (R) n}) :
+Lemma coef0_eq1_trXnt (R : ringType) (n m : nat) (f : {tfps R n}) :
   (trXnt m f \in coef0_eq1) = (f \in coef0_eq1).
 Proof. by rewrite !coef0_eq1E coef0_trXn. Qed.
 

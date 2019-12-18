@@ -372,6 +372,10 @@ by rewrite coefsM big_ord_recl big_ord0 addr0 /= subnn.
 Qed.
 Canonical coefs0_rmorphism := Eval hnf in AddRMorphism coefs0_multiplicative.
 
+Fact coefs0_fpsM s t : (s * t)``_0 = s``_0 * t``_0.
+Proof. exact: (rmorphM coefs0_rmorphism). Qed.
+Fact coefs0_fpsX s i : (s ^+ i)``_0 = s``_0 ^+ i.
+Proof. exact: (rmorphX coefs0_rmorphism). Qed.
 
 Fact fps_poly_is_rmorphism : rmorphism fps_poly.
 Proof.
@@ -805,3 +809,225 @@ Arguments valuatM {R}.
 Arguments sleadM {R}.
 
 
+Section MapFPS.
+
+Variables (K L : ringType) (n : nat) (F : {rmorphism K -> L}).
+
+Implicit Type g h : {fps K}.
+
+Definition map_fps g : {fps L} := FPSeries (F \o seriesfun g).
+
+Lemma coef_map_fps i g : (map_fps g)``_i = F (g``_i).
+Proof. by rewrite coefs_FPSeries unlock. Qed.
+
+Lemma proj_map_fps i g : 'pi_i (map_fps g) = map_tfps F ('pi_i g).
+Proof.
+apply/tfpsP => j le_ji.
+by rewrite -coefs_pi_leqE // coef_map_fps coef_map_tfps -coefs_pi_leqE.
+Qed.
+
+Lemma compat_proj_map :
+  iscompat (fps_invsys L)
+           (fun i => map_tfps F \o 'pi_i : {fps K} -> {tfps L i}).
+Proof. by move=> g i j le_ij /=; rewrite -!proj_map_fps /= ilprojE. Qed.
+
+Lemma map_fps_indE : map_fps = \ind compat_proj_map.
+Proof.
+by apply: funext => g; apply: ind_uniq => i {}g /=; apply: proj_map_fps.
+Qed.
+
+Fact map_fps_is_additive : additive map_fps.
+Proof. by rewrite map_fps_indE => f g; rewrite rmorphB. Qed.
+Canonical map_fps_additive :=
+  Eval hnf in Additive map_fps_is_additive.
+
+Lemma map_fpsZ (c : K) g : map_fps (c *: g) = (F c) *: (map_fps g).
+Proof.
+by apply/invlimE => i; rewrite !(linearZ, proj_map_fps) /= proj_map_fps.
+Qed.
+Canonical map_fps_linear :=
+  Eval hnf in AddLinear (map_fpsZ : scalable_for (F \; *:%R) map_fps).
+
+Fact map_fps_is_multiplicative : multiplicative map_fps.
+Proof.
+rewrite map_fps_indE.
+by split; [move=> f g; rewrite rmorphM | rewrite rmorph1].
+Qed.
+Canonical map_fps_rmorphism :=
+  Eval hnf in AddRMorphism map_fps_is_multiplicative.
+Canonical map_fps_lrmorphism :=
+  Eval hnf in [lrmorphism of map_fps].
+
+(* Tests *)
+Example test_map_tfps0 : map_fps 0 = 0.
+Proof. by rewrite linear0. Qed.
+
+Example test_map_tfpsD g h :
+  map_fps (g + h) = (map_fps g) + (map_fps h).
+Proof. by rewrite linearD. Qed.
+
+End MapFPS.
+
+Lemma map_fps_injective (K L : ringType) (F : {injmorphism K -> L}) :
+  injective (@map_fps _ _ F).
+Proof.
+move=> x y eqmap; apply/invlimE => i.
+by apply: (map_tfps_injective (F := F)); rewrite -!proj_map_fps eqmap.
+Qed.
+
+Lemma map_fps_inj (K : fieldType) (L : ringType) (F : {rmorphism K -> L}) :
+  injective (@map_fps _ _ F).
+Proof.
+move=> x y eqmap; apply/invlimE => i.
+by apply: (map_tfps_inj (F := F)); rewrite -!proj_map_fps eqmap.
+Qed.
+
+Lemma map_fps_idfun (K : fieldType) :
+  map_fps [rmorphism of (@idfun K)] =1 @idfun {fps K}.
+Proof.
+move=> x; apply/invlimE => i.
+by rewrite proj_map_fps map_tfps_idfun.
+Qed.
+
+
+
+Section Coefficient01.
+
+Variables (R : ringType).
+Implicit Types (f g : {fps R}).
+
+Definition coefs0_eq0 := fun f : {fps R} => f``_0 == 0.
+Definition coefs0_eq1 := fun f : {fps R} => f``_0 == 1.
+
+Lemma coefs0_eq0E f : (f \in coefs0_eq0) = (f``_0 == 0).
+Proof. by rewrite -topredE. Qed.
+
+Lemma coefs0_eq1E f : (f \in coefs0_eq1) = (f``_0 == 1).
+Proof. by rewrite -topredE. Qed.
+
+Fact coefs0_eq0_idealr : idealr_closed coefs0_eq0.
+Proof.
+split => [|| a p q ]; rewrite ?coefs0_eq0E ?coefs0 ?coefs1 ?eqxx ?oner_eq0 //.
+move=> /eqP p0_eq0 /eqP q0_eq0.
+by rewrite coefsD q0_eq0 addr0 coefs0_fpsM p0_eq0 mulr0.
+Qed.
+
+Fact coefs0_eq0_key : pred_key coefs0_eq0. Proof. by []. Qed.
+
+Canonical coefs0_eq0_keyed := Eval hnf in KeyedPred coefs0_eq0_key.
+Canonical coefs0_eq0_opprPred := Eval hnf in OpprPred coefs0_eq0_idealr.
+Canonical coefs0_eq0_addrPred := Eval hnf in AddrPred coefs0_eq0_idealr.
+Canonical coefs0_eq0_zmodPred := Eval hnf in ZmodPred coefs0_eq0_idealr.
+
+Definition coefs0_eq0_ntideal := idealr_closed_nontrivial coefs0_eq0_idealr.
+Canonical coefs0_eq0_ideal :=
+  Eval hnf in MkIdeal coefs0_eq0_zmodPred coefs0_eq0_ntideal.
+
+Lemma coefs0_eq0Z f c : f \in coefs0_eq0 -> c *: f \in coefs0_eq0.
+Proof. by move=> hf; rewrite -mulr_algl idealMr. Qed.
+
+Lemma coefs0_eq0X f i : f \in coefs0_eq0 -> f ^+ i.+1 \in coefs0_eq0.
+Proof. by move=> hf; rewrite exprSr idealMr. Qed.
+
+Lemma coefs0_eq10 f : (f \in coefs0_eq1) = ((1 - f) \in coefs0_eq0).
+Proof. by rewrite ?coefs0_eq0E ?coefs0_eq1E coefsB coefs1 subr_eq0 eq_sym. Qed.
+
+Lemma coefs0_eq01 f : (f \in coefs0_eq0) = ((1 + f) \in coefs0_eq1).
+Proof. by rewrite coefs0_eq10 -[RHS]rpredN !opprD !opprK addKr. Qed.
+
+Lemma coefs0_eq1_add01 f g :
+  f \in coefs0_eq0 -> g \in coefs0_eq1 -> f + g \in coefs0_eq1.
+Proof.
+rewrite coefs0_eq0E !coefs0_eq1E coefsD => /eqP -> /eqP ->.
+by rewrite add0r.
+Qed.
+
+Lemma fpsX_in_coefs0_eq0 : ''X \in coefs0_eq0.
+Proof. by rewrite coefs0_eq0E coef_fpsX. Qed.
+Lemma fpscX_in_coefs0_eq0 c : c *: ''X \in coefs0_eq0.
+Proof. exact/coefs0_eq0Z/fpsX_in_coefs0_eq0. Qed.
+
+(* tests *)
+Example zero_in_coefs0_eq0 : 0 \in coefs0_eq0.
+Proof. by rewrite rpred0. Qed.
+
+Example coefs0_eq0D f g :
+    f \in coefs0_eq0 -> g \in coefs0_eq0 -> f + g \in coefs0_eq0.
+Proof. by move=> hf hg; rewrite rpredD. Qed.
+
+Example coefs0_eq0N f : f \in coefs0_eq0 -> (-f) \in coefs0_eq0.
+Proof. by move=> hf; rewrite rpredN. Qed.
+
+
+Fact mulr_closed_coefs0_eq1 : mulr_closed coefs0_eq1.
+Proof.
+split=> [|x y]; rewrite !coefs0_eq1E ?coefs1 //.
+by rewrite coefs0_fpsM; move/eqP ->; move/eqP ->; rewrite mul1r.
+Qed.
+Fact coefs0_eq1_key : pred_key coefs0_eq1. Proof. by []. Qed.
+Canonical coefs0_eq1_keyed := Eval hnf in KeyedPred coefs0_eq1_key.
+Canonical coefs0_eq1_MulrPred := Eval hnf in MulrPred mulr_closed_coefs0_eq1.
+
+(* Tests *)
+Example one_in_coefs0_eq1 : 1 \in coefs0_eq1.
+Proof. by rewrite rpred1. Qed.
+
+Example coefs0_eq1M f g :
+  f \in coefs0_eq1 -> g \in coefs0_eq1 -> f * g \in coefs0_eq1.
+Proof. by move=> hf hg; rewrite rpredM. Qed.
+
+End Coefficient01.
+Arguments coefs0_eq0 {R}.
+Arguments coefs0_eq1 {R}.
+
+Lemma coefs0_eq0_trXnt (R : ringType) (i : nat) (f : {fps R}) :
+  ('pi_i f \in coef0_eq0) = (f \in coefs0_eq0).
+Proof. by rewrite coefs0_eq0E coef0_eq0E -coefs_pi_leqE. Qed.
+
+Lemma coefs0_eq1_trXnt (R : ringType) (i : nat) (f : {fps R}) :
+  ('pi_i f \in coef0_eq1) = (f \in coefs0_eq1).
+Proof. by rewrite !coefs0_eq1E coef0_eq1E -coefs_pi_leqE. Qed.
+
+
+Section Coefficient01Unit.
+
+Variables (R : unitRingType).
+Implicit Types (f g : {fps R}).
+
+Fact invr_closed_coefs0_eq1 : invr_closed (@coefs0_eq1 R).
+Proof.
+move=> f; rewrite !coefs0_eq1E coef0_fpsV; move/eqP ->.
+by rewrite invr1.
+Qed.
+Canonical coefs0_eq1_DivrPred := Eval hnf in DivrPred invr_closed_coefs0_eq1.
+
+Lemma coefs0_eq1V f : f \in coefs0_eq1 -> f^-1 \in coefs0_eq1.
+Proof. by move=> hf; rewrite rpredVr. Qed.
+
+Lemma coefs0_eq1_div f g :
+  f \in coefs0_eq1 -> g \in coefs0_eq1 -> f / g \in coefs0_eq1.
+Proof. by move=> hf hg; rewrite rpred_div. Qed.
+
+Lemma coefs0_eq1_unit f : f \in coefs0_eq1 -> f \is a GRing.unit.
+Proof. by rewrite !coefs0_eq1E unit_fpsE => /eqP ->; apply unitr1. Qed.
+
+End Coefficient01Unit.
+
+
+Section Coefficient01IDomain.
+
+Variables (R : idomainType).
+Implicit Types (f g : {fps R}).
+
+Fact coefs0_eq0_prime : prime_idealr_closed (@coefs0_eq0 R).
+Proof.
+by move => x y; rewrite -!topredE /= /coefs0_eq0 coefs0_fpsM mulf_eq0.
+Qed.
+Canonical coefs0_eq0_pideal :=
+  Eval hnf in MkPrimeIdeal (coefs0_eq0_ideal R) coefs0_eq0_prime.
+
+Example coefs0_eq0_prime_test f g :
+  f * g \in coefs0_eq0 -> (f \in coefs0_eq0) || (g \in coefs0_eq0).
+Proof. by rewrite prime_idealrM. Qed.
+
+End Coefficient01IDomain.
