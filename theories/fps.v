@@ -14,11 +14,10 @@
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
 From mathcomp Require Import all_ssreflect all_algebra.
-From SsrMultinomials Require Import ssrcomplements freeg mpoly.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
-Require Import natbar invlim.
+Require Import auxresults natbar tfps invlim.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -28,7 +27,6 @@ Import Order.Def.
 Import Order.Syntax.
 Import Order.Theory.
 
-Require Import auxresults tfps invlim.
 
 Reserved Notation "{ 'fps' R }"
          (at level 0, R at level 2, format "{ 'fps'  R }").

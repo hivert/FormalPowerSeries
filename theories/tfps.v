@@ -13,12 +13,8 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
-From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
-From mathcomp Require Import fintype div tuple finfun bigop finset fingroup.
-From mathcomp Require Import perm ssralg poly polydiv mxpoly binomial bigop.
-From mathcomp Require Import finalg zmodp matrix mxalgebra polyXY ring_quotient.
-From mathcomp Require Import generic_quotient.
-
+From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssralg poly polydiv ring_quotient.
 Require Import auxresults.
 
 
@@ -72,6 +68,8 @@ End SSRCompl.
 
 Section MoreBigop.
 
+Local Open Scope nat_scope.
+
 Definition swap (R : Type) (x : R * R) := (x.2, x.1).
 
 Lemma swap_inj (R : Type) : involutive (@swap R).
@@ -89,24 +87,24 @@ Variable (idx : R) (op : Monoid.com_law idx).
 
 Lemma index_translation (m j : nat) (F : nat -> R) :
   \big[op/idx]_(i < m - j) F i =
-  \big[op/idx]_(k < m | j <= k)  F (k - j)%N.
+  \big[op/idx]_(k < m | (j <= k))  F (k - j).
 Proof.
-rewrite -(big_mkord predT F) /= (big_mknat _ j m (fun k => F (k - j)%N)).
+rewrite -(big_mkord predT F) /= (big_mknat _ j m (fun k => F (k - j))).
 rewrite -{2}[j]add0n (big_addn 0 m j _ _).
 by apply: eq_bigr => i _ ; rewrite addnK.
 Qed.
 
 Lemma aux_triangular_index_bigop (m : nat) (F : nat -> nat -> R) :
   \big[op/idx]_(i < m) \big[op/idx]_(j < m | i + j < m) F i j =
-  \big[op/idx]_(k < m) \big[op/idx]_(l < k.+1) F l (k - l)%N.
+  \big[op/idx]_(k < m) \big[op/idx]_(l < k.+1) F l (k - l).
 Proof.
 evar (G : 'I_m -> R) ; rewrite [LHS](eq_bigr G) => [|i _] ; last first.
-- rewrite (eq_bigl (fun j : 'I_m => j < (m - i)%N)) => [|j /=].
+- rewrite (eq_bigl (fun j : 'I_m => j < m - i)) => [|j /=].
   + rewrite big_ord_narrow => [ | _ /= ] ; first exact: leq_subr.
     by rewrite index_translation /G; reflexivity.
   + by rewrite ltn_subRL.
 - rewrite /G (triangular_swap _ (fun i k : 'I_m => i <= k)
-                                (fun i k => F i (k - i)%N)).
+                                (fun i k => F i (k - i))).
   apply: eq_big => [ // | i _].
   rewrite (eq_bigl (fun i0 : 'I_m => i0 < i.+1)) => [ | j ] ; last first.
   + by rewrite -ltnS.
@@ -116,7 +114,7 @@ Qed.
 Lemma triangular_index_bigop (m n : nat) (F : nat -> nat -> R) :
   n <= m ->
   \big[op/idx]_(i < m) \big[op/idx]_(j < m | i + j < n) F i j =
-  \big[op/idx]_(k < n) \big[op/idx]_(l < k.+1) F l (k - l)%N.
+  \big[op/idx]_(k < n) \big[op/idx]_(l < k.+1) F l (k - l).
 Proof.
 move => leq_nm.
 rewrite -(subnKC leq_nm) big_split_ord /=.
