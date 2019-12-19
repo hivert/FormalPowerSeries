@@ -13,7 +13,6 @@
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
 From mathcomp Require Import all_ssreflect all_algebra.
-From SsrMultinomials Require Import ssrcomplements freeg mpoly.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
@@ -23,9 +22,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import Order.Def.
 Import Order.Syntax.
-Import Order.Theory.
+Import Order.TTheory.
 
 Open Scope ring_scope.
 Import GRing.Theory.

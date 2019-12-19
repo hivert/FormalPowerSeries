@@ -23,10 +23,8 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Import GRing.Theory.
-Import Order.Def.
 Import Order.Syntax.
-Import Order.Theory.
-
+Import Order.TTheory.
 
 
 Reserved Notation "{ 'series' T }" (at level 0, format "{ 'series'  T }").
@@ -853,7 +851,7 @@ Lemma valuatD s1 s2 :
   (valuat s1 `&` valuat s2 <= valuat (s1 + s2))%O.
 Proof.
 wlog v1lev2 : s1 s2 / (valuat s1 <= valuat s2)%O.
-  move=> Hlog; case: (leP (valuat s1) (valuat s2)) => [|/ltW]/Hlog//.
+  move=> Hlog; case (leP (valuat s1) (valuat s2)) => [|/ltW]/Hlog//.
   by rewrite addrC meetC.
 rewrite (meet_idPl v1lev2); move: v1lev2.
 case: (valuatXnP s1) => [v t1 Ht1|]->{s1}.

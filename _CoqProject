@@ -6,9 +6,8 @@
 theories/fps_scratch.v
 theories/invlim.v
 theories/natbar.v
-theories/infpoly.v
+# theories/infpoly.v
 theories/padic.v
-theories/fpsil.v
 theories/fps.v
 theories/auxresults.v
 theories/tfps.v

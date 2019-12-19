@@ -1895,11 +1895,11 @@ Lemma primC (c : R) : \int (c%:P) = c *: 'X.
 Proof.
 apply/polyP => i.
 rewrite /prim /prim coef_poly size_polyC -[c *: 'X]coefK.
-have [-> | c_neq0 ] := eqVneq c 0.
-  rewrite eqxx /= scale0r size_poly0 coef_poly ltn0; case: i => [|i].
+case: (altP (c =P 0)) => [-> | c_neq0 ] /=.
+  rewrite scale0r size_poly0 coef_poly ltn0; case: i => [|i].
     by rewrite invr0 mulr0.
     by rewrite coefC.
-rewrite c_neq0 /= coef_poly coefZ coefX.
+rewrite coef_poly coefZ coefX.
 have -> : size (c *: 'X) = 2%N.
   rewrite -mulr_algl alg_polyC size_Mmonic ?monicX ?polyC_eq0 //.
   by rewrite size_polyX size_polyC c_neq0.
@@ -1923,11 +1923,12 @@ Lemma primXn (m : nat): \int ('X ^+ m) = (m.+1 %:R) ^-1 *: 'X ^+ m.+1.
 Proof.
 rewrite /prim /prim size_polyXn ; apply/polyP => i.
 rewrite coefZ !coefXn coef_poly !coefXn.
-have [-> | /negbTE i_neq_Sm ] := eqVneq i m.+1.
-  by rewrite eqxx ltnSn mulr1 eqxx mul1r.
-rewrite i_neq_Sm /= mulr0 ; case: (i < m.+2) => [] //.
-have [ -> | /negbTE i_neq0 ] := eqVneq i 0%N; first by rewrite eqxx invr0 mulr0.
-rewrite i_neq0 ; move/negbT : i_neq0 ; move/negbT : i_neq_Sm.
+case: (altP (i =P m.+1)) => [-> | /negbTE i_neq_Sm ] /=.
+  by rewrite ltnSn mulr1 eqxx mul1r.
+rewrite /= mulr0 ; case: (i < m.+2) => [] //.
+case: (altP (i =P 0%N)) => [-> | /negbTE i_neq0 ] /=.
+  by rewrite invr0 mulr0.
+move/negbT : i_neq0 ; move/negbT : i_neq_Sm.
 case: i => [ // | i ].
 by rewrite (inj_eq succn_inj) => /negbTE -> _ ; rewrite mul0r.
 Qed.

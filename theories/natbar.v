@@ -20,9 +20,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import Order.Def.
 Import Order.Syntax.
-Import Order.Theory.
+Import Order.TTheory.
 
 
 
@@ -105,22 +104,27 @@ Definition lebar u v :=
   | Nat m, Nat n => m <= n
   | _, _ => false
   end.
-Definition ltbar u v := (u != v) && (lebar u v).
+Definition ltbar u v := (v != u) && (lebar u v).
+Definition meetbar x y := if lebar x y then x else y.
+Definition joinbar x y := if lebar y x then x else y.
 Definition lebar_display : unit. Proof. exact: tt. Qed.
 
-Lemma ltbar_def u v : (ltbar u v) = (u != v) && (lebar u v).
-Proof. by []. Qed.
+Program Definition natbar_OrderMixin :=
+  @LeOrderMixin _ lebar ltbar meetbar joinbar _ _ _ _ _ _.
+Next Obligation. by case=> [m|] [n|] //=; rewrite -eqn_leq => /eqP ->. Qed.
+Next Obligation. by case=> [m|] [n|] [p|] //=; apply leq_trans. Qed.
+Next Obligation. by case=> [m|] [n|] //=; exact: leq_total. Qed.
 
-Lemma lebarbar : reflexive lebar. Proof. by case => /=. Qed.
-Lemma lebar_trans : transitive lebar.
-Proof. by case=> [m|] [n|] [p|] //=; apply leq_trans. Qed.
-Lemma lebar_anti : antisymmetric lebar.
-Proof. by case=> [m|] [n|] //=; rewrite -eqn_leq => /eqP ->. Qed.
+Canonical natbar_porderType :=
+  Eval hnf in POrderType lebar_display natbar natbar_OrderMixin.
+Canonical natbar_distrLatticeType :=
+  Eval hnf in DistrLatticeType natbar natbar_OrderMixin.
+Canonical natbar_orderType :=
+  Eval hnf in OrderType natbar natbar_OrderMixin.
 
-Definition natbar_POrderMixin :=
-  POrderMixin ltbar_def lebarbar lebar_anti lebar_trans.
-Canonical natbar_POrderType  :=
-  POrderType lebar_display natbar natbar_POrderMixin.
+Lemma le0bar v : Nat 0 <= v. Proof. by case: v. Qed.
+Canonical natbar_bDistrLatticeType :=
+  Eval hnf in BDistrLatticeType natbar (BDistrLatticeMixin le0bar).
 
 Lemma leEnatbar (n m : nat) : (Nat n <= Nat m) = (n <= m)%N.
 Proof. by []. Qed.
@@ -129,21 +133,12 @@ Lemma ltEnatbar (n m : nat) : (Nat n < Nat m) = (n < m)%N.
 Proof. by rewrite lt_neqAle leEnatbar Nat_eqE ltn_neqAle. Qed.
 
 Lemma lebar_total : total lebar.
-Proof. by case=> [m|] [n|] //=; exact: leq_total. Qed.
-
-Definition natbar_LatticeMixin := Order.TotalLattice.Mixin lebar_total.
-Canonical natbar_LatticeType := LatticeType natbar natbar_LatticeMixin.
-Canonical natbar_OrderType := OrderType natbar lebar_total.
-
-Lemma le0bar v : Nat 0 <= v. Proof. by case: v. Qed.
-
-Definition natbar_BLatticeMixin := BLatticeMixin le0bar.
-Canonical natbar_BLatticeType := BLatticeType natbar natbar_BLatticeMixin.
+Proof. exact: le_total. Qed.
 
 Lemma lebarI v : v <= Inf. Proof. by case v. Qed.
 
-Definition natbar_TBLatticeMixin := TBLatticeMixin lebarI.
-Canonical natbar_TBLatticeType := TBLatticeType natbar natbar_TBLatticeMixin.
+Canonical natbar_tbDistrLatticeType :=
+  Eval hnf in TBDistrLatticeType natbar (TBDistrLatticeMixin lebarI).
 
 Lemma ltbar0Sn n : 0 < Nat n.+1.       Proof. by []. Qed.
 Lemma ltbarS n : Nat n < Nat n.+1.     Proof. by rewrite ltEnatbar. Qed.
@@ -153,14 +148,14 @@ Lemma ltIbar v : Inf < v = false.      Proof. exact/le_gtF/lex1. Qed.
 Lemma leInatbar n : Inf <= Nat n = false.
 Proof. by []. Qed.
 
-Lemma minbarE : {morph Nat : m n / minn m n >-> meet m n}.
+Lemma minbarE : {morph Nat : m n / minn m n >-> Order.meet m n}.
 Proof.
 move=> m n; case: (leqP m n) => [mlen | /ltnW nlem].
 - by rewrite (minn_idPl mlen); move: mlen; rewrite -leEnatbar => /meet_idPl.
 - by rewrite (minn_idPr nlem); move: nlem; rewrite -leEnatbar => /meet_idPr.
 Qed.
 
-Lemma maxbarE : {morph Nat : m n / maxn m n >-> join m n}.
+Lemma maxbarE : {morph Nat : m n / maxn m n >-> Order.join m n}.
 Proof.
 move=> m n; case: (leqP m n) => [mlen | /ltnW nlem].
 - by rewrite (maxn_idPr mlen); move: mlen; rewrite -leEnatbar => /join_idPl.

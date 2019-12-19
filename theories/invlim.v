@@ -13,13 +13,12 @@
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
 From mathcomp Require Import all_ssreflect all_algebra.
-From SsrMultinomials Require Import ssrcomplements freeg mpoly.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
 Require Import natbar.
 
-Import Order.Def.
+
 Import Order.Syntax.
 Import Order.Theory.
 Open Scope order_scope.
@@ -49,7 +48,8 @@ Definition directed (T : Type) (R : T -> T -> bool) :=
 Module Directed.
 Section ClassDef.
 
-Record mixin_of d (T : porderType d) := Mixin { _ : directed (@le d T) }.
+Record mixin_of (disp : unit)
+       (T : porderType disp) := Mixin { _ : directed (@Order.le disp T) }.
 Record class_of (T : Type) := Class {
   base  : Order.POrder.class_of T;
   mixin_disp : unit;
@@ -113,8 +113,8 @@ Lemma directedP (disp : unit) (T : dirType disp) : directed (T := T) <=%O.
 Proof. by case: T => sort [/= bs mx []]. Qed.
 
 
-Section Generic.
-Variables (disp : unit) (T : latticeType disp).
+Section Generic. (** TODO : remove distr here *)
+Variables (disp : unit) (T : distrLatticeType disp).
 
 Fact lattice_directed : directed (T := T) <=%O.
 Proof. by move=> x y; exists (x `|` y); [apply: leUl |apply: leUr]. Qed.
@@ -1167,7 +1167,7 @@ Lemma valuatD x1 x2 :
   (valuat x1 `&` valuat x2 <= valuat (x1 + x2))%O.
 Proof.
 wlog v1lev2 : x1 x2 / (valuat x1 <= valuat x2)%O.
-  move=> Hlog; case: (leP (valuat x1) (valuat x2)) => [|/ltW]/Hlog//.
+  move=> Hlog; case (leP (valuat x1) (valuat x2)) => [|/ltW]/Hlog //.
   by rewrite addrC meetC.
 rewrite (meet_idPl v1lev2); move: v1lev2.
 case: (valuatP x1)=> [v1 Hv1 v1min|->]; last by rewrite add0r.

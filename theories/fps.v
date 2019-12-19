@@ -23,9 +23,8 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import Order.Def.
 Import Order.Syntax.
-Import Order.Theory.
+Import Order.TTheory.
 
 
 Reserved Notation "{ 'fps' R }"
@@ -472,13 +471,13 @@ Qed.
 
 End CoeffSeries.
 
-Coercion fps_poly : poly_of >-> fpseries_of.
-
 Arguments fpsC {R}.
 Arguments fps_poly {R}.
 Notation "c %:S" := (fpsC c).
 Notation "''X" := (locked (@fps_poly _ 'X)).
 Notation "'''X^' n" := (''X ^+ n).
+
+Coercion fps_poly : poly_of >-> fpseries_of.
 
 
 Section FpsUnitRing.
@@ -545,8 +544,10 @@ Canonical fps_comUnitRingType :=
   Eval hnf in [comUnitRingType of {fps R}].
 Canonical fps_unitalgType :=
   Eval hnf in [unitAlgType R of {fps R}].
-(* Canonical fps_comUnitAlgType :=
-  Eval hnf in [comUnitAlgType of {fps R}]. *)
+Canonical fps_comAlgType :=
+  Eval hnf in [comAlgType R of {fps R}].
+Canonical fps_comUnitAlgType :=
+  Eval hnf in [comUnitAlgType R of {fps R}].
 
 End FpsComUnitRing.
 
@@ -702,7 +703,7 @@ Lemma valuatD s1 s2 :
   (valuat s1 `&` valuat s2 <= valuat (s1 + s2))%O.
 Proof.
 wlog v1lev2 : s1 s2 / (valuat s1 <= valuat s2)%O.
-  move=> Hlog; case: (leP (valuat s1) (valuat s2)) => [|/ltW]/Hlog//.
+  move=> Hlog; case (leP (valuat s1) (valuat s2)) => [|/ltW]/Hlog//.
   by rewrite addrC meetC.
 rewrite (meet_idPl v1lev2); move: v1lev2.
 case: (valuatXnP s1) => [v t1 Ht1|]->{s1}.
