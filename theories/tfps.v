@@ -54,17 +54,8 @@ elim: i => [|i IHi]; first by rewrite expr0 big_ord0.
 by rewrite big_ord_recl -IHi exprS.
 Qed.
 
-Lemma commrB x y z : GRing.comm x y -> GRing.comm x z -> GRing.comm x (y - z).
-Proof. by move=> com_xy com_xz; apply commrD => //; apply commrN. Qed.
-
-Lemma commr_sum (I : Type) (s : seq I) (P : pred I) (F : I -> R) x :
-  (forall i, P i -> GRing.comm x (F i)) -> GRing.comm x (\sum_(i <- s | P i) F i).
-Proof.
-move=> H; rewrite /GRing.comm mulr_suml mulr_sumr.
-by apply eq_bigr => i /H.
-Qed.
-
 End SSRCompl.
+
 
 Section MoreBigop.
 
@@ -668,9 +659,9 @@ Canonical coeftfps0_rmorphism :=
 Canonical coeftfps0_lrmorphism :=
   Eval hnf in [lrmorphism of coeftfps 0].
 
-Fact coef0_tfpsM f g : (f * g)`_0 = f`_0 * g`_0.
+Fact coeft0M f g : (f * g)`_0 = f`_0 * g`_0.
 Proof. exact: (rmorphM coeftfps0_rmorphism). Qed.
-Fact coef0_tfpsX f i : (f ^+ i)`_0 = f`_0 ^+ i.
+Fact coeft0X f i : (f ^+ i)`_0 = f`_0 ^+ i.
 Proof. exact: (rmorphX coeftfps0_rmorphism). Qed.
 
 End TFPSTheory.
@@ -851,7 +842,8 @@ apply tfpsP => i le_in.
 by rewrite coef_tfps_of_fun coef_tfps_sumfXi le_in.
 Qed.
 
-Lemma expr_cX (c : R) i : (c *: \X) ^+ i = (c ^+ i) *: \X ^+ i :> {tfps R n}.
+Lemma expr_tfpscX (c : R) i :
+  (c *: \X) ^+ i = (c ^+ i) *: \X ^+ i :> {tfps R n}.
 Proof.
 rewrite -mulr_algl exprMn_comm; last exact: commr_tfpsX.
 by rewrite -in_algE -rmorphX /= mulr_algl.
@@ -955,7 +947,7 @@ Proof.
 move=> f s_unit; have:= s_unit; rewrite /= unfold_in => s0_unit.
 apply/tfpsP => m _; elim: m {1 3 4}m (leqnn m) => [| m IHm] i.
   rewrite leqn0 => /eqP ->.
-  by rewrite coef1 coef0_tfpsM coef0_inv_tfps ?divrr.
+  by rewrite coef1 coeft0M coef0_inv_tfps ?divrr.
 move=> le_im1; case: (leqP i m) => [|lt_mi]; first exact: IHm.
 have {le_im1 lt_mi i} -> : i = m.+1 by apply anti_leq; rewrite le_im1 lt_mi.
 rewrite coef1 [RHS]/=.
@@ -1003,9 +995,9 @@ Proof. by move=> f Hs; rewrite invr_tfpsE // mul_tfpsVl. Qed.
 Lemma unit_tfpsP f g : g * f = 1 /\ f * g = 1 -> unit_tfps f.
 Proof.
 move=> [] /(congr1 (fun x : {tfps _ _ } => x`_0)).
-rewrite coef1 coef0_tfpsM => Hl.
+rewrite coef1 coeft0M => Hl.
 move=>    /(congr1 (fun x : {tfps _ _ } => x`_0)).
-rewrite coef1 coef0_tfpsM => Hr.
+rewrite coef1 coeft0M => Hr.
 by rewrite /unit_tfps; apply/unitrP; exists g`_0.
 Qed.
 
@@ -1022,25 +1014,25 @@ Lemma trXn_unitE (p : {poly R}) :
   ((trXn n p) \is a GRing.unit) = (p`_0 \is a GRing.unit).
 Proof. by rewrite unit_tfpsE coef0_trXn. Qed.
 
-Lemma coef0_tfpsV f : (f ^-1)`_0 = (f`_0)^-1.
+Lemma coeft0V f : (f ^-1)`_0 = (f`_0)^-1.
 Proof.
 case (boolP (f \is a GRing.unit))=> [f_unit|]; first by rewrite coef0_inv_tfps.
 move=> Hinv; rewrite (invr_out Hinv).
 by move: Hinv; rewrite unit_tfpsE => /invr_out ->.
 Qed.
 
-Lemma coef_tfpsV f i : f \is a GRing.unit -> f^-1`_i =
+Lemma coeftV f i : f \is a GRing.unit -> f^-1`_i =
   if i > n then 0 else
   if i == 0%N then f`_0 ^-1
   else - (f`_0 ^-1) * (\sum_(j < i) f`_j.+1 * f^-1`_(i - j.+1)).
 Proof.
 move=> funit; case: ltnP => Hi.
   by rewrite -(tfpsK f^-1) coef_trXnt (ltn_geF Hi).
-case: i Hi => [|i] Hi; first by rewrite eq_refl coef0_tfpsV.
+case: i Hi => [|i] Hi; first by rewrite eq_refl coeft0V.
 by rewrite coefS_inv_tfps.
 Qed.
 
-Lemma tfpsCV (c : R) : (trXn n c%:P)^-1 = trXn n (c^-1)%:P.
+Lemma trXnCV (c : R) : (trXn n c%:P)^-1 = trXn n (c^-1)%:P.
 Proof.
 case (boolP (c \in GRing.unit)) => [Uc | nUc].
   by rewrite -/((trXn n \o @polyC R) _) -rmorphV.
@@ -1238,97 +1230,97 @@ Section Coefficient01.
 Variables (R : ringType) (n : nat).
 Implicit Types (f g : {tfps R n}).
 
-Definition coef0_eq0 := fun f : {tfps R n} => f`_0 == 0.
-Definition coef0_eq1 := fun f : {tfps R n} => f`_0 == 1.
+Definition coeft0_eq0 := fun f : {tfps R n} => f`_0 == 0.
+Definition coeft0_eq1 := fun f : {tfps R n} => f`_0 == 1.
 
-Lemma coef0_eq0E f : (f \in coef0_eq0) = (f`_0 == 0).
+Lemma coeft0_eq0E f : (f \in coeft0_eq0) = (f`_0 == 0).
 Proof. by rewrite -topredE. Qed.
 
-Lemma coef0_eq1E f : (f \in coef0_eq1) = (f`_0 == 1).
+Lemma coeft0_eq1E f : (f \in coeft0_eq1) = (f`_0 == 1).
 Proof. by rewrite -topredE. Qed.
 
-Fact coef0_eq0_idealr : idealr_closed coef0_eq0.
+Fact coeft0_eq0_idealr : idealr_closed coeft0_eq0.
 Proof.
-split => [|| a p q ]; rewrite ?coef0_eq0E ?coefC ?eqxx ?oner_eq0 //.
+split => [|| a p q ]; rewrite ?coeft0_eq0E ?coefC ?eqxx ?oner_eq0 //.
 move=> /eqP p0_eq0 /eqP q0_eq0.
-by rewrite coefD q0_eq0 addr0 coef0_tfpsM p0_eq0 mulr0.
+by rewrite coeftD q0_eq0 addr0 coeft0M p0_eq0 mulr0.
 Qed.
 
-Fact coef0_eq0_key : pred_key coef0_eq0. Proof. by []. Qed.
+Fact coeft0_eq0_key : pred_key coeft0_eq0. Proof. by []. Qed.
 
-Canonical coef0_eq0_keyed := Eval hnf in KeyedPred coef0_eq0_key.
-Canonical coef0_eq0_opprPred := Eval hnf in OpprPred coef0_eq0_idealr.
-Canonical coef0_eq0_addrPred := Eval hnf in AddrPred coef0_eq0_idealr.
-Canonical coef0_eq0_zmodPred := Eval hnf in ZmodPred coef0_eq0_idealr.
+Canonical coeft0_eq0_keyed := Eval hnf in KeyedPred coeft0_eq0_key.
+Canonical coeft0_eq0_opprPred := Eval hnf in OpprPred coeft0_eq0_idealr.
+Canonical coeft0_eq0_addrPred := Eval hnf in AddrPred coeft0_eq0_idealr.
+Canonical coeft0_eq0_zmodPred := Eval hnf in ZmodPred coeft0_eq0_idealr.
 
-Definition coef0_eq0_ntideal := idealr_closed_nontrivial coef0_eq0_idealr.
-Canonical coef0_eq0_ideal :=
-  Eval hnf in MkIdeal coef0_eq0_zmodPred coef0_eq0_ntideal.
+Definition coeft0_eq0_ntideal := idealr_closed_nontrivial coeft0_eq0_idealr.
+Canonical coeft0_eq0_ideal :=
+  Eval hnf in MkIdeal coeft0_eq0_zmodPred coeft0_eq0_ntideal.
 
-Lemma coef0_eq0Z f c : f \in coef0_eq0 -> c *: f \in coef0_eq0.
+Lemma coeft0_eq0Z f c : f \in coeft0_eq0 -> c *: f \in coeft0_eq0.
 Proof. by move=> hf; rewrite -mulr_algl idealMr. Qed.
 
-Lemma coef0_eq0X f i : f \in coef0_eq0 -> f ^+ i.+1 \in coef0_eq0.
+Lemma coeft0_eq0X f i : f \in coeft0_eq0 -> f ^+ i.+1 \in coeft0_eq0.
 Proof. by move=> hf; rewrite exprSr idealMr. Qed.
 
-Lemma coef0_eq10 f : (f \in coef0_eq1) = ((1 - f) \in coef0_eq0).
-Proof. by rewrite ?coef0_eq0E ?coef0_eq1E coefB coef1 subr_eq0 eq_sym. Qed.
+Lemma coeft0_eq10 f : (f \in coeft0_eq1) = ((1 - f) \in coeft0_eq0).
+Proof. by rewrite ?coeft0_eq0E ?coeft0_eq1E coefB coef1 subr_eq0 eq_sym. Qed.
 
-Lemma coef0_eq01 f : (f \in coef0_eq0) = ((1 + f) \in coef0_eq1).
-Proof. by rewrite coef0_eq10 -[RHS]rpredN !opprD !opprK addKr. Qed.
+Lemma coeft0_eq01 f : (f \in coeft0_eq0) = ((1 + f) \in coeft0_eq1).
+Proof. by rewrite coeft0_eq10 -[RHS]rpredN !opprD !opprK addKr. Qed.
 
-Lemma coef0_eq1_add01 f g :
-  f \in coef0_eq0 -> g \in coef0_eq1 -> f + g \in coef0_eq1.
+Lemma coeft0_eq1_add01 f g :
+  f \in coeft0_eq0 -> g \in coeft0_eq1 -> f + g \in coeft0_eq1.
 Proof.
-rewrite coef0_eq0E !coef0_eq1E coefD => /eqP -> /eqP ->.
+rewrite coeft0_eq0E !coeft0_eq1E coefD => /eqP -> /eqP ->.
 by rewrite add0r.
 Qed.
 
-Lemma tfpsX_in_coef0_eq0 : \X \in coef0_eq0.
-Proof. by rewrite coef0_eq0E coef_trXn coefX. Qed.
-Lemma tfpscX_in_coef0_eq0 c : c *: \X \in coef0_eq0.
-Proof. exact/coef0_eq0Z/tfpsX_in_coef0_eq0. Qed.
+Lemma tfpsX_in_coeft0_eq0 : \X \in coeft0_eq0.
+Proof. by rewrite coeft0_eq0E coef_trXn coefX. Qed.
+Lemma tfpscX_in_coeft0_eq0 c : c *: \X \in coeft0_eq0.
+Proof. exact/coeft0_eq0Z/tfpsX_in_coeft0_eq0. Qed.
 
 (* tests *)
-Example zero_in_coef0_eq0 : 0 \in coef0_eq0.
+Example zero_in_coeft0_eq0 : 0 \in coeft0_eq0.
 Proof. by rewrite rpred0. Qed.
 
-Example coef0_eq0D f g :
-    f \in coef0_eq0 -> g \in coef0_eq0 -> f + g \in coef0_eq0.
+Example coeft0_eq0D f g :
+    f \in coeft0_eq0 -> g \in coeft0_eq0 -> f + g \in coeft0_eq0.
 Proof. by move=> hf hg; rewrite rpredD. Qed.
 
-Example coef0_eq0N f : f \in coef0_eq0 -> (-f) \in coef0_eq0.
+Example coeft0_eq0N f : f \in coeft0_eq0 -> (-f) \in coeft0_eq0.
 Proof. by move=> hf; rewrite rpredN. Qed.
 
 
-Fact mulr_closed_coef0_eq1 : mulr_closed coef0_eq1.
+Fact mulr_closed_coeft0_eq1 : mulr_closed coeft0_eq1.
 Proof.
-split=> [|x y]; rewrite !coef0_eq1E ?coefC //.
-by rewrite coef0_tfpsM; move/eqP ->; move/eqP ->; rewrite mul1r.
+split=> [|x y]; rewrite !coeft0_eq1E ?coefC //.
+by rewrite coeft0M; move/eqP ->; move/eqP ->; rewrite mul1r.
 Qed.
-Fact coef0_eq1_key : pred_key coef0_eq1. Proof. by []. Qed.
-Canonical coef0_eq1_keyed := Eval hnf in KeyedPred coef0_eq1_key.
-Canonical coef0_eq1_MulrPred := Eval hnf in MulrPred mulr_closed_coef0_eq1.
+Fact coeft0_eq1_key : pred_key coeft0_eq1. Proof. by []. Qed.
+Canonical coeft0_eq1_keyed := Eval hnf in KeyedPred coeft0_eq1_key.
+Canonical coeft0_eq1_MulrPred := Eval hnf in MulrPred mulr_closed_coeft0_eq1.
 
 (* Tests *)
-Example one_in_coef0_eq1 : 1 \in coef0_eq1.
+Example one_in_coeft0_eq1 : 1 \in coeft0_eq1.
 Proof. by rewrite rpred1. Qed.
 
-Example coef0_eq1M f g :
-  f \in coef0_eq1 -> g \in coef0_eq1 -> f * g \in coef0_eq1.
+Example coeft0_eq1M f g :
+  f \in coeft0_eq1 -> g \in coeft0_eq1 -> f * g \in coeft0_eq1.
 Proof. by move=> hf hg; rewrite rpredM. Qed.
 
 End Coefficient01.
-Arguments coef0_eq0 {R n}.
-Arguments coef0_eq1 {R n}.
+Arguments coeft0_eq0 {R n}.
+Arguments coeft0_eq1 {R n}.
 
-Lemma coef0_eq0_trXnt (R : ringType) (n m : nat) (f : {tfps R n}) :
-  (trXnt m f \in coef0_eq0) = (f \in coef0_eq0).
-Proof. by rewrite !coef0_eq0E coef0_trXn. Qed.
+Lemma coeft0_eq0_trXnt (R : ringType) (n m : nat) (f : {tfps R n}) :
+  (trXnt m f \in coeft0_eq0) = (f \in coeft0_eq0).
+Proof. by rewrite !coeft0_eq0E coef0_trXn. Qed.
 
-Lemma coef0_eq1_trXnt (R : ringType) (n m : nat) (f : {tfps R n}) :
-  (trXnt m f \in coef0_eq1) = (f \in coef0_eq1).
-Proof. by rewrite !coef0_eq1E coef0_trXn. Qed.
+Lemma coeft0_eq1_trXnt (R : ringType) (n m : nat) (f : {tfps R n}) :
+  (trXnt m f \in coeft0_eq1) = (f \in coeft0_eq1).
+Proof. by rewrite !coeft0_eq1E coef0_trXn. Qed.
 
 
 Section Coefficient01Unit.
@@ -1336,22 +1328,22 @@ Section Coefficient01Unit.
 Variables (R : unitRingType) (n : nat).
 Implicit Types (f g : {tfps R n}).
 
-Fact invr_closed_coef0_eq1 : invr_closed (@coef0_eq1 R n).
+Fact invr_closed_coeft0_eq1 : invr_closed (@coeft0_eq1 R n).
 Proof.
-move=> f; rewrite !coef0_eq1E coef0_tfpsV; move/eqP ->.
+move=> f; rewrite !coeft0_eq1E coeft0V; move/eqP ->.
 by rewrite invr1.
 Qed.
-Canonical coef0_eq1_DivrPred := Eval hnf in DivrPred invr_closed_coef0_eq1.
+Canonical coeft0_eq1_DivrPred := Eval hnf in DivrPred invr_closed_coeft0_eq1.
 
-Lemma coef0_eq1V f : f \in coef0_eq1 -> f^-1 \in coef0_eq1.
+Lemma coeft0_eq1V f : f \in coeft0_eq1 -> f^-1 \in coeft0_eq1.
 Proof. by move=> hf; rewrite rpredVr. Qed.
 
-Lemma coef0_eq1_div f g :
-  f \in coef0_eq1 -> g \in coef0_eq1 -> f / g \in coef0_eq1.
+Lemma coeft0_eq1_div f g :
+  f \in coeft0_eq1 -> g \in coeft0_eq1 -> f / g \in coeft0_eq1.
 Proof. by move=> hf hg; rewrite rpred_div. Qed.
 
-Lemma coef0_eq1_unit f : f \in coef0_eq1 -> f \is a GRing.unit.
-Proof. by rewrite !coef0_eq1E unit_tfpsE => /eqP ->; apply unitr1. Qed.
+Lemma coeft0_eq1_unit f : f \in coeft0_eq1 -> f \is a GRing.unit.
+Proof. by rewrite !coeft0_eq1E unit_tfpsE => /eqP ->; apply unitr1. Qed.
 
 End Coefficient01Unit.
 
@@ -1361,15 +1353,15 @@ Section Coefficient01IDomain.
 Variables (R : idomainType) (n : nat).
 Implicit Types (f g : {tfps R n}).
 
-Fact coef0_eq0_prime : prime_idealr_closed (@coef0_eq0 R n).
+Fact coeft0_eq0_prime : prime_idealr_closed (@coeft0_eq0 R n).
 Proof.
-by move => x y; rewrite -!topredE /= /coef0_eq0 coef0_tfpsM mulf_eq0.
+by move => x y; rewrite -!topredE /= /coeft0_eq0 coeft0M mulf_eq0.
 Qed.
-Canonical coef0_eq0_pideal :=
-  Eval hnf in MkPrimeIdeal (coef0_eq0_ideal R n) coef0_eq0_prime.
+Canonical coeft0_eq0_pideal :=
+  Eval hnf in MkPrimeIdeal (coeft0_eq0_ideal R n) coeft0_eq0_prime.
 
-Example coef0_eq0_prime_test f g :
-  f * g \in coef0_eq0 -> (f \in coef0_eq0) || (g \in coef0_eq0).
+Example coeft0_eq0_prime_test f g :
+  f * g \in coeft0_eq0 -> (f \in coeft0_eq0) || (g \in coeft0_eq0).
 Proof. by rewrite prime_idealrM. Qed.
 
 End Coefficient01IDomain.
@@ -1417,14 +1409,14 @@ rewrite (bigID (fun k => val k >= i)) /= ?big1 ?addr0 // => [] [k Hk] /= H.
 Qed.
 
 Lemma coefX_tfps_eq0 n m i :
-  i < m -> {in coef0_eq0, forall f : {tfps R n}, (f ^+ m)`_i = 0}.
+  i < m -> {in coeft0_eq0, forall f : {tfps R n}, (f ^+ m)`_i = 0}.
 Proof.
-move=> lt_im f; rewrite coef0_eq0E => /eqP/coefX_eq0/(_ lt_im).
+move=> lt_im f; rewrite coeft0_eq0E => /eqP/coefX_eq0/(_ lt_im).
 by rewrite coef_tfpsE !exp_tfps_val coef_trXn => ->; rewrite if_same.
 Qed.
 
 Lemma tfpsX_eq0 (n m : nat) :
-  n < m -> {in coef0_eq0, forall f : {tfps R n}, f ^+ m = 0}.
+  n < m -> {in coeft0_eq0, forall f : {tfps R n}, f ^+ m = 0}.
 Proof.
 move=> le_nm f /coefX_tfps_eq0 H0.
 apply/tfpsP => i le_in.
@@ -1432,7 +1424,7 @@ by rewrite coef_tfps0 H0 // (leq_ltn_trans le_in le_nm).
 Qed.
 
 Lemma tfpsMX_eq0 n i j : n < i + j ->
-  {in coef0_eq0 &, forall f g : {tfps R n}, f ^+ i * g ^+ j = 0}.
+  {in coeft0_eq0 &, forall f g : {tfps R n}, f ^+ i * g ^+ j = 0}.
 Proof.
 move=> lt_n_addij f g f0 g0.
 apply tfps_inj.
@@ -1450,7 +1442,7 @@ Section GeometricSeries.
 Variables (R : ringType) (n : nat).
 Implicit Types (f g : {tfps R n}).
 
-Lemma coef_geometric m :
+Lemma coeft_geometric m :
   m <= n -> (\sum_(i < n.+1) \X ^+ i : {tfps R n})`_m = 1.
 Proof.
 move=> le_mn; pose c1 := fun i : nat => 1 : R.
@@ -1459,8 +1451,8 @@ rewrite (eq_bigr (fun i : 'I_n.+1 => (c1 i) *: \X ^+ i)); first last.
 by rewrite !coef_tfps_sumfXi //.
 Qed.
 
-Lemma geometricMlf f :
-  f \in coef0_eq0 -> (1 - f) * (\sum_(i < n.+1) f ^+ i) = 1.
+Lemma geometrictMlf f :
+  f \in coeft0_eq0 -> (1 - f) * (\sum_(i < n.+1) f ^+ i) = 1.
 Proof.
 move=> f0_eq0.
 have:= telescope_sumr (fun i => f ^+ i) (leq0n n.+1).
@@ -1470,16 +1462,16 @@ rewrite mulr_sumr -sumrN; apply eq_bigr => /= i _.
 by rewrite opprB mulrBl mul1r -exprS.
 Qed.
 
-Lemma geometricMrf f :
-  f \in coef0_eq0 -> (\sum_(i < n.+1) f ^+ i) * (1 - f) = 1.
+Lemma geometrictMrf f :
+  f \in coeft0_eq0 -> (\sum_(i < n.+1) f ^+ i) * (1 - f) = 1.
 Proof.
-move/geometricMlf => {2}<-; apply/commr_sym/commr_sum => i _.
+move/geometrictMlf => {2}<-; apply/commr_sym/commr_sum => i _.
 apply/commr_sym/commrB; do [exact:commr1 |].
 by apply/commr_sym/commrX.
 Qed.
 
-Lemma geometricMl : (\sum_(i < n.+1) \X ^+ i) * (1 - \X) = 1 :> {tfps R n}.
-Proof. exact: geometricMrf (tfpsX_in_coef0_eq0 _ _). Qed.
+Lemma geometrictMl : (\sum_(i < n.+1) \X ^+ i) * (1 - \X) = 1 :> {tfps R n}.
+Proof. exact: geometrictMrf (tfpsX_in_coeft0_eq0 _ _). Qed.
 
 End GeometricSeries.
 
@@ -1490,33 +1482,33 @@ Section GeometricSeriesUnit.
 Variables (R : unitRingType) (n : nat).
 Implicit Types (c : R) (f g : {tfps R n}).
 
-Lemma geometricV f :
-  f \in coef0_eq0 -> (1 - f)^-1 = \sum_(i < n.+1) f ^+ i.
+Lemma geometrictV f :
+  f \in coeft0_eq0 -> (1 - f)^-1 = \sum_(i < n.+1) f ^+ i.
 Proof.
 move=> f0_eq0.
 have f1unit : 1 - f \is a GRing.unit.
-  by apply: coef0_eq1_unit; rewrite -coef0_eq01 rpredN.
-by apply: (mulrI f1unit); rewrite geometricMlf // divrr.
+  by apply: coeft0_eq1_unit; rewrite -coeft0_eq01 rpredN.
+by apply: (mulrI f1unit); rewrite geometrictMlf // divrr.
 Qed.
 
-Lemma geometric : (1 - \X)^-1 = \sum_(i < n.+1) \X ^+ i :> {tfps R n}.
-Proof. exact: geometricV (tfpsX_in_coef0_eq0 _ _). Qed.
+Lemma geometrict : (1 - \X)^-1 = \sum_(i < n.+1) \X ^+ i :> {tfps R n}.
+Proof. exact: geometrictV (tfpsX_in_coeft0_eq0 _ _). Qed.
 
-Lemma geometric_1cNV c :
+Lemma geometrict_1cNV c :
   (1 - c *: \Xo(n))^-1 = \sum_(i < n.+1) c ^+ i *: \X ^+ i.
 Proof.
 rewrite (eq_bigr (fun i : 'I_n.+1 => (c *: \X)^+ i)); first last.
-  by move=> i _; rewrite expr_cX.
-exact/geometricV/coef0_eq0Z/tfpsX_in_coef0_eq0.
+  by move=> i _; rewrite expr_tfpscX.
+exact/geometrictV/coeft0_eq0Z/tfpsX_in_coeft0_eq0.
 Qed.
 
-Lemma coeff_geometric_1cNV c m :
+Lemma coef_geometrict_1cNV c m :
   m <= n -> ((1 - c *: \Xo(n))^-1)`_m = c ^+ m.
-Proof. by move=> le_mn; rewrite geometric_1cNV coef_tfps_sumfXi. Qed.
+Proof. by move=> le_mn; rewrite geometrict_1cNV coef_tfps_sumfXi. Qed.
 
-Lemma coeff_geometric_1cV c m :
+Lemma coef_geometrict_1cV c m :
   m <= n -> ((1 + c *: \Xo(n))^-1)`_m = (-c) ^+ m.
-Proof. by rewrite -{1}[c]opprK scaleNr; apply: coeff_geometric_1cNV. Qed.
+Proof. by rewrite -{1}[c]opprK scaleNr; apply: coef_geometrict_1cNV. Qed.
 
 End GeometricSeriesUnit.
 
@@ -1530,14 +1522,14 @@ Definition mulfX m (f : {tfps R m}) :=
 Definition divfX m (f : {tfps R m}) :=
   [tfps i <= m.-1 => f`_i.+1].
 
-Lemma coef_mulfX m (f : {tfps R m}) i :
+Lemma coeft_mulfX m (f : {tfps R m}) i :
   (mulfX f)`_i = if i == 0%N then 0 else f`_i.-1.
 Proof.
 rewrite coef_tfps_of_fun; case: i => //= i.
 rewrite ltnS; case: leqP => // lt_mi.
 by rewrite nth_default // (leq_trans (size_tfps f) lt_mi).
 Qed.
-Lemma coef_divfX m (f : {tfps R m}) i : (divfX f)`_i = f`_i.+1.
+Lemma coeft_divfX m (f : {tfps R m}) i : (divfX f)`_i = f`_i.+1.
 Proof.
 rewrite coef_tfps_of_fun; case: leqP => // Hi.
 rewrite nth_default // (leq_trans (size_tfps f)) //.
@@ -1547,26 +1539,26 @@ Qed.
 Lemma mulfXK m : cancel (@mulfX m) (@divfX m.+1).
 Proof.
 move=> p; apply/tfpsP => i Hi.
-by rewrite coef_divfX coef_mulfX.
+by rewrite coeft_divfX coeft_mulfX.
 Qed.
 
-Lemma divfXK m : {in coef0_eq0, cancel (@divfX m.+1) (@mulfX m)}.
+Lemma divfXK m : {in coeft0_eq0, cancel (@divfX m.+1) (@mulfX m)}.
 Proof.
 move=> p Hp.
-by apply/tfpsP => [[|i]] Hi; rewrite coef_mulfX coef_divfX // (eqP Hp).
+by apply/tfpsP => [[|i]] Hi; rewrite coeft_mulfX coeft_divfX // (eqP Hp).
 Qed.
 
 Lemma mulfX1 m : mulfX 1 = \X :> {tfps R m.+1}.
 Proof.
 by apply/tfpsP => [] [|[|i]] _;
-  rewrite coef_mulfX coef_tfpsX // ?coef_tfps1 ?mulr1 ?mulr0.
+  rewrite coeft_mulfX coef_tfpsX // ?coef_tfps1 ?mulr1 ?mulr0.
 Qed.
 Lemma divfXX m : divfX (\X : {tfps R m.+1}) = 1 :> {tfps R m}.
 Proof. by rewrite -[RHS]mulfXK mulfX1. Qed.
 
 Fact mulfX_is_linear m : linear (@mulfX m).
 Proof.
-move=> c f g; apply/tfpsP => i _; rewrite !(coeftD, coeftZ, coef_mulfX).
+move=> c f g; apply/tfpsP => i _; rewrite !(coeftD, coeftZ, coeft_mulfX).
 by case: eqP => //; rewrite mulr0 add0r.
 Qed.
 Canonical mulfX_additive m := Eval hnf in Additive (@mulfX_is_linear m).
@@ -1574,7 +1566,7 @@ Canonical mulfX_linear m := Eval hnf in Linear (@mulfX_is_linear m).
 
 Fact divfX_is_linear m : linear (@divfX m).
 Proof.
-by move=> c f g; apply/tfpsP => i _; rewrite !(coeftD, coeftZ, coef_divfX).
+by move=> c f g; apply/tfpsP => i _; rewrite !(coeftD, coeftZ, coeft_divfX).
 Qed.
 Canonical divfX_additive m := Eval hnf in Additive (@divfX_is_linear m).
 Canonical divfX_linear m := Eval hnf in Linear (@divfX_is_linear m).
@@ -1586,13 +1578,13 @@ Implicit Type f : {tfps R m}.
 Lemma trXn_mulfXE f : trXn m (tfps (mulfX f)) = \X * f.
 Proof.
 apply/tfpsP => i Hi.
-by rewrite coef_trXn coef_mulfX coef_tfpsXM Hi.
+by rewrite coef_trXn coeft_mulfX coef_tfpsXM Hi.
 Qed.
 
 Lemma mulfXE f : mulfX f = \X * trXnt m.+1 f.
 Proof.
 apply/tfpsP => i Hi.
-rewrite coef_mulfX coef_tfpsXM coef_trXnt Hi.
+rewrite coeft_mulfX coef_tfpsXM coef_trXnt Hi.
 by case: i Hi => //= i /ltnW ->.
 Qed.
 
@@ -1600,42 +1592,42 @@ Lemma trXnt_mulfX f n :
   n <= m -> trXnt n.+1 (mulfX f) = mulfX (trXnt n f).
 Proof.
 move=> le_nm; apply/tfpsP => i le_in1.
-rewrite coef_trXnt !coef_mulfX le_in1.
+rewrite coef_trXnt !coeft_mulfX le_in1.
 by case: i le_in1 => //= i; rewrite ltnS coef_trXnt => ->.
 Qed.
 
 Lemma mulfXM f (g : {tfps R m.+1}) : (mulfX f) * g = mulfX (f * trXnt m g).
 Proof.
 apply/tfpsP => [[|i]].
-  by rewrite !(coef0_tfpsM, coef_mulfX, coef0_trXn, coef_tfpsE) /= mul0r.
+  by rewrite !(coeft0M, coeft_mulfX, coef0_trXn, coef_tfpsE) /= mul0r.
 rewrite ltnS => le_im.
-rewrite coef_mulfX /= -/(_`_i.+1) !coefM_tfps ltnS le_im.
-rewrite big_ord_recl /= -/(_`_0) coef_mulfX /= mul0r add0r.
+rewrite coeft_mulfX /= -/(_`_i.+1) !coefM_tfps ltnS le_im.
+rewrite big_ord_recl /= -/(_`_0) coeft_mulfX /= mul0r add0r.
 apply eq_bigr => [[j] /=]; rewrite ltnS => le_ji _.
-rewrite -/(_`_j.+1) coef_mulfX /= /bump /= add1n subSS.
+rewrite -/(_`_j.+1) coeft_mulfX /= /bump /= add1n subSS.
 by rewrite coef_trXnt (leq_trans (leq_subr _ _) le_im).
 Qed.
 
-Lemma coef_mulfX_exp_lt f i j : i < j -> (mulfX f ^+ j)`_i = 0.
+Lemma coeft_mulfX_exp_lt f i j : i < j -> (mulfX f ^+ j)`_i = 0.
 Proof.
 elim: j i => [|j IHj] i //; rewrite ltnS => le_ij.
 rewrite exprS coefM_tfps; case leqP => // _.
-rewrite big_ord_recl big1 ?coef_mulfX ?mul0r ?add0r // => [[u /=]] lt_ui _.
+rewrite big_ord_recl big1 ?coeft_mulfX ?mul0r ?add0r // => [[u /=]] lt_ui _.
 rewrite {}IHj ?mulr0 // /bump /= add1n.
 case: i lt_ui le_ij => // i _ lt_ij.
 by rewrite subSS (leq_ltn_trans (leq_subr _ _) lt_ij).
 Qed.
 
-Lemma coef_mulfX_exp f i : i <= m.+1 -> (mulfX f ^+ i)`_i = (f ^+ i)`_0.
+Lemma coeft_mulfX_exp f i : i <= m.+1 -> (mulfX f ^+ i)`_i = (f ^+ i)`_0.
 Proof.
 elim: i => [|i IHi] lt_im1; first by rewrite !expr0 coef1.
 rewrite exprS coefM_tfps (leq_trans lt_im1 _) //.
-rewrite big_ord_recl coef_mulfX mul0r add0r.
-rewrite big_ord_recl coef_mulfX /= /bump /= add1n subSS subn0.
+rewrite big_ord_recl coeft_mulfX mul0r add0r.
+rewrite big_ord_recl coeft_mulfX /= /bump /= add1n subSS subn0.
 rewrite {}IHi ?(ltnW lt_im1) // -!/(_`_0).
-rewrite -coef0_tfpsM ?rpredX // -exprS.
+rewrite -coeft0M ?rpredX // -exprS.
 rewrite big1 ?addr0 // => [[j /= lt_ji]] _.
-rewrite !add1n subSS coef_mulfX_exp_lt ?mulr0 //.
+rewrite !add1n subSS coeft_mulfX_exp_lt ?mulr0 //.
 case: i lt_ji {lt_im1} => // i.
 by rewrite !ltnS subSS leq_subr.
 Qed.
@@ -1643,7 +1635,7 @@ Qed.
 End DivisionByX.
 
 Lemma divfXE (K : idomainType) m :
-  {in @coef0_eq0 K m, forall f, divfX f = trXn m.-1 (tfps f %/ 'X)}.
+  {in @coeft0_eq0 K m, forall f, divfX f = trXn m.-1 (tfps f %/ 'X)}.
 Proof.
 move=> f.
 move/eqP/polyXP; rewrite Pdiv.IdomainUnit.dvdp_eq ?lead_coefX ?unitr1 //.
@@ -1659,14 +1651,14 @@ Variables (K L : ringType) (F : {rmorphism K -> L}) (m : nat) (g : {tfps K m}).
 Lemma map_tfps_mulfX : map_tfps F (mulfX g) = mulfX (map_tfps F g).
 Proof.
 apply/tfpsP => i lt_im1.
-rewrite !(coef_mulfX, coef_map, lt_im1).
+rewrite !(coeft_mulfX, coef_map, lt_im1).
 by case: i {lt_im1}=> [|j]//=; rewrite rmorph0.
 Qed.
 
 Lemma map_tfps_divfX : map_tfps F (divfX g) = divfX (map_tfps F g).
 Proof.
 apply/tfpsP => i lt_im1.
-by rewrite !(coef_divfX, coef_map, lt_im1).
+by rewrite !(coeft_divfX, coef_map, lt_im1).
 Qed.
 
 End MapMulfXDivfX.
@@ -2028,7 +2020,7 @@ Section Composition.
 Variables (R : ringType) (n : nat).
 
 Definition comp_tfps m (f g : {tfps R m}) :=
-  if f \in coef0_eq0
+  if f \in coeft0_eq0
   then trXn m (tfps g \Po tfps f)
   else (g`_0%N)%:S.  (* avoid particular cases (e.g. associativity) *)
 
@@ -2036,23 +2028,23 @@ Local Notation "f \So g" := (comp_tfps g f) : tfps_scope.
 
 
 Lemma comp_tfps_coef0_neq0 m (f g : {tfps R m}) :
-  g \notin coef0_eq0 -> f \So g = (f`_0%N)%:S.
+  g \notin coeft0_eq0 -> f \So g = (f`_0%N)%:S.
 Proof. by move/negbTE => p0_neq0; rewrite /comp_tfps p0_neq0. Qed.
 
-Lemma comp_tfps_coef0_eq0 m (f g : {tfps R m}) :
-  g \in coef0_eq0 -> f \So g = trXn m (tfps f \Po tfps g).
+Lemma comp_tfps_coeft0_eq0 m (f g : {tfps R m}) :
+  g \in coeft0_eq0 -> f \So g = trXn m (tfps f \Po tfps g).
 Proof. by move => f0_eq0 ; rewrite /comp_tfps f0_eq0. Qed.
 
 Lemma comp_tfps0r m (f : {tfps R m}) : f \So 0 = (f`_0)%:S.
 Proof.
-rewrite comp_tfps_coef0_eq0 ?rpred0 // comp_poly0r.
+rewrite comp_tfps_coeft0_eq0 ?rpred0 // comp_poly0r.
 by rewrite -tfpsCE -coef_tfpsE.
 Qed.
 
 Lemma comp_tfps0l m (f : {tfps R m}) : 0 \So f = 0.
 Proof.
-case (boolP (f \in coef0_eq0)) => [f0_eq0 | f0_neq0].
-- by rewrite comp_tfps_coef0_eq0 // comp_poly0 rmorph0.
+case (boolP (f \in coeft0_eq0)) => [f0_eq0 | f0_neq0].
+- by rewrite comp_tfps_coeft0_eq0 // comp_poly0 rmorph0.
 - by rewrite comp_tfps_coef0_neq0 // coef_tfps0 tfpsC0.
 Qed.
 
@@ -2061,7 +2053,7 @@ Implicit Types (f g h : {tfps R n}) (p q : {poly R}).
 Lemma coef0_comp_tfps f g : (f \So g)`_0 = f`_0.
 Proof.
 rewrite /comp_tfps; case: (boolP (_ \in _)); last by rewrite coef_tfpsC.
-rewrite coef0_eq0E coef_trXn {-2}[0%N]lock /= -lock => /eqP g0_eq0.
+rewrite coeft0_eq0E coef_trXn {-2}[0%N]lock /= -lock => /eqP g0_eq0.
 rewrite coef_comp_poly.
 case Hsz : (size (tfps f)) => [|sz].
   by rewrite big_ord0 nth_default // leqn0 size_tfpsE Hsz.
@@ -2072,11 +2064,11 @@ rewrite big_ord_recl big1.
 Qed.
 
 Lemma coef_comp_tfps_leq k l f g :
-  g \in coef0_eq0 -> k <= l -> k <= n ->
+  g \in coeft0_eq0 -> k <= l -> k <= n ->
   (f \So g)`_k = \sum_(i < l.+1) f`_i * (g ^+ i)`_k.
 Proof.
 move=> g0 le_kl le_kn.
-rewrite (comp_tfps_coef0_eq0 _ g0).
+rewrite (comp_tfps_coeft0_eq0 _ g0).
 rewrite coef_trXn coef_comp_poly le_kn.
 have co_is0 i : minn (size f) k.+1 <= i -> f`_i * (g ^+ i)`_k = 0.
   rewrite geq_min => /orP [/(nth_default _) ->| lt_ki]; first by rewrite mul0r.
@@ -2096,11 +2088,11 @@ by apply eq_bigr => i _; rewrite !coef_tfpsE !exp_tfps_val coef_trXn le_kn.
 Qed.
 
 Lemma coef_comp_tfps k f g :
-  g \in coef0_eq0 -> (f \So g)`_k = \sum_(i < k.+1) f`_i * (g ^+ i)`_k.
+  g \in coeft0_eq0 -> (f \So g)`_k = \sum_(i < k.+1) f`_i * (g ^+ i)`_k.
 Proof.
 move=> g0.
 case: (leqP k n) => [le_kn | lt_nk]; first exact: coef_comp_tfps_leq.
-rewrite (comp_tfps_coef0_eq0 _ g0) coef_trXn ltn_geF //.
+rewrite (comp_tfps_coeft0_eq0 _ g0) coef_trXn ltn_geF //.
 apply/esym/big1 => [[l /=]]; rewrite ltnS => Hl _.
 by rewrite [_`_k]coef_tfps /= (ltn_geF lt_nk) mulr0.
 Qed.
@@ -2108,24 +2100,24 @@ Qed.
 Lemma trXnt_comp m f g :
   m <= n -> trXnt m (f \So g) = (trXnt m f) \So (trXnt m g).
 Proof.
-case (boolP (g \in coef0_eq0)) => [g0_eq0 | g0_neq0] le_mn.
-- rewrite !comp_tfps_coef0_eq0 ?coef0_eq0_trXnt //.
+case (boolP (g \in coeft0_eq0)) => [g0_eq0 | g0_neq0] le_mn.
+- rewrite !comp_tfps_coeft0_eq0 ?coeft0_eq0_trXnt //.
   rewrite /trXnt -trXn_comp_polyr -trXn_comp_polyl ?(eqP g0_eq0) //=.
   by rewrite trXn_trXn.
-- rewrite !comp_tfps_coef0_neq0 ?coef0_eq0_trXnt //.
+- rewrite !comp_tfps_coef0_neq0 ?coeft0_eq0_trXnt //.
   by rewrite trXntC coef_trXn.
 Qed.
 
-Lemma coef0_eq0_comp f g : (f \So g \in coef0_eq0) = (f \in coef0_eq0).
-Proof. by rewrite !coef0_eq0E coef0_comp_tfps. Qed.
+Lemma coeft0_eq0_comp f g : (f \So g \in coeft0_eq0) = (f \in coeft0_eq0).
+Proof. by rewrite !coeft0_eq0E coef0_comp_tfps. Qed.
 
-Lemma coef0_eq1_comp f g : (f \So g \in coef0_eq1) = (f \in coef0_eq1).
-Proof. by rewrite !coef0_eq1E coef0_comp_tfps. Qed.
+Lemma coeft0_eq1_comp f g : (f \So g \in coeft0_eq1) = (f \in coeft0_eq1).
+Proof. by rewrite !coeft0_eq1E coef0_comp_tfps. Qed.
 
 Lemma comp_tfpsC f (c : R) : c%:S \So f = c%:S.
 Proof.
-case (boolP (f \in coef0_eq0)) => [f0_eq0 | f0_neq0].
-- by rewrite comp_tfps_coef0_eq0 //= val_tfpsC comp_polyC -tfpsCE.
+case (boolP (f \in coeft0_eq0)) => [f0_eq0 | f0_neq0].
+- by rewrite comp_tfps_coeft0_eq0 //= val_tfpsC comp_polyC -tfpsCE.
 - by rewrite comp_tfps_coef0_neq0 ?coef_tfpsC.
 Qed.
 
@@ -2136,13 +2128,13 @@ Lemma comp_tfpsCf f (c : R) : f \So (c%:S) = (f`_0)%:S.
 Proof.
 have [->| c_neq0] := eqVneq c 0.
   by rewrite tfpsC0 comp_tfps0r.
-by rewrite comp_tfps_coef0_neq0 // coef0_eq0E coef_tfpsC.
+by rewrite comp_tfps_coef0_neq0 // coeft0_eq0E coef_tfpsC.
 Qed.
 
 Fact comp_tfps_is_linear (f : {tfps R n}) : linear (comp_tfps f).
 Proof.
-case: (boolP (f \in coef0_eq0)) => Hf a q r.
-- by rewrite !comp_tfps_coef0_eq0 // !raddfD /= !linearZ.
+case: (boolP (f \in coeft0_eq0)) => Hf a q r.
+- by rewrite !comp_tfps_coeft0_eq0 // !raddfD /= !linearZ.
 - rewrite !comp_tfps_coef0_neq0 // coeftD coeftZ.
   by rewrite raddfD /= -!/(_`_0) tfpsCM -alg_tfpsC mulr_algl.
 Qed.
@@ -2156,20 +2148,20 @@ Lemma comp_tfpsXr f : f \So \X = f.
 Proof.
 case: n f => [|n'] f.
   by rewrite tfps0X // comp_tfps0r {2}(tfps_is_cst f).
-rewrite comp_tfps_coef0_eq0 ?tfpsX_in_coef0_eq0 //.
+rewrite comp_tfps_coeft0_eq0 ?tfpsX_in_coeft0_eq0 //.
 by rewrite val_tfpsSX comp_polyXr tfpsK.
 Qed.
 
-Lemma comp_tfpsX : {in coef0_eq0, forall f, \X \So f = f}.
+Lemma comp_tfpsX : {in coeft0_eq0, forall f, \X \So f = f}.
 Proof.
 case: n => [|n'] f.
   rewrite tfps0X // comp_tfps0l {2}(tfps_is_cst f) => /eqP ->.
   by rewrite tfpsC0.
-move=> /comp_tfps_coef0_eq0 ->.
+move=> /comp_tfps_coeft0_eq0 ->.
 by rewrite val_tfpsSX comp_polyX tfpsK.
 Qed.
 
-Lemma comp_tfpsXn i : {in coef0_eq0, forall f, \X ^+ i \So f = f ^+ i}.
+Lemma comp_tfpsXn i : {in coeft0_eq0, forall f, \X ^+ i \So f = f ^+ i}.
 Proof.
 move=> f Hf; apply/tfpsP => j Hj.
 rewrite coef_comp_tfps //.
@@ -2196,12 +2188,12 @@ Implicit Types (f g h : {tfps R n}) (p : {poly R}).
 Fact comp_tfps_is_rmorphism f : multiplicative (comp_tfps f).
 Proof.
 split => /= [g1 g2|]; last exact: comp_tfps1.
-case: (boolP (f \in coef0_eq0)) => Hf.
-- rewrite !comp_tfps_coef0_eq0 // mul_tfps_val /=.
+case: (boolP (f \in coeft0_eq0)) => Hf.
+- rewrite !comp_tfps_coeft0_eq0 // mul_tfps_val /=.
   rewrite -trXn_comp_polyl -?coef_tfpsE ?(eqP Hf) //.
   rewrite rmorphM /= -trXn_mul /=.
   by rewrite -[RHS]tfpsK mul_tfps_val /= trXn_trXn.
-- by rewrite !comp_tfps_coef0_neq0 // coef0_tfpsM -rmorphM.
+- by rewrite !comp_tfps_coef0_neq0 // coeft0M -rmorphM.
 Qed.
 
 Canonical comp_tfps_rmorphism f :=
@@ -2211,15 +2203,15 @@ Canonical comp_tfps_lrmorphism f :=
 
 Lemma comp_tfpsA f g h : f \So (g \So h) = (f \So g) \So h.
 Proof.
-case (boolP (h \in coef0_eq0)) => [h0_eq0 | h0_neq0]; first last.
+case (boolP (h \in coeft0_eq0)) => [h0_eq0 | h0_neq0]; first last.
   rewrite !(comp_tfps_coef0_neq0 _ h0_neq0).
   by rewrite comp_tfpsCf coef0_comp_tfps.
-case (boolP (g \in coef0_eq0)) => [g0_eq0 | g0_neq0]; first last.
-  by rewrite !(comp_tfps_coef0_neq0 f) ?comp_tfpsC // coef0_eq0_comp.
-rewrite comp_tfps_coef0_eq0 ?coef0_eq0_comp //.
-rewrite !comp_tfps_coef0_eq0 //.
+case (boolP (g \in coeft0_eq0)) => [g0_eq0 | g0_neq0]; first last.
+  by rewrite !(comp_tfps_coef0_neq0 f) ?comp_tfpsC // coeft0_eq0_comp.
+rewrite comp_tfps_coeft0_eq0 ?coeft0_eq0_comp //.
+rewrite !comp_tfps_coeft0_eq0 //.
 rewrite -trXn_comp_polyr comp_polyA trXn_comp_polyl //.
-by move: h0_eq0; rewrite coef0_eq0E => /eqP.
+by move: h0_eq0; rewrite coeft0_eq0E => /eqP.
 Qed.
 
 Lemma coef_comp_poly_cX p c i : (p \Po (c *: 'X))`_i = c ^+ i * p`_i.
@@ -2248,12 +2240,12 @@ case: (leqP i n'.+1) => [lt_in1 | lt_n1i]; first last.
   rewrite coef_tfps (ltn_geF lt_n1i) nth_default ?mulr0 //.
   exact: (leq_trans (size_tfps f) lt_n1i).
 rewrite -coef_comp_poly_cX.
-rewrite comp_tfps_coef0_eq0 ?coef0_eq0Z ?tfpsX_in_coef0_eq0 //.
+rewrite comp_tfps_coeft0_eq0 ?coeft0_eq0Z ?tfpsX_in_coeft0_eq0 //.
 by rewrite coef_trXn lt_in1 linearZ /= val_tfpsX scale1r.
 Qed.
 
 Theorem deriv_tfps_comp f g :
-  f \in coef0_eq0 ->
+  f \in coeft0_eq0 ->
   (g \So f)^`() = (g^`()%tfps \So trXnt n.-1 f) * f^`()%tfps.
 Proof.
 rewrite !deriv_tfpsE //.
@@ -2261,7 +2253,7 @@ move: f g; case: n => [|m] f g f0_eq0.
   rewrite [f]tfps_is_cst [g]tfps_is_cst /trXnt comp_tfpsC.
   by rewrite !val_tfpsC !derivC trXn0 mulr0.
 rewrite -[RHS]tfpsK [m.+1.-1]/=.
-rewrite /= !comp_tfps_coef0_eq0 ?coef0_eq0_trXnt //.
+rewrite /= !comp_tfps_coeft0_eq0 ?coeft0_eq0_trXnt //.
 rewrite deriv_trXn !trXn_trXn // deriv_comp.
 rewrite -trXn_mul /=; congr (trXn _ (_ * _)).
 by rewrite -trXn_comp_polyr trXn_comp_polyl ?(eqP f0_eq0).
@@ -2288,12 +2280,12 @@ Fixpoint lagriter ord : {tfps R ord} :=
   if ord is ord'.+1 then mulfX (trXnt ord' g \So lagriter ord') else 0.
 Definition lagrfix := lagriter n.+1.
 
-Lemma coef0_eq0_lagriter ord : lagriter ord \in coef0_eq0.
+Lemma coeft0_eq0_lagriter ord : lagriter ord \in coeft0_eq0.
 Proof.
-by rewrite coef0_eq0E; case: ord => [|i]; rewrite ?coef_tfps0 ?coef_mulfX.
+by rewrite coeft0_eq0E; case: ord => [|i]; rewrite ?coef_tfps0 ?coeft_mulfX.
 Qed.
-Lemma coef0_eq0_lagrfix : lagrfix \in coef0_eq0.
-Proof. exact: coef0_eq0_lagriter. Qed.
+Lemma coeft0_eq0_lagrfix : lagrfix \in coeft0_eq0.
+Proof. exact: coeft0_eq0_lagriter. Qed.
 
 Lemma lagrfixP : lagrfix = mulfX (g \So trXnt n lagrfix).
 Proof.
@@ -2302,17 +2294,17 @@ suff rec ord : ord <= n ->
      lagriter ord.+1 = mulfX (trXnt ord g \So trXnt ord (lagriter ord.+1)).
   by rewrite [LHS](rec n (leqnn n)) trXnt_id.
 elim: ord => [_ | m IHm /ltnW{}/IHm IHm]; apply tfpsP => i.
-  case: i => [_|i]; first by rewrite !coef_mulfX.
+  case: i => [_|i]; first by rewrite !coeft_mulfX.
   rewrite ltnS leqn0 => /eqP ->.
-  rewrite !coef_mulfX /= -!/(_`_0).
+  rewrite !coeft_mulfX /= -!/(_`_0).
   by rewrite comp_tfps0r !coef_tfpsC coef0_comp_tfps.
-case: i => [_|i]; first by rewrite !coef_mulfX.
+case: i => [_|i]; first by rewrite !coeft_mulfX.
 rewrite ltnS => le_im1 /=.
-rewrite -!/(_`_ i.+1) !coef_mulfX /= -/(lagriter m.+1) -!/(_`_ i.+1).
-have lag0 := coef0_eq0_lagriter m.+1.
+rewrite -!/(_`_ i.+1) !coeft_mulfX /= -/(lagriter m.+1) -!/(_`_ i.+1).
+have lag0 := coeft0_eq0_lagriter m.+1.
 move: (lagriter m.+1) => LR in IHm lag0 *.
-have Xlag0 : trXnt m.+1 (mulfX (trXnt m.+1 g \So LR)) \in coef0_eq0.
-  by rewrite coef0_eq0E coef_trXnt coef_mulfX.
+have Xlag0 : trXnt m.+1 (mulfX (trXnt m.+1 g \So LR)) \in coeft0_eq0.
+  by rewrite coeft0_eq0E coef_trXnt coeft_mulfX.
 rewrite !coef_comp_tfps //; apply eq_bigr => k _; congr (_ * _).
 rewrite {}[in LHS]IHm -rmorphX coef_trXnt le_im1.
 set X :=  (_ ^+ k in RHS); have -> : X`_i = (trXnt m.+1 X)`_i.
@@ -2327,10 +2319,10 @@ Lemma divfX_lagrfix_unit : divfX lagrfix \is a GRing.unit.
 Proof. by rewrite lagrfix_divP unit_tfpsE coef0_comp_tfps -unit_tfpsE. Qed.
 
 Lemma lagrfix_inv f :
-  f \in coef0_eq0 -> f = mulfX (g \So trXnt n f) -> (mulfX g^-1) \So f = \X.
+  f \in coeft0_eq0 -> f = mulfX (g \So trXnt n f) -> (mulfX g^-1) \So f = \X.
 Proof.
 move=> f0 Heq.
-have tinv0 : trXnt n f \in coef0_eq0 by rewrite coef0_eq0_trXnt.
+have tinv0 : trXnt n f \in coeft0_eq0 by rewrite coeft0_eq0_trXnt.
 rewrite mulfXE rmorphM /= comp_tfpsX //.
 rewrite {1}Heq mulfXM trXnt_comp // trXnt_trXnt // trXnt_id.
 rewrite rmorphV //= divrr ?mulfX1 //.
@@ -2338,20 +2330,20 @@ by rewrite unit_tfpsE coef0_comp_tfps -unit_tfpsE.
 Qed.
 
 Lemma lagrfix_invPr : (mulfX g^-1) \So lagrfix = \X.
-Proof. exact: (lagrfix_inv coef0_eq0_lagrfix lagrfixP). Qed.
+Proof. exact: (lagrfix_inv coeft0_eq0_lagrfix lagrfixP). Qed.
 
 End LagrangeFixPoint.
 
 Implicit Types (f g : {tfps R n.+1}).
 
-Definition lagrunit f := (f \in coef0_eq0) && (divfX f \is a GRing.unit).
+Definition lagrunit f := (f \in coeft0_eq0) && (divfX f \is a GRing.unit).
 Definition lagrinv f := lagrfix (divfX f)^-1.
 
 Lemma lagrfixE (f : {tfps R n}) : lagrfix f = lagrinv (mulfX f^-1).
 Proof. by rewrite /lagrinv mulfXK invrK. Qed.
 
 Lemma coef1_comp_tfps f g :
-  f \in coef0_eq0 -> g \in coef0_eq0 -> (f \So g)`_1 = f`_1 * g`_1.
+  f \in coeft0_eq0 -> g \in coeft0_eq0 -> (f \So g)`_1 = f`_1 * g`_1.
 Proof.
 move=> f0 g0.
 rewrite coef_comp_tfps // big_ord_recl (eqP f0) mul0r add0r.
@@ -2359,20 +2351,20 @@ by rewrite big_ord_recl /= big_ord0 /bump /= -!/(_`_ 1) !add1n addr0.
 Qed.
 
 Lemma divfX_unitE f : (divfX f \is a GRing.unit) = (f`_1 \is a GRing.unit).
-Proof. by rewrite unit_tfpsE coef_divfX. Qed.
+Proof. by rewrite unit_tfpsE coeft_divfX. Qed.
 
 Lemma lagrunit_comp : {in lagrunit &, forall f g, lagrunit (f \So g) }.
 Proof.
 rewrite /lagrunit => f g /andP [f0 f1] /andP [g0 g1].
-rewrite coef0_eq0_comp f0 /=.
-rewrite unit_tfpsE coef_divfX /= -/(_`_1).
+rewrite coeft0_eq0_comp f0 /=.
+rewrite unit_tfpsE coeft_divfX /= -/(_`_1).
 by rewrite coef1_comp_tfps // unitrM -!divfX_unitE f1 g1.
 Qed.
 
 Lemma lagrunitV : {in lagrunit, forall f, lagrunit (lagrinv f) }.
 Proof.
 rewrite /lagrunit => f /andP [H0 H1].
-by rewrite coef0_eq0_lagrfix divfX_lagrfix_unit // unitrV.
+by rewrite coeft0_eq0_lagrfix divfX_lagrfix_unit // unitrV.
 Qed.
 
 Lemma lagrinvPr : {in lagrunit, forall f, f \So (lagrinv f) = \X }.
@@ -2398,7 +2390,7 @@ Lemma lagrinvPr_uniq f g :
   f \in lagrunit -> f \So g = \X -> g = lagrinv f.
 Proof.
 move=> f_lag Heq.
-have g0 : g \in coef0_eq0.
+have g0 : g \in coeft0_eq0.
   rewrite -[_ \in _]negbK; apply/negP => H.
   move: Heq; rewrite comp_tfps_coef0_neq0 //.
   move => /(congr1 (fun s : {tfps _ _} => s`_1)).
@@ -2415,7 +2407,7 @@ Proof.
 move=> f_lag /(congr1 (fun s => s \So lagrinv f)).
 (** Standard group theoretic argument: left inverse is uniq *)
 rewrite -comp_tfpsA lagrinvPr // comp_tfpsXr // comp_tfpsX //.
-exact: coef0_eq0_lagrfix.
+exact: coeft0_eq0_lagrfix.
 Qed.
 
 Lemma lagrinvK : {in lagrunit, involutive lagrinv}.
@@ -2430,8 +2422,8 @@ Lemma lagrfix_invPl :
 Proof.
 move=> g gU.
 rewrite lagrfixE; apply: lagrinvPl.
-rewrite /lagrunit unfold_in coef0_eq0E coef_mulfX /= eqxx /=.
-by rewrite divfX_unitE coef_mulfX /= -/(_`_0) -unit_tfpsE unitrV.
+rewrite /lagrunit unfold_in coeft0_eq0E coeft_mulfX /= eqxx /=.
+by rewrite divfX_unitE coeft_mulfX /= -/(_`_0) -unit_tfpsE unitrV.
 Qed.
 
 Lemma lagrfix_uniq (g : {tfps R n}) : g \in GRing.unit ->
@@ -2439,8 +2431,8 @@ Lemma lagrfix_uniq (g : {tfps R n}) : g \in GRing.unit ->
 Proof.
 move=> gU f Hf.
 rewrite lagrfixE; apply lagrinvPr_uniq.
-- by rewrite /lagrunit unfold_in coef0_eq0E coef_mulfX mulfXK unitrV /= eqxx.
-- by apply: lagrfix_inv => //; rewrite Hf coef0_eq0E coef_mulfX.
+- by rewrite /lagrunit unfold_in coeft0_eq0E coeft_mulfX mulfXK unitrV /= eqxx.
+- by apply: lagrfix_inv => //; rewrite Hf coeft0_eq0E coeft_mulfX.
 Qed.
 
 End Lagrange.
@@ -2458,7 +2450,7 @@ Proof.
 rewrite mulfXM mulrC rmorphX /= -/(_`_i.+1).
 apply (mulrI (nat_unit i)); rewrite mulr0 -!coeftZ scalerBr.
 rewrite -linearZ /= !scaler_nat -(derivX_tfps g i.+1) -/(_`_i.+1).
-by rewrite coeftB coef_mulfX coef_deriv_tfps /= -!/(_`_i.+1) coeftMn subrr.
+by rewrite coeftB coeft_mulfX coef_deriv_tfps /= -!/(_`_i.+1) coeftMn subrr.
 Qed.
 
 Theorem Lagrange_Bürmann_exp n (g : {tfps R n}) i k :
@@ -2475,12 +2467,12 @@ case: n g => [|n] g gU.
     by case: i => [|i]/= _; rewrite ?mulr0n ?mul0rn.
   - move=> /andP [le1i lei1].
     have {le1i lei1} -> : i = 1%N by apply anti_leq; rewrite le1i lei1.
-    by rewrite !expr1 !mulr1n subSS coef_mulfX /=.
+    by rewrite !expr1 !mulr1n subSS coeft_mulfX /=.
   - move=> /andP [leki lei1].
     by have:= leq_trans leki lei1; rewrite ltnS ltn0.
 case: k i => [|k] [|i]; rewrite ?(expr0, subn0, coef1, mulr0n, mul0rn) //.
 rewrite subSS !ltnS => /andP [le_ki le_in].
-have Xg0 : mulfX g^-1 \in coef0_eq0 by rewrite coef0_eq0E coef_mulfX.
+have Xg0 : mulfX g^-1 \in coeft0_eq0 by rewrite coeft0_eq0E coeft_mulfX.
 (* The RHS is ((\X ^+ k.+1)^`() * g ^+ i.+1)`_i                        *)
 have:= congr1 (fun s => (s ^+ k.+1)^`()) (lagrfix_invPl gU).
 rewrite -rmorphX /= {1}(tfps_def (lagrfix g ^+ k.+1)) rmorph_sum /=.
@@ -2497,17 +2489,17 @@ move: (LGRF`_i.+1) => Co.
 rewrite !linearZ /= -scalerAl coeftZ rmorphX /= comp_tfpsX //.
 rewrite derivX_tfps /= !mulrnAl coeftMn /= mulrnAr -mulrnAl.
 rewrite -mulrA coefM_tfps le_in big_ord_recr /=.
-rewrite subnn coef0_tfpsM coef_deriv_tfps coef_mulfX /= -!/(_`_0) mulr1n.
-rewrite {2}exprS coef0_tfpsM [g^-1`_0 * _]mulrA coef0_tfpsV //.
+rewrite subnn coeft0M coef_deriv_tfps coeft_mulfX /= -!/(_`_0) mulr1n.
+rewrite {2}exprS coeft0M [g^-1`_0 * _]mulrA coeft0V //.
 rewrite mulVr -?unit_tfpsE // mul1r.
 rewrite -rmorphX /= coef_trXnt le_in -!/(_`_0).
-rewrite coef_mulfX_exp ?(leq_trans le_in) //.
-rewrite -coef0_tfpsM exprVn mulVr ?rpredX // coef1 /=.
+rewrite coeft_mulfX_exp ?(leq_trans le_in) //.
+rewrite -coeft0M exprVn mulVr ?rpredX // coef1 /=.
 (* All the other terms vanish.                                         *)
 rewrite !big1 ?add0r ?addr0 ?mulr1 //; first last.
   move=> [j /= lt_ji] _.
   rewrite coef_trXnt (leq_trans (ltnW lt_ji) le_in).
-  by rewrite coef_mulfX_exp_lt // mul0r.
+  by rewrite coeft_mulfX_exp_lt // mul0r.
 move=> [j Hj]; rewrite -val_eqE /= {Hi} => Hneq.
 rewrite !linearZ /= -scalerAl coeftZ rmorphX /= comp_tfpsX //.
 rewrite [X in _ * X](_ : _ = 0) ?mulr0 // {LGRF}.
@@ -2537,7 +2529,7 @@ rewrite {2}exprS !mulrA -[_ * g]mulrA -expr2 divrK ?unitrX //.
 exact: mulfX_deriv_expE.
 Qed.
 
-Theorem coef_lagrfix n (g : {tfps R n}) i :
+Theorem coeft_lagrfix n (g : {tfps R n}) i :
   g \in GRing.unit -> (lagrfix g)`_i.+1 = (g ^+ i.+1)`_i / i.+1%:R.
 Proof.
 move/Lagrange_Bürmann_exp => HL.
@@ -2554,7 +2546,7 @@ Theorem Lagrange_Bürmann n (g : {tfps R n}) (h : {tfps R n.+1}) i  :
   (h \So lagrfix g)`_i.+1 = (h^`()%tfps * g ^+ i.+1)`_i / i.+1%:R.
 Proof.
 move=> gU.
-have lg0 := coef0_eq0_lagrfix g.
+have lg0 := coeft0_eq0_lagrfix g.
 (* We argue by linearity from the previous statement *)
 rewrite (tfps_def h) !(raddf_sum, mulr_suml, coeft_sum).
 apply eq_bigr => [[k /=]]; rewrite ltnS => le_kn2 _.
@@ -2590,7 +2582,7 @@ Theorem Lagrange_Bürmann_exp2 n (g : {tfps R n.+1}) i k :
 Proof.
 move=> gU.
 case: k i => [|k] [|i] Hki //.
-- by rewrite !expr0 !mulr1 coeftB coef0_tfpsM coef_mulfX mul0r subr0.
+- by rewrite !expr0 !mulr1 coeftB coeft0M coeft_mulfX mul0r subr0.
 - rewrite !expr0 !mulr1 coef_tfps1 exprS mulrA !mulrBl mul1r.
   by rewrite divrK //= -!/(_`_i.+1) -exprS mulfX_deriv_expE.
 move: Hki; rewrite !ltnS => /andP [le_ki le_in].
@@ -2612,9 +2604,9 @@ rewrite {}/X deriv_trXnt [\Xo(n.+2) ^+ k.+1]exprS rmorphM /= trXnt_tfpsX.
 rewrite [\X * _]mulrC -!mulrA -mulfXE rmorphX /= trXnt_tfpsX -/(_`_i.+1).
 rewrite coef_deriv_tfps.
 rewrite !coef_tfpsXnM le_in1 ltnS le_in1 (leq_gtF (leq_trans le_ki (leqnSn _))).
-rewrite (leq_gtF le_ki) coef_mulfX -/(leq _ _) (leq_gtF le_ki).
+rewrite (leq_gtF le_ki) coeft_mulfX -/(leq _ _) (leq_gtF le_ki).
 rewrite subSn //= coeftB mulrBl mulr_natr; congr (_ - _).
-rewrite mulfXM !coef_mulfX -/(leq _ _).
+rewrite mulfXM !coeft_mulfX -/(leq _ _).
 case: leqP; rewrite ?mul0r // => lt_ki.
 by rewrite derivX_tfps /= coeftMn mulrC rmorphX /= mulr_natr.
 Qed.
@@ -2630,10 +2622,10 @@ case: (leqP i n.+1) => [le_in1 | lt_n1i]; first last.
 rewrite (tfps_def h) !(raddf_sum, mulr_suml, mulr_sumr, coeft_sum) /=.
 apply eq_bigr => [[k /=]]; rewrite ltnS => le_kn2 _.
 rewrite !linearZ /= -mulrA mulrC -!scalerAl !coeftZ; congr (_ * _).
-rewrite rmorphX /= comp_tfpsX ?coef0_eq0_trXnt ?coef0_eq0_lagrfix //.
+rewrite rmorphX /= comp_tfpsX ?coeft0_eq0_trXnt ?coeft0_eq0_lagrfix //.
 rewrite -rmorphX coef_trXnt le_in1.
 case: (leqP k i) => [le_ki | lt_ik]; first last.
-  rewrite coefX_tfps_eq0 ?coef0_eq0_lagrfix //.
+  rewrite coefX_tfps_eq0 ?coeft0_eq0_lagrfix //.
   by rewrite -mulrA coef_tfpsXnM lt_ik.
 rewrite Lagrange_Bürmann_exp2 ?le_in1 ?andbT //.
 by rewrite [in RHS]mulrC mulrA.
@@ -2666,29 +2658,29 @@ Proof. exact: trXnt_tfps_of_fun. Qed.
 Lemma trXnt_logt m : m <= n -> trXnt m (logt n) = logt m.
 Proof. exact: trXnt_tfps_of_fun. Qed.
 
-Lemma coef0_expt : (expt n)`_0 = 1.
+Lemma coeft0_expt : (expt n)`_0 = 1.
 Proof. by rewrite coef_tfps_of_fun fact0 invr1. Qed.
-Lemma expt_in_coef0_eq1 : expt n \in coef0_eq1.
-Proof. by rewrite coef0_eq1E coef0_expt. Qed.
+Lemma expt_in_coeft0_eq1 : expt n \in coeft0_eq1.
+Proof. by rewrite coeft0_eq1E coeft0_expt. Qed.
 
-Lemma coef0_exp f : (exp f)`_0 = 1.
-Proof. by rewrite /exp coef0_comp_tfps coef0_expt. Qed.
-Lemma exp_in_coef0_eq1 f : exp f \in coef0_eq1.
-Proof. by rewrite coef0_eq1E coef0_exp. Qed.
+Lemma coeft0_exp f : (exp f)`_0 = 1.
+Proof. by rewrite /exp coef0_comp_tfps coeft0_expt. Qed.
+Lemma exp_in_coeft0_eq1 f : exp f \in coeft0_eq1.
+Proof. by rewrite coeft0_eq1E coeft0_exp. Qed.
 Lemma exp_unit f : exp f \is a GRing.unit.
-Proof. exact/coef0_eq1_unit/exp_in_coef0_eq1. Qed.
+Proof. exact/coeft0_eq1_unit/exp_in_coeft0_eq1. Qed.
 
-Lemma coef0_logt : (logt n)`_0 = 0.
+Lemma coeft0_logt : (logt n)`_0 = 0.
 Proof. by rewrite coef_tfps_of_fun. Qed.
-Lemma logt_in_coef0_eq1 : logt n \in coef0_eq0.
-Proof. by rewrite coef0_eq0E coef0_logt. Qed.
+Lemma logt_in_coeft0_eq1 : logt n \in coeft0_eq0.
+Proof. by rewrite coeft0_eq0E coeft0_logt. Qed.
 
-Lemma coef0_log f : (log f)`_0 = 0.
-Proof. by rewrite /log coef0_comp_tfps coeftN coef0_logt oppr0. Qed.
-Lemma log_in_coef0_eq0 f : log f \in coef0_eq0.
-Proof. by rewrite coef0_eq0E coef0_log. Qed.
+Lemma coeft0_log f : (log f)`_0 = 0.
+Proof. by rewrite /log coef0_comp_tfps coeftN coeft0_logt oppr0. Qed.
+Lemma log_in_coeft0_eq0 f : log f \in coeft0_eq0.
+Proof. by rewrite coeft0_eq0E coeft0_log. Qed.
 
-Lemma exp_coef0_eq0 f : f \in coef0_eq0 ->
+Lemma exp_coeft0_eq0 f : f \in coeft0_eq0 ->
   exp f = \sum_(i < n.+1) i`!%:R ^-1 *: f ^+ i.
 Proof.
 rewrite /exp /expt => f0_eq0; apply tfpsP => i le_in.
@@ -2697,14 +2689,14 @@ apply eq_bigr => k _.
 by rewrite coef_tfps_of_fun -ltnS ltn_ord coeftZ.
 Qed.
 
-Lemma exp_coef0_eq0_val f : f \in coef0_eq0 ->
+Lemma exp_coeft0_eq0_val f : f \in coeft0_eq0 ->
   exp f = trXn n (\sum_(i < n.+1) i`!%:R ^-1 *: (tfps f) ^+ i).
 Proof.
-move/exp_coef0_eq0 ->; rewrite /= !raddf_sum; apply eq_bigr => i _ /=.
+move/exp_coeft0_eq0 ->; rewrite /= !raddf_sum; apply eq_bigr => i _ /=.
 by rewrite -[LHS]tfpsK !linearZ /= exp_tfps_val trXn_trXn.
 Qed.
 
-Lemma exp_coef0_isnt_0 f : f \notin coef0_eq0 -> exp f = 1.
+Lemma exp_coeft0_isnt_0 f : f \notin coeft0_eq0 -> exp f = 1.
 Proof.
 rewrite /exp => /comp_tfps_coef0_neq0 ->.
 by rewrite coef_tfps_of_fun /= fact0 invr1 tfpsC1.
@@ -2713,7 +2705,7 @@ Qed.
 Lemma exp0 : exp 0 = 1 :> {tfps R n}.
 Proof.
 apply/tfpsP => i le_in.
-rewrite exp_coef0_eq0 ?rpred0 // !coeft_sum /=.
+rewrite exp_coeft0_eq0 ?rpred0 // !coeft_sum /=.
 rewrite big_ord_recl /= fact0 invr1 expr0 alg_tfpsC tfpsC1.
 rewrite big1 ?addr0 // => [] [j ] _ _ /=.
 by rewrite /bump /= add1n expr0n /= scaler0 coef0.
@@ -2721,40 +2713,40 @@ Qed.
 
 Lemma expC (c : R) : exp (c%:S) = 1 :> {tfps R n}.
 Proof.
-case (boolP (c%:S \in @coef0_eq0 R n)) => [| p0N0].
-- rewrite coef0_eq0E coef_tfpsC /= => /eqP ->.
+case (boolP (c%:S \in @coeft0_eq0 R n)) => [| p0N0].
+- rewrite coeft0_eq0E coef_tfpsC /= => /eqP ->.
   by rewrite tfpsC0 exp0.
-- exact: exp_coef0_isnt_0.
+- exact: exp_coeft0_isnt_0.
 Qed.
 
-Lemma log_coef0_eq1 f : f \in coef0_eq1 ->
+Lemma log_coeft0_eq1 f : f \in coeft0_eq1 ->
   log f = - \sum_(1 <= i < n.+1) i%:R ^-1 *: (1 - f) ^+i.
 Proof.
 rewrite /log /logt => f0_eq1; apply tfpsP => i le_in.
 rewrite raddfN !coeftN /=; congr (- _).
-rewrite (coef_comp_tfps_leq (l := n)) -?coef0_eq10 // coeft_sum /=.
+rewrite (coef_comp_tfps_leq (l := n)) -?coeft0_eq10 // coeft_sum /=.
 rewrite -big_mknat /= [RHS]big_mkcond /=; apply eq_bigr => j _.
 rewrite coef_tfps_of_fun -ltnS ltn_ord coeftZ lt0n.
 by case: eqP => //= _; rewrite mul0r.
 Qed.
 
-Lemma log_coef0_eq1_val f : f \in coef0_eq1 ->
+Lemma log_coeft0_eq1_val f : f \in coeft0_eq1 ->
   log f = trXn n (- \sum_(1 <= i < n.+1) i%:R ^-1 *: (1 - val f) ^+i).
 Proof.
-move=> /log_coef0_eq1 ->.
+move=> /log_coeft0_eq1 ->.
 rewrite /= !raddf_sum; apply eq_bigr => i _ /=.
 by rewrite -[LHS]tfpsK !linearZ !linearN /= exp_tfps_val trXn_trXn.
 Qed.
 
-Lemma log_coef0_isnt_1 f : f \notin coef0_eq1 -> log f = 0.
+Lemma log_coeft0_isnt_1 f : f \notin coeft0_eq1 -> log f = 0.
 Proof.
-rewrite /log coef0_eq10 => /comp_tfps_coef0_neq0 ->.
+rewrite /log coeft0_eq10 => /comp_tfps_coef0_neq0 ->.
 by rewrite coeftN coef_tfps_of_fun /= oppr0 tfpsC0.
 Qed.
 
 Lemma log1 : log (1 : {tfps R n}) = 0.
 Proof.
-apply/tfpsP => j Hj; rewrite log_coef0_eq1 ?rpred1 // coef0 subrr.
+apply/tfpsP => j Hj; rewrite log_coeft0_eq1 ?rpred1 // coef0 subrr.
 rewrite coefN big_nat big1 ?coef0 ?oppr0 // => i /andP [Hi _].
 by rewrite expr0n -[i == 0%N]negbK -lt0n Hi /= scaler0.
 Qed.
@@ -2827,9 +2819,9 @@ by rewrite -coef_deriv primK -coef_tfpsE.
 Qed.
 
 Lemma deriv_tfpsK :
-  {in coef0_eq0, cancel (@deriv_tfps R n.+1) (@prim_tfps R n)}.
+  {in coeft0_eq0, cancel (@deriv_tfps R n.+1) (@prim_tfps R n)}.
 Proof.
-move=> f; rewrite coef0_eq0E => /eqP f0_eq0.
+move=> f; rewrite coeft0_eq0E => /eqP f0_eq0.
 apply/tfpsP => i _.
 rewrite coef_prim_tfps coef_prim coef_deriv_tfps.
 case: i => [|i]; first by rewrite eq_refl f0_eq0.
@@ -2855,10 +2847,10 @@ Implicit Types (f g : {tfps R n}).
 Lemma fact_unit m : m`!%:R \is a @GRing.unit R.
 Proof. by have:= fact_gt0 m; rewrite lt0n; case: m`!. Qed.
 
-Theorem expD : {in @coef0_eq0 R n &, {morph exp : f g / f + g >-> f * g}}.
+Theorem expD : {in @coeft0_eq0 R n &, {morph exp : f g / f + g >-> f * g}}.
 Proof.
 move=> f g f0_eq0 g0_eq0 /=.
-rewrite !exp_coef0_eq0 ?rpredD //.
+rewrite !exp_coeft0_eq0 ?rpredD //.
 pose FG u v := (u`! * v`!)%:R ^-1 *: (g ^+ u * f ^+ v) : {tfps R n}.
 rewrite (eq_bigr
            (fun i : 'I_n.+1 => \sum_(j < i.+1) FG j (i - j)%N)); first last.
@@ -2880,13 +2872,13 @@ apply eq_bigr => j _.
 by rewrite -scalerAr -scalerAl scalerA natrM invrM // fact_unit.
 Qed.
 
-Lemma expN f : f \in coef0_eq0 -> exp (- f) = (exp f)^-1.
+Lemma expN f : f \in coeft0_eq0 -> exp (- f) = (exp f)^-1.
 Proof.
 move=> f0_eq0; apply: (@mulrI _ (exp f)); rewrite ?divrr ?exp_unit //.
 by rewrite -expD ?rpredN // subrr exp0.
 Qed.
 
-Lemma expB : {in @coef0_eq0 R n &, {morph exp : f g / f - g >-> f / g}}.
+Lemma expB : {in @coeft0_eq0 R n &, {morph exp : f g / f - g >-> f / g}}.
 Proof. by move=> f g hf hg; rewrite expD ?rpredN // expN. Qed.
 
 End ExpMorph.
@@ -2990,11 +2982,11 @@ Proof.
 apply/tfpsP => /= i le_in.
 rewrite coef_deriv_tfps !coef_tfps_of_fun ltnS le_in /=.
 rewrite -mulr_natr mulrC divrr //.
-by rewrite -(scale1r \X) coeff_geometric_1cNV // expr1n.
+by rewrite -(scale1r \X) coef_geometrict_1cNV // expr1n.
 Qed.
 
 Theorem deriv_exp n (f : {tfps R n}) :
-  f \in coef0_eq0 -> (exp f)^`() = f^`()%tfps * trXnt n.-1 (exp f).
+  f \in coeft0_eq0 -> (exp f)^`() = f^`()%tfps * trXnt n.-1 (exp f).
 Proof.
 case: n f => /= [| m] f f0_eq0.
   by rewrite [f]tfps_is_cst deriv_tfpsC mul0r expC deriv_tfps1.
@@ -3003,21 +2995,21 @@ by rewrite trXnt_comp // trXnt_expt.
 Qed.
 
 Theorem deriv_log n (f : {tfps R n}) :
-  f \in coef0_eq1 -> (log f)^`() = f^`()%tfps / trXnt n.-1 f.
+  f \in coeft0_eq1 -> (log f)^`() = f^`()%tfps / trXnt n.-1 f.
 Proof.
 case: n f => [|m] f.
-  rewrite [f]tfps_is_cst coef0_eq1E coef_tfpsC => /eqP ->.
+  rewrite [f]tfps_is_cst coeft0_eq1E coef_tfpsC => /eqP ->.
   by rewrite !deriv_tfps0p mul0r.
 move => f0_eq1.
-rewrite /log !raddfN /= deriv_tfps_comp -?coef0_eq10 //= mulrC.
+rewrite /log !raddfN /= deriv_tfps_comp -?coeft0_eq10 //= mulrC.
 rewrite deriv_logt /= raddfB /= deriv_tfps1 sub0r mulNr opprK.
 rewrite !rmorphV //=; first last.
-  apply: coef0_eq1_unit; rewrite -coef0_eq01 rpredN.
-  by rewrite coef0_eq0E coef_tfpsX /= mulr0.
+  apply: coeft0_eq1_unit; rewrite -coeft0_eq01 rpredN.
+  by rewrite coeft0_eq0E coef_tfpsX /= mulr0.
 congr (_ / _); rewrite raddfB /= comp_tfps1 comp_tfpsX.
   by rewrite raddfB /= trXnt1 opprB addrC subrK.
-rewrite coef0_eq0_trXnt.
-by rewrite -rpredN coef0_eq01 opprB addrC subrK.
+rewrite coeft0_eq0_trXnt.
+by rewrite -rpredN coeft0_eq01 opprB addrC subrK.
 Qed.
 
 
@@ -3027,14 +3019,14 @@ Implicit Types (f g : {tfps R n}).
 Lemma exptK : log expt = \X :> {tfps R n}.
 Proof.
 case: n => [|m].
-  by apply tfpsP => [] [|i]// _; rewrite coef0_log coef_tfpsX mulr0.
-apply deriv_tfps_eq => //; last by rewrite coef0_log coef_tfpsX mulr0.
-rewrite deriv_log ?expt_in_coef0_eq1 //.
+  by apply tfpsP => [] [|i]// _; rewrite coeft0_log coef_tfpsX mulr0.
+apply deriv_tfps_eq => //; last by rewrite coeft0_log coef_tfpsX mulr0.
+rewrite deriv_log ?expt_in_coeft0_eq1 //.
 rewrite deriv_tfpsX deriv_expt // trXnt_expt // divrr //.
-by apply/coef0_eq1_unit/expt_in_coef0_eq1.
+by apply/coeft0_eq1_unit/expt_in_coeft0_eq1.
 Qed.
 
-Lemma expK : {in coef0_eq0, cancel (@exp R n) (@log R n)}.
+Lemma expK : {in coeft0_eq0, cancel (@exp R n) (@log R n)}.
 Proof.
 move => f f0_eq0 /=.
 have:= congr1 (fun g => g \So f) exptK.
@@ -3043,65 +3035,65 @@ rewrite /exp /log !raddfN /= -comp_tfpsA.
 by rewrite [(1 - expt) \So f]rmorphB /= comp_tfps1.
 Qed.
 
-Lemma exp_inj : {in coef0_eq0 &, injective (@exp R n)}.
+Lemma exp_inj : {in coeft0_eq0 &, injective (@exp R n)}.
 Proof. exact: (can_in_inj expK). Qed.
 
-Lemma log_inj : {in coef0_eq1 &, injective (@log R n)}.
+Lemma log_inj : {in coeft0_eq1 &, injective (@log R n)}.
 Proof.
 move=> f g f0_eq1 g0_eq1 /= Hlog.
 suff : f / g = 1.
-  by move/(congr1 (fun x => x * g)); rewrite divrK ?mul1r ?coef0_eq1_unit.
+  by move/(congr1 (fun x => x * g)); rewrite divrK ?mul1r ?coeft0_eq1_unit.
 apply deriv_tfps_eq => //; first last.
-  by rewrite coef0_tfpsM (eqP f0_eq1) coef0_tfpsV (eqP g0_eq1) divr1 coef_tfps1.
-rewrite deriv_tfps1 deriv_div_tfps; last exact: coef0_eq1_unit.
+  by rewrite coeft0M (eqP f0_eq1) coeft0V (eqP g0_eq1) divr1 coef_tfps1.
+rewrite deriv_tfps1 deriv_div_tfps; last exact: coeft0_eq1_unit.
 rewrite [X in X / _](_ : _ = 0) ?mul0r //.
 apply/eqP; rewrite subr_eq0 [X in _ == X]mulrC.
-rewrite -eq_divr ?trXnt_unitE -?unit_tfpsE ?coef0_eq1_unit //.
+rewrite -eq_divr ?trXnt_unitE -?unit_tfpsE ?coeft0_eq1_unit //.
 by move/(congr1 (@deriv_tfps R n)): Hlog; rewrite !deriv_log // => ->.
 Qed.
 
-Lemma logK : {in coef0_eq1 , cancel (@log R n) (@exp R n)}.
+Lemma logK : {in coeft0_eq1 , cancel (@log R n) (@exp R n)}.
 Proof.
 move=> f f0_eq1 /=.
-apply: log_inj => //; first by rewrite exp_in_coef0_eq1.
-by rewrite expK // log_in_coef0_eq0.
+apply: log_inj => //; first by rewrite exp_in_coeft0_eq1.
+by rewrite expK // log_in_coeft0_eq0.
 Qed.
 
-Lemma logM : {in coef0_eq1 &, {morph (@log R n) : f g / f * g >-> f + g}}.
+Lemma logM : {in coeft0_eq1 &, {morph (@log R n) : f g / f * g >-> f + g}}.
 Proof.
 move=> f g f0_eq1 g0_eq1 /=.
-apply exp_inj; rewrite ?rpredD ?log_in_coef0_eq0 //.
-rewrite expD ?log_in_coef0_eq0 //.
+apply exp_inj; rewrite ?rpredD ?log_in_coeft0_eq0 //.
+rewrite expD ?log_in_coeft0_eq0 //.
 by rewrite !logK // rpredM.
 Qed.
 
-Lemma logV : {in coef0_eq1, {morph (@log R n) : f / f^-1 >-> - f}}.
+Lemma logV : {in coeft0_eq1, {morph (@log R n) : f / f^-1 >-> - f}}.
 Proof.
 move=> f f0_eq1 /=.
-apply exp_inj; rewrite ?rpredN ?log_in_coef0_eq0 //.
-rewrite expN ?log_in_coef0_eq0 //.
+apply exp_inj; rewrite ?rpredN ?log_in_coeft0_eq0 //.
+rewrite expN ?log_in_coeft0_eq0 //.
 by rewrite !logK // rpredV.
 Qed.
 
-Lemma log_div : {in coef0_eq1 &, {morph (@log R n) : f g / f / g >-> f - g}}.
+Lemma log_div : {in coeft0_eq1 &, {morph (@log R n) : f g / f / g >-> f - g}}.
 Proof. by move=> f g f0_eq1 g0_eq1 /=; rewrite logM ?rpredV // logV. Qed.
 
 
 Section ExprTfps.
 
 Variable f : {tfps R n}.
-Hypothesis f0_eq1 : f \in coef0_eq1.
+Hypothesis f0_eq1 : f \in coeft0_eq1.
 
-Let log_coef0_eq0Z c : c *: log f \in coef0_eq0.
-Proof. by rewrite coef0_eq0Z // log_in_coef0_eq0. Qed.
+Let log_coeft0_eq0Z c : c *: log f \in coeft0_eq0.
+Proof. by rewrite coeft0_eq0Z // log_in_coeft0_eq0. Qed.
 
-Lemma coef0_eq1_expr c : f ^^ c \in coef0_eq1.
-Proof. by rewrite /expr_tfps exp_in_coef0_eq1. Qed.
+Lemma coeft0_eq1_expr c : f ^^ c \in coeft0_eq1.
+Proof. by rewrite /expr_tfps exp_in_coeft0_eq1. Qed.
 
 Lemma expr_tfpsn m : f ^^ m%:R = f ^+ m.
 Proof.
 rewrite /expr_tfps; elim: m => [|m IHm]; first by rewrite expr0 scale0r exp0.
-rewrite -{1}add1n natrD scalerDl scale1r expD ?log_in_coef0_eq0 //.
+rewrite -{1}add1n natrD scalerDl scale1r expD ?log_in_coeft0_eq0 //.
 by rewrite {}IHm logK // exprS.
 Qed.
 
@@ -3138,31 +3130,31 @@ Qed.
 
 End ExprTfps.
 
-Lemma expr_tfpsNn f m : f \in coef0_eq1 -> f ^^ (-m%:R) = f ^- m.
+Lemma expr_tfpsNn f m : f \in coeft0_eq1 -> f ^^ (-m%:R) = f ^- m.
 Proof.
 move=> Hf.
 by rewrite -mulN1r expr_tfpsM expr_tfpsN1 ?expr_tfpsn ?exprVn ?rpredV.
 Qed.
 
 Lemma expr_tfpsK a : a \is a GRing.unit ->
-  {in coef0_eq1, cancel (@expr_tfps R n a) (@expr_tfps R n a^-1)}.
+  {in coeft0_eq1, cancel (@expr_tfps R n a) (@expr_tfps R n a^-1)}.
 Proof. by move=> aU f f0_eq1; rewrite -expr_tfpsM divrr ?expr_tfps1. Qed.
 
 Lemma expr_tfps_inj a : a \is a GRing.unit ->
-  {in coef0_eq1 &, injective (@expr_tfps R n a)}.
+  {in coeft0_eq1 &, injective (@expr_tfps R n a)}.
 Proof. by move=> /expr_tfpsK/can_in_inj. Qed.
 
 
 Local Notation "\sqrt f" := (f ^^ (2%:R^-1)).
 
-Lemma sqrrK f : f \in coef0_eq1 -> \sqrt (f ^+ 2) = f.
+Lemma sqrrK f : f \in coeft0_eq1 -> \sqrt (f ^+ 2) = f.
 Proof.
 by move => Hh; rewrite -expr_tfpsn -?expr_tfpsM ?divrr ?expr_tfps1.
 Qed.
 
-Lemma sqrtK f : f \in coef0_eq1 -> (\sqrt f) ^+ 2 = f.
+Lemma sqrtK f : f \in coeft0_eq1 -> (\sqrt f) ^+ 2 = f.
 Proof.
-move => Hh; rewrite -expr_tfpsn ?coef0_eq1_expr //.
+move => Hh; rewrite -expr_tfpsn ?coeft0_eq1_expr //.
 by rewrite -?expr_tfpsM // mulrC divrr ?expr_tfps1.
 Qed.
 
@@ -3176,9 +3168,9 @@ Section CoefExpX.
 Variables R : comUnitRingType.
 Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 
-Lemma coef1cX n c : 1 + c *: \Xo(n) \in @coef0_eq1 R n.
+Lemma coeft1cX n c : 1 + c *: \Xo(n) \in @coeft0_eq1 R n.
 Proof.
-rewrite coef0_eq1E coeftD coef_tfps1.
+rewrite coeft0_eq1E coeftD coef_tfps1.
 by rewrite coeftZ coef_tfpsE val_tfpsX coefZ coefX !mulr0 addr0.
 Qed.
 
@@ -3193,13 +3185,13 @@ Theorem coef_expr1cX n c a m : m <= n ->
   ((1 + c *: \Xo(n)) ^^ a)`_m = c ^+ m * \prod_(i < m) (a - i%:R) / m`!%:R :> R.
 Proof.
 elim: m n a => [|m IHm] n a lt_mn.
-  rewrite big_ord0 /expr_tfps coef0_exp ?coef0_eq0Z ?log_in_coef0_eq0 //.
+  rewrite big_ord0 /expr_tfps coeft0_exp ?coeft0_eq0Z ?log_in_coeft0_eq0 //.
   by rewrite expr0 mul1r fact0 divr1.
 case: n lt_mn => [|n] //; rewrite ltnS => le_mn.
 have:= coef_deriv_tfps ((1 + c *: \Xo(n.+1)) ^^ a) m.
 rewrite -mulr_natr => /(congr1 (fun x => x * m.+1%:R^-1)).
 rewrite mulrK // => <-.
-rewrite deriv_expr_tfps ?coef1cX // deriv1cX.
+rewrite deriv_expr_tfps ?coeft1cX // deriv1cX.
 rewrite [_ * c%:S]mulrC -alg_tfpsC mulr_algl exprS coefZ.
 rewrite coefZ coef_trXn le_mn {}IHm ?(leq_trans le_mn) // {n le_mn}.
 rewrite mulrA factS natrM invrM // ?fact_unit // !mulrA; congr (_ * _ * _).
@@ -3225,15 +3217,15 @@ Variable n : nat.
 Implicit Types (f g : {tfps R n}).
 
 
-Lemma sqrtE f g : f \in coef0_eq1 -> g ^+ 2 = f ->
+Lemma sqrtE f g : f \in coeft0_eq1 -> g ^+ 2 = f ->
   g = \sqrt f  \/  g = - \sqrt f.
 Proof.
 move=> /eqP f0_eq1 Heq.
 have /eqP := (congr1 (fun f : {tfps R n} => f`_0) Heq).
-rewrite -subr_eq0 {}f0_eq1 expr2 coef0_tfpsM -expr2 subr_sqr_1.
+rewrite -subr_eq0 {}f0_eq1 expr2 coeft0M -expr2 subr_sqr_1.
 rewrite mulf_eq0 => /orP [].
-- by rewrite subr_eq0 -coef0_eq1E -{}Heq {f} => Hg0; left; rewrite sqrrK.
-- rewrite addr_eq0 -eqr_oppLR -coefN -raddfN -coef0_eq1E -{}Heq {f} => Hg0.
+- by rewrite subr_eq0 -coeft0_eq1E -{}Heq {f} => Hg0; left; rewrite sqrrK.
+- rewrite addr_eq0 -eqr_oppLR -coefN -raddfN -coeft0_eq1E -{}Heq {f} => Hg0.
   by right; apply oppr_inj; rewrite opprK -sqrrN sqrrK.
 Qed.
 
@@ -3281,7 +3273,7 @@ Definition log_inj            := TFPSUnitRing.log_inj            nuf.
 Definition logM               := TFPSUnitRing.logM               nuf.
 Definition logV               := TFPSUnitRing.logV               nuf.
 Definition log_div            := TFPSUnitRing.log_div            nuf.
-Definition coef0_eq1_expr     := TFPSUnitRing.coef0_eq1_expr.
+Definition coeft0_eq1_expr    := TFPSUnitRing.coeft0_eq1_expr.
 Definition expr_tfpsn         := TFPSUnitRing.expr_tfpsn         nuf.
 Definition expr_tfps0         := TFPSUnitRing.expr_tfps0         nuf.
 Definition expr_tfps1         := TFPSUnitRing.expr_tfps1         nuf.
@@ -3293,7 +3285,7 @@ Definition expr_tfpsB         := TFPSUnitRing.expr_tfpsB         nuf.
 Definition expr_tfpsM         := TFPSUnitRing.expr_tfpsM         nuf.
 Definition sqrrK              := TFPSUnitRing.sqrrK              nuf.
 Definition sqrtK              := TFPSUnitRing.sqrtK              nuf.
-Definition coef1cX            := TFPSUnitRing.coef1cX.
+Definition coeft1cX           := TFPSUnitRing.coeft1cX.
 Definition deriv1cX           := TFPSUnitRing.deriv1cX.
 Definition coef_expr1cX       := TFPSUnitRing.coef_expr1cX       nuf.
 Definition coef_expr1X        := TFPSUnitRing.coef_expr1X        nuf.

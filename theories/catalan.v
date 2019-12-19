@@ -57,8 +57,8 @@ Local Open Scope tfps_scope.
 Variable n : nat.
 Definition FC : {tfps Rat n} := [tfps i => (C i)%:R].
 
-Lemma FC_in_coef0_eq1 : FC \in coef0_eq1.
-Proof. by rewrite coef0_eq1E coef_tfps_of_fun C0. Qed.
+Lemma FC_in_coef0_eq1 : FC \in coeft0_eq1.
+Proof. by rewrite coeft0_eq1E coef_tfps_of_fun C0. Qed.
 
 Proposition FC_algebraic_eq : FC = 1 + \X * FC ^+ 2.
 Proof.
@@ -87,8 +87,8 @@ Proof. by rewrite scaler_nat -[f *+ i]mulr_natr mulrC. Qed.
 Theorem FC_algebraic_solution n :
   \X * FC n = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
 Proof.
-have co1 : 1 - 4%:R *: \X \in @coef0_eq1 Rat n.
-  by rewrite mulr_nat coef0_eq1E coefD mulrC coefN coef_tfpsXM coef1 subr0.
+have co1 : 1 - 4%:R *: \X \in @coeft0_eq1 Rat n.
+  by rewrite mulr_nat coeft0_eq1E coefD mulrC coefN coef_tfpsXM coef1 subr0.
 have: (2%:R *: \X * FC n - 1) ^+ 2 = 1 - 4%:R *: \X.
   apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
   rewrite mulrA -subr_eq0 opprB [_ - 1]addrC addrA addrK addrC addrA.
@@ -98,7 +98,7 @@ have: (2%:R *: \X * FC n - 1) ^+ 2 = 1 - 4%:R *: \X.
 move/(sqrtE char_Rat) => /(_ co1) [HeqP | HeqN].
   exfalso; move: HeqP => /(congr1 (fun x : {tfps _ _ } => x`_0)).
   rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_tfpsXM coef1.
-  rewrite (eqP (coef0_eq1_expr _ _)) /= => /eqP.
+  rewrite (eqP (coeft0_eq1_expr _ _)) /= => /eqP.
   rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
   by have:= char_Rat 2; rewrite !inE Habs /= eq_refl.
 have neq20 : 2%:R != 0 :> Rat by rewrite Num.Theory.pnatr_eq0.
@@ -172,7 +172,7 @@ Local Open Scope tfps_scope.
 
 Lemma one_plusX_2_unit n :((1 + \X) ^+ 2 : {tfps Rat n}) \is a GRing.unit.
 Proof.
-rewrite unit_tfpsE coef0_tfpsM coeftD coef_tfps1.
+rewrite unit_tfpsE coeft0M coeftD coef_tfps1.
 by rewrite coef_tfpsX mulr0 addr0 mulr1.
 Qed.
 
@@ -181,11 +181,11 @@ Proof.
 apply: (lagrfix_uniq (one_plusX_2_unit _)).
 rewrite {1}FC_algebraic_eq -addrA addrC subrK.
 rewrite rmorphX rmorphD /= comp_tfps1 comp_tfpsX //; first last.
-  rewrite coef0_eq0E coef_trXn coeftB coef_tfps1.
+  rewrite coeft0_eq0E coef_trXn coeftB coef_tfps1.
   by rewrite coef_tfps_of_fun /= C0 subrr.
 rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
 apply/tfpsP => i le_in1.
-rewrite coef_tfpsXM coef_mulfX coef_trXnt.
+rewrite coef_tfpsXM coeft_mulfX coef_trXnt.
 by case: i le_in1.
 Qed.
 
@@ -196,7 +196,7 @@ apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
 have:= (congr1 (fun s : {tfps Rat i.+1} => s`_i.+1) (FC_fixpoint_eq i)).
 rewrite coef_tfps coeftD coef_tfps_of_fun ltnSn.
 rewrite coeftN coef_tfps1 subr0 /= => ->.
-rewrite -/(_`_i.+1) (coef_lagrfix (nat_unit_field _)) ?one_plusX_2_unit //.
+rewrite -/(_`_i.+1) (coeft_lagrfix (nat_unit_field _)) ?one_plusX_2_unit //.
 rewrite -exprM mul2n addrC exprD1n coeft_sum.
 have Hord : (i < (i.+1).*2.+1)%N.
   by rewrite ltnS doubleS -addnn -!addnS leq_addr.
@@ -271,7 +271,7 @@ Proof.
 have := congr1 (fun x : {tfps _ _} => (x`_n.+1)%R) (FC_differential_eq n).
 rewrite coef1 coeftD !mulrDl !mul1r !coeftD.
 rewrite -!mulNrn !(mulrnAl, coeftMn, mulNr, coeftN).
-rewrite !coef_tfpsXM coef_mulfX !coef_deriv_tfps !coef_tfps_of_fun.
+rewrite !coef_tfpsXM coeft_mulfX !coef_deriv_tfps !coef_tfps_of_fun.
 rewrite /= ltnSn leqnSn /= ltnS leq_pred.
 case: n => [|n] /=; first by rewrite !Csimpl.
 move: {n} n.+1 => n; move: (C n.+1) (C n) => Cn1 Cn.

@@ -466,7 +466,7 @@ Qed.
 Lemma expr_cX (c : R) i : (c *: ''X) ^+ i = (c ^+ i) *: ''X^i.
 Proof.
 apply invlimE => j.
-by rewrite !(rmorphX, linearZ) /= proj_fpsX expr_cX.
+by rewrite !(rmorphX, linearZ) /= proj_fpsX expr_tfpscX.
 Qed.
 
 End CoeffSeries.
@@ -508,21 +508,21 @@ apply/ilunitP/idP => [/(_ 0%N) | Hu i]; first by rewrite coefs_piE -unit_tfpsE.
 by rewrite unit_tfpsE -coefs_pi_leqE.
 Qed.
 
-Lemma coef0_fpsV f : (f^-1)``_0 = (f``_0)^-1.
+Lemma coefs0V f : (f^-1)``_0 = (f``_0)^-1.
 Proof.
-rewrite !coefs_piE -coef0_tfpsV.
+rewrite !coefs_piE -coeft0V.
 case (boolP (f \is a GRing.unit)) => [/rmorphV -> // | ninv].
 by rewrite !invr_out // unit_tfpsE -coefs_piE -unit_fpsE.
 Qed.
 
-Lemma coef_fpsV f i :
+Lemma coefsV f i :
   f \is a GRing.unit ->
   f^-1``_i = if i == 0%N then f``_0 ^-1
              else - (f``_0 ^-1) * (\sum_(j < i) f``_j.+1 * f^-1``_(i - j.+1)).
 Proof.
 move=> funit.
 rewrite coefs_piE (rmorphV _ funit) //=.
-rewrite [LHS](coef_tfpsV _ (rmorph_unit _ funit)) // ltnn.
+rewrite [LHS](coeftV _ (rmorph_unit _ funit)) // ltnn.
 case: eqP => [->| _]; first by rewrite -coefs_piE.
 rewrite -coefs_pi_leqE //; congr (_ * _); apply eq_bigr => [] [j ltji] _.
 rewrite -!coefs_pi_leqE //=; congr (_ * _).
@@ -994,12 +994,12 @@ Arguments coefs0_eq0 {R}.
 Arguments coefs0_eq1 {R}.
 
 Lemma coefs0_eq0_trXnt (R : ringType) (i : nat) (f : {fps R}) :
-  ('pi_i f \in coef0_eq0) = (f \in coefs0_eq0).
-Proof. by rewrite coefs0_eq0E coef0_eq0E -coefs_pi_leqE. Qed.
+  ('pi_i f \in coeft0_eq0) = (f \in coefs0_eq0).
+Proof. by rewrite coefs0_eq0E coeft0_eq0E -coefs_pi_leqE. Qed.
 
 Lemma coefs0_eq1_trXnt (R : ringType) (i : nat) (f : {fps R}) :
-  ('pi_i f \in coef0_eq1) = (f \in coefs0_eq1).
-Proof. by rewrite !coefs0_eq1E coef0_eq1E -coefs_pi_leqE. Qed.
+  ('pi_i f \in coeft0_eq1) = (f \in coefs0_eq1).
+Proof. by rewrite !coefs0_eq1E coeft0_eq1E -coefs_pi_leqE. Qed.
 
 
 Section Coefficient01Unit.
@@ -1009,7 +1009,7 @@ Implicit Types (f g : {fps R}).
 
 Fact invr_closed_coefs0_eq1 : invr_closed (@coefs0_eq1 R).
 Proof.
-move=> f; rewrite !coefs0_eq1E coef0_fpsV; move/eqP ->.
+move=> f; rewrite !coefs0_eq1E coefs0V; move/eqP ->.
 by rewrite invr1.
 Qed.
 Canonical coefs0_eq1_DivrPred := Eval hnf in DivrPred invr_closed_coefs0_eq1.
