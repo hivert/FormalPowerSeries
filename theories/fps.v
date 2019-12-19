@@ -477,7 +477,21 @@ Notation "c %:S" := (fpsC c).
 Notation "''X" := (locked (@fps_poly _ 'X)).
 Notation "'''X^' n" := (''X ^+ n).
 
-Coercion fps_poly : poly_of >-> fpseries_of.
+(* I deactivated the coercion because it is too confusing 
+Coercion fps_poly_coerce (R : ringType) : polynomial R -> {fps R} := fps_poly.
+
+Lemma fps_polyXE (R : ringType) : ''X = 'X :> {fps R}.
+Proof. by unlock. Qed.
+
+Lemma fps_polyXnE (R : ringType) n : ''X^n = 'X^n :> {fps R}.
+Proof. by unlock; rewrite -rmorphX. Qed.
+
+Lemma very_confusing (R : ringType) :
+  1 + 'X + 'X^2%N = 1 + ''X + ''X^2%N :> {fps R}.
+Proof.
+by rewrite fps_polyXnE fps_polyXE /fps_poly_coerce /= !rmorphD rmorph1.
+Qed.
+ *)
 
 
 Section FpsUnitRing.
