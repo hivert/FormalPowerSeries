@@ -172,7 +172,7 @@ Local Open Scope tfps_scope.
 
 Lemma one_plusX_2_unit n :((1 + \X) ^+ 2 : {tfps Rat n}) \is a GRing.unit.
 Proof.
-rewrite unit_tfpsE coeft0M coeftD coef_tfps1.
+rewrite unit_tfpsE coeft0M coeftD coeft1.
 by rewrite coef_tfpsX mulr0 addr0 mulr1.
 Qed.
 
@@ -181,11 +181,11 @@ Proof.
 apply: (lagrfix_uniq (one_plusX_2_unit _)).
 rewrite {1}FC_algebraic_eq -addrA addrC subrK.
 rewrite rmorphX rmorphD /= comp_tfps1 comp_tfpsX //; first last.
-  rewrite coeft0_eq0E coef_trXn coeftB coef_tfps1.
+  rewrite coeft0_eq0E coef_trXn coeftB coeft1.
   by rewrite coef_tfps_of_fun /= C0 subrr.
 rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
 apply/tfpsP => i le_in1.
-rewrite coef_tfpsXM coeft_mulfX coef_trXnt.
+rewrite coef_tfpsXM coeft_tmulX coef_trXnt.
 by case: i le_in1.
 Qed.
 
@@ -195,7 +195,7 @@ case: i => [|i]; first by rewrite C0 mul1n bin0.
 apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
 have:= (congr1 (fun s : {tfps Rat i.+1} => s`_i.+1) (FC_fixpoint_eq i)).
 rewrite coef_tfps coeftD coef_tfps_of_fun ltnSn.
-rewrite coeftN coef_tfps1 subr0 /= => ->.
+rewrite coeftN coeft1 subr0 /= => ->.
 rewrite -/(_`_i.+1) (coeft_lagrfix (nat_unit_field _)) ?one_plusX_2_unit //.
 rewrite -exprM mul2n addrC exprD1n coeft_sum.
 have Hord : (i < (i.+1).*2.+1)%N.
@@ -227,26 +227,26 @@ Local Open Scope ring_scope.
 Local Open Scope tfps_scope.
 
 Proposition FC_differential_eq n :
-  (1 - \X *+ 2) * (FC n.+1) + (1 - \X *+ 4) * mulfX (FC n.+1)^`() = 1.
+  (1 - \X *+ 2) * (FC n.+1) + (1 - \X *+ 4) * tmulX (FC n.+1)^`() = 1.
 Proof.
 have:= FC_algebraic_eq n.+1; move: (FC n.+1) => F Falg.
 have X2Fu : (1 - \X *+ 2 * F) \is a GRing.unit.
-  rewrite unit_tfpsE coeftB coef_tfps1.
+  rewrite unit_tfpsE coeftB coeft1.
   by rewrite mulrnAl coeftMn coef_tfpsXM.
 have FalgN : \X * F ^+ 2 = F - 1.
   by apply/eqP; rewrite eq_sym subr_eq addrC -Falg.
-have -> : mulfX F^`() = (F - 1)/(1 - \X *+ 2 * F).
+have -> : tmulX F^`() = (F - 1)/(1 - \X *+ 2 * F).
   rewrite -[LHS]divr1; apply/eqP.
-  rewrite (auxresults.eq_divr (mulfX _)) ?unitr1 // ?X2Fu // mulr1.
-  have /= := congr1 ((@mulfX _ _) \o (@deriv_tfps _ _)) Falg.
+  rewrite (auxresults.eq_divr (tmulX _)) ?unitr1 // ?X2Fu // mulr1.
+  have /= := congr1 ((@tmulX _ _) \o (@deriv_tfps _ _)) Falg.
   rewrite derivD_tfps deriv_tfps1 add0r.
   rewrite derivM_tfps /= deriv_tfpsX mul1r derivX_tfps /= expr1.
-  rewrite raddfD /= -trXnt_mulfX // (mulfXE (F ^+ 2)).
+  rewrite raddfD /= -trXnt_tmulX // (tmulXE (F ^+ 2)).
   rewrite trXntM // trXnt_trXnt // trXnt_id trXnt_tfpsX.
-  rewrite FalgN [X in _ + mulfX X]mulrC -mulfXM.
-  rewrite raddfMn /= [X in (mulfX X) *+ 2]mulrC -mulfXM.
+  rewrite FalgN [X in _ + tmulX X]mulrC -tmulXM.
+  rewrite raddfMn /= [X in (tmulX X) *+ 2]mulrC -tmulXM.
   move/eqP; rewrite -(subr_eq _ _ (_ _ * \X)) => /eqP <-.
-  rewrite eq_sym -mulrnAr -mulrA -{1}(mulr1 (mulfX _)) -mulrBr.
+  rewrite eq_sym -mulrnAr -mulrA -{1}(mulr1 (tmulX _)) -mulrBr.
   by rewrite [_ * \X]mulrC mulrnAl mulrnAr.
 rewrite mulrA -[X in X + _](mulrK X2Fu) -mulrDl -[RHS]divr1.
 apply/eqP; rewrite auxresults.eq_divr ?unitr1 // mulr1 mul1r.
@@ -271,7 +271,7 @@ Proof.
 have := congr1 (fun x : {tfps _ _} => (x`_n.+1)%R) (FC_differential_eq n).
 rewrite coef1 coeftD !mulrDl !mul1r !coeftD.
 rewrite -!mulNrn !(mulrnAl, coeftMn, mulNr, coeftN).
-rewrite !coef_tfpsXM coeft_mulfX !coef_deriv_tfps !coef_tfps_of_fun.
+rewrite !coef_tfpsXM coeft_tmulX !coef_deriv_tfps !coef_tfps_of_fun.
 rewrite /= ltnSn leqnSn /= ltnS leq_pred.
 case: n => [|n] /=; first by rewrite !Csimpl.
 move: {n} n.+1 => n; move: (C n.+1) (C n) => Cn1 Cn.
