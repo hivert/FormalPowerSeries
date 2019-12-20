@@ -114,7 +114,10 @@ rewrite coef_tfpsXM Hi ![X in (X = _)]/= => ->.
 rewrite coefZ coefB coef1 sub0r -scaleNr coef_expr1cX ?{}Hi //.
 rewrite mulrN mulrA -mulNr; congr (_ / (i.+1)`!%:R).
 rewrite -[4]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
-rewrite exprMn -mulrA [(1 *- 2)^+ _]expr_prod -big_split /= big_ord_recl /=.
+rewrite exprMn -mulrA.
+have -> : (1 *- 2)^+ i.+1 = \prod_(i0 < i.+1) (1 *- 2) :> rat.
+  by rewrite prodr_const /= card_ord.
+rewrite -big_split /= big_ord_recl /=.
 rewrite subr0 mulNr divrr // mulN1r 2!mulrN [LHS]opprK.
 rewrite exprS !mulrA [2%:R^-1 * 2%:R]mulVf // mul1r.
 rewrite (eq_bigr (fun j : 'I_i => (2 * j + 1)%:R)) /=; last first.

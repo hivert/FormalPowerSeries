@@ -43,20 +43,6 @@ Reserved Notation "f \oT g" (at level 50).
 Reserved Notation "\sqrt f" (at level 10).
 
 
-Section SSRCompl.
-
-Variable R : ringType.
-Implicit Type (x y z : R).
-
-Lemma expr_prod i x : x ^+ i = \prod_(j < i) x.
-Proof.
-elim: i => [|i IHi]; first by rewrite expr0 big_ord0.
-by rewrite big_ord_recl -IHi exprS.
-Qed.
-
-End SSRCompl.
-
-
 Section MoreBigop.
 
 Local Open Scope nat_scope.
