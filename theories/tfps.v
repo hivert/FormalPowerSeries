@@ -2710,13 +2710,7 @@ by rewrite coef_tfps_of_fun /= fact0 invr1 tfpsC1.
 Qed.
 
 Lemma exp0 : exp 0 = 1 :> {tfps R n}.
-Proof.
-apply/tfpsP => i le_in.
-rewrite exp_coeft0_eq0 ?rpred0 // !coeft_sum /=.
-rewrite big_ord_recl /= fact0 invr1 expr0 alg_tfpsC tfpsC1.
-rewrite big1 ?addr0 // => [] [j ] _ _ /=.
-by rewrite /bump /= add1n expr0n /= scaler0 coef0.
-Qed.
+Proof. by rewrite /exp comp_tfps0r coeft0_expt tfpsC1. Qed.
 
 Lemma expC (c : R) : exp (c%:S) = 1 :> {tfps R n}.
 Proof.
@@ -2752,11 +2746,7 @@ by rewrite coeftN coef_tfps_of_fun /= oppr0 tfpsC0.
 Qed.
 
 Lemma log1 : log (1 : {tfps R n}) = 0.
-Proof.
-apply/tfpsP => j Hj; rewrite log_coeft0_eq1 ?rpred1 // coef0 subrr.
-rewrite coefN big_nat big1 ?coef0 ?oppr0 // => i /andP [Hi _].
-by rewrite expr0n -[i == 0%N]negbK -lt0n Hi /= scaler0.
-Qed.
+Proof. by rewrite /log subrr comp_tfps0r coeftN coeft0_logt oppr0 tfpsC0. Qed.
 
 End ExpLog.
 Arguments logt {R m}.

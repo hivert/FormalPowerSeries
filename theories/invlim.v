@@ -29,9 +29,6 @@ Unset Printing Implicit Defensive.
 
 Reserved Notation "{ 'invlim' S }"
          (at level 0, format "{ 'invlim'  S }").
-Reserved Notation "\pi_ Q" (at level 0, format "\pi_ Q").
-Reserved Notation "\pi" (at level 0, format "\pi").
-
 Reserved Notation "''pi_' i" (at level 8, i at level 2, format "''pi_' i").
 
 Reserved Notation "\Sum_( i : t ) F"
@@ -269,8 +266,9 @@ Notation "[ 'invLimType' 'of' T ]" :=
   (@InvLim.clone _ _ _ _ _ T _ _ id)
   (at level 0, format "[ 'invLimType'  'of'  T ]") : form_scope.
 
-Notation "\pi" := (pi_phant (Phant _)).
 Notation "''pi_' i" := (pi_phant (Phant _) i).
+Notation "''pi[' T ']_' i" := (pi_phant (Phant T) i)
+                              (at level 8, i at level 2, only parsing).
 Notation "\ind" := (ind_phant (Phant _)).
 
 
@@ -323,9 +321,6 @@ Proof. move=> i j Hij x /=; exact: ilprojE. Qed.
 
 End Theory.
 Arguments ilthr {disp I Ob bonding Sys ilT thr}.
-Notation "\pi" := (pi_phant (Phant _)).
-Notation "''pi_' i" := (pi_phant (Phant _) i).
-Notation "\ind" := (ind_phant (Phant _)).
 
 
 (****************************************************************************)
