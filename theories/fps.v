@@ -448,6 +448,11 @@ Canonical coefps_linear i : {scalar {fps R}} :=
 Canonical coefp0_lrmorphism :=
   Eval hnf in [lrmorphism of coefs 0].
 
+Lemma proj0CE f : 'pi[{fps R}]_0%N f = (f``_0%N)%:S%tfps.
+Proof.
+apply tfpsP => i; rewrite leqn0 => /eqP ->.
+by rewrite -!coefs_projE coeftC.
+Qed.
 
 Local Notation "''X" := (locked (@fps_poly 'X)).
 Local Notation "'''X^' n" := (''X ^+ n).
@@ -584,10 +589,12 @@ End FpsUnitRing.
 
 Definition proj_simpl :=
   (proj0, projD, projN, projB, projMn, projMNn, proj_sum,
-   proj1, projM, projX, proj_prod, projZ, projV).
+   proj1, projM, projX, proj_prod, projZ, projV,
+   proj_fpsX, proj_fpsXn).
+
 Definition coefs_simpl :=
   (coefs0, coefsD, coefsN, coefsB, coefsMn, coefsMNn, coefs_sum,
-   coefs1, coefsZ).
+   coefs1, coefsZ,   coef_fpsX, coef_fpsXn).
 
 
 Section FpsComRing.
@@ -1241,7 +1248,7 @@ Proof. exact: raddf0. Qed.
 Lemma deriv_fpsC (c : R) : c%:S^`()%fps = 0.
 Proof. by apply fpsP => i; rewrite coef_deriv_fps coefsC coefs0 mul0rn. Qed.
 
-Lemma deriv_tfps1 : 1^`()%fps = 0.
+Lemma deriv_fps1 : 1^`()%fps = 0.
 Proof. by rewrite -fpsC1 deriv_fpsC. Qed.
 
 Fact derivD_fps f g : (f + g)^`()%fps = f^`()%fps + g^`()%fps.
@@ -1531,6 +1538,9 @@ Qed.
 Lemma proj_log i f : 'pi_i (log f) = tfps.log ('pi_i f).
 Proof. by rewrite /log proj_comp_fps !proj_simpl proj_logs. Qed.
 
+Lemma proj_expr_fps i c f : 'pi_i (expr_fps c f) = expr_tfps c ('pi_i f).
+Proof. by rewrite /expr_fps proj_exp projZ proj_log. Qed.
+
 Lemma compat_exp :
   iscompat (fps_invsys R) (fun i => tfps.exp \o 'pi[{fps R}]_i).
 Proof.
@@ -1607,6 +1617,8 @@ Arguments exp {R}.
 Notation "f ^^ r" := (expr_fps r f) : fps_scope.
 
 
+Import TFPSUnitRing.
+
 Section ExpMorph.
 
 Variable R : comUnitRingType.
@@ -1679,3 +1691,231 @@ Qed.
 
 End MoreDerivative.
 
+Open Scope fps_scope.
+
+
+Section DerivExpLog.
+
+Variables R : comUnitRingType.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
+Implicit Type (f g : {fps R}).
+
+Lemma deriv_exps : (@exps R)^`() = exps.
+Proof.
+by apply/invlimE => i; rewrite proj_deriv_fps !proj_exps deriv_expt.
+Qed.
+
+Lemma deriv_expE a f :
+  f^`() = a *: f -> f = f``_0 *: exp (a *: ''X).
+Proof.
+move=> devf; apply/invlimE => [][|i].
+  by rewrite projZ !proj0CE coefs0_exp tfpsC1 alg_tfpsC.
+rewrite (deriv_expE nat_unit (f := 'pi_i.+1 f) (a := a)); first last.
+  have:= congr1 'pi[{fps R}]_i devf.
+  by rewrite -!fps_bondE !ilprojE proj_deriv_fps projZ.
+by rewrite !proj_simpl coeft_proj // proj_exp proj_simpl proj_fpsX.
+Qed.
+
+Lemma deriv_expsE f : f^`() = f -> f = f``_0 *: exps.
+Proof. by have:= @deriv_expE 1 f; rewrite !scale1r /exp comp_fpsXr. Qed.
+
+Lemma deriv_logs : (@logs R)^`() = (1 - ''X)^-1.
+Proof.
+apply/fpsP => /= i.
+by rewrite !coefs_projE !proj_simpl proj_deriv_fps proj_logs deriv_logt.
+Qed.
+
+Theorem deriv_exp f :
+  f \in coefs0_eq0 -> (exp f)^`()%fps = f^`()%fps * (exp f).
+Proof. by move=> f0eq0; rewrite /exp deriv_fps_comp // mulrC deriv_exps. Qed.
+
+Theorem deriv_log f :
+  f \in coefs0_eq1 -> (log f)^`()%fps = f^`()%fps / f.
+Proof.
+move=> /proj_coefs0_eq1 f0eq1.
+apply/fpsP => /= i.
+rewrite !coefs_projE !proj_simpl proj_deriv_fps proj_log deriv_log //=.
+by rewrite -!fps_bondE !ilprojE proj_deriv_fps.
+Qed.
+
+Lemma expsK : log exps = ''X :> {fps R}.
+Proof.
+apply/invlimE => i.
+by rewrite proj_simpl proj_log proj_exps exptK.
+Qed.
+
+Lemma expK : {in coefs0_eq0, cancel (@exp R) (@log R)}.
+Proof.
+move=> f /proj_coefs0_eq0 f0_eq0 /=; apply/invlimE => i.
+by rewrite proj_log proj_exp expK.
+Qed.
+
+Lemma exp_inj : {in coefs0_eq0 &, injective (@exp R)}.
+Proof. exact: (can_in_inj expK). Qed.
+
+Lemma logK : {in coefs0_eq1 , cancel (@log R) (@exp R)}.
+Proof.
+move=> f /proj_coefs0_eq1 f0_eq1 /=; apply/invlimE => i.
+by rewrite proj_exp proj_log logK.
+Qed.
+
+Lemma log_inj : {in coefs0_eq1 &, injective (@log R)}.
+Proof.
+move=> f g /proj_coefs0_eq1 f0_eq1 /proj_coefs0_eq1 g0_eq1 /= Hlog.
+apply/invlimE => i; apply: log_inj => //.
+by rewrite -!proj_log Hlog.
+Qed.
+
+Lemma logM : {in coefs0_eq1 &, {morph (@log R) : f g / f * g >-> f + g}}.
+Proof.
+move=> f g f0_eq1 g0_eq1 /=.
+apply exp_inj; rewrite ?rpredD ?log_in_coefs0_eq0 //.
+rewrite expD ?log_in_coefs0_eq0 //.
+by rewrite !logK // rpredM.
+Qed.
+
+Lemma logV : {in coefs0_eq1, {morph (@log R) : f / f^-1 >-> - f}}.
+Proof.
+move=> f f0_eq1 /=.
+apply exp_inj; rewrite ?rpredN ?log_in_coefs0_eq0 //.
+rewrite expN ?log_in_coefs0_eq0 //.
+by rewrite !logK // rpredV.
+Qed.
+
+Lemma log_div : {in coefs0_eq1 &, {morph (@log R) : f g / f / g >-> f - g}}.
+Proof. by move=> f g f0_eq1 g0_eq1 /=; rewrite logM ?rpredV // logV. Qed.
+
+
+Section ExprFPS.
+
+Variable f : {fps R}.
+Hypothesis f0_eq1 : f \in coefs0_eq1.
+
+Let log_coefs0_eq0Z c : c *: log f \in coefs0_eq0.
+Proof. by rewrite coefs0_eq0Z // log_in_coefs0_eq0. Qed.
+
+Lemma coefs0_eq1_expr c : f ^^ c \in coefs0_eq1.
+Proof. by rewrite /expr_tfps exp_in_coefs0_eq1. Qed.
+
+Lemma expr_fps0 : f ^^ 0 = 1.
+Proof. by rewrite /expr_fps scale0r exp0. Qed.
+
+Lemma expr_fps1 : f ^^ 1 = f.
+Proof. by rewrite /expr_fps scale1r logK. Qed.
+
+Lemma expr_fpsn m : f ^^ m%:R = f ^+ m.
+Proof.
+elim: m => [|m IHm]; first exact: expr_fps0.
+rewrite /expr_fps -{1}add1n natrD scalerDl scale1r expD ?log_in_coefs0_eq0 //.
+by rewrite -/(expr_fps _ _) {}IHm logK // exprS.
+Qed.
+
+Lemma expr_fpsN a : f ^^ (- a) = (f ^^ a)^-1.
+Proof. by rewrite /expr_fps scaleNr expN. Qed.
+
+Lemma expr_fpsN1 : f ^^ (-1) = f ^-1.
+Proof. by rewrite expr_fpsN expr_fps1. Qed.
+
+Lemma expr_fpsD a b : f ^^ (a + b) = (f ^^ a) * (f ^^ b).
+Proof. by rewrite /expr_fps scalerDl expD. Qed.
+
+Lemma expr_fpsB a b : f ^^ (a - b) = (f ^^ a) / (f ^^ b).
+Proof. by rewrite expr_fpsD expr_fpsN. Qed.
+
+Lemma expr_fpsM a b : f ^^ (a * b) = (f ^^ a) ^^ b.
+Proof. by rewrite /expr_fps expK ?scalerA ?[b * a]mulrC. Qed.
+
+Lemma deriv_expr_fps a :
+  (f ^^ a)^`() = a *: (f ^^ (a - 1)) * f^`()%fps.
+Proof.
+rewrite {1}/expr_fps deriv_exp //.
+rewrite linearZ /= deriv_log // -!scalerAl; congr (_ *: _).
+rewrite -mulrA mulrC; congr (_ * _).
+by rewrite mulrC expr_fpsB expr_fps1.
+Qed.
+
+End ExprFPS.
+
+Lemma expr_fpsNn f m : f \in coefs0_eq1 -> f ^^ (-m%:R) = f ^- m.
+Proof.
+move=> Hf.
+by rewrite -mulN1r expr_fpsM expr_fpsN1 ?expr_fpsn ?exprVn ?rpredV.
+Qed.
+
+Lemma expr_fpsK a : a \is a GRing.unit ->
+  {in coefs0_eq1, cancel (@expr_fps R a) (@expr_fps R a^-1)}.
+Proof. by move=> aU f f0_eq1; rewrite -expr_fpsM divrr ?expr_fps1. Qed.
+
+Lemma expr_fps_inj a : a \is a GRing.unit ->
+  {in coefs0_eq1 &, injective (@expr_fps R a)}.
+Proof. by move=> /expr_fpsK/can_in_inj. Qed.
+
+
+Local Notation "\sqrt f" := (f ^^ (2%:R^-1)).
+
+Lemma sqrrK f : f \in coefs0_eq1 -> \sqrt (f ^+ 2) = f.
+Proof.
+by move => Hh; rewrite -expr_fpsn -?expr_fpsM ?divrr ?expr_fps1.
+Qed.
+
+Lemma sqrtK f : f \in coefs0_eq1 -> (\sqrt f) ^+ 2 = f.
+Proof.
+move => Hh; rewrite -expr_fpsn ?coefs0_eq1_expr //.
+by rewrite -?expr_fpsM // mulrC divrr ?expr_fps1.
+Qed.
+
+End DerivExpLog.
+
+Notation "\sqrt f" := (f ^^ (2%:R^-1)) : fps_scope.
+
+
+Section CoefExpX.
+
+Variables R : comUnitRingType.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
+
+Lemma coefs1cX c : 1 + c *: ''X \in @coefs0_eq1 R.
+Proof.
+by rewrite coefs0_eq1E !coefs_simpl /= mulr0 addr0.
+Qed.
+
+Lemma deriv1cX c : (1 + c *: ''X)^`()%fps = c%:S :> {fps R}.
+Proof.
+by rewrite derivD_fps deriv_fps1 add0r derivZ_fps -alg_fpsC deriv_fpsX.
+Qed.
+
+Theorem coef_expr1cX c a m :
+  ((1 + c *: ''X) ^^ a)%fps``_m =
+  c ^+ m * \prod_(i < m) (a - i%:R) / m`!%:R :> R.
+Proof. by rewrite coefs_projE proj_expr_fps !proj_simpl coef_expr1cX. Qed.
+
+Lemma coef_expr1X a m :
+  ((1 + ''X) ^^ a)%fps``_m = \prod_(i < m) (a - i%:R) / m`!%:R :> R.
+Proof.
+by rewrite -[''X]scale1r coef_expr1cX // expr1n mul1r.
+Qed.
+
+End CoefExpX.
+
+Open Scope fps_scope.
+
+Section SquareRoot.
+
+Variables R : idomainType.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
+Implicit Types (f g : {fps R}).
+
+(* TODO Lift from TFPS *)
+Lemma sqrtE f g : f \in coefs0_eq1 -> g ^+ 2 = f ->
+  g = \sqrt f  \/  g = - \sqrt f.
+Proof.
+move=> /eqP f0_eq1 Heq.
+have /eqP := (congr1 (fun f : {fps R} => f``_0) Heq).
+rewrite -subr_eq0 {}f0_eq1 expr2 coefs0M -expr2 subr_sqr_1.
+rewrite mulf_eq0 => /orP [].
+- by rewrite subr_eq0 -coefs0_eq1E -{}Heq {f} => Hg0; left; rewrite sqrrK.
+- rewrite addr_eq0 -eqr_oppLR -coefsN -coefs0_eq1E -{}Heq {f} => Hg0.
+  by right; apply oppr_inj; rewrite /= linearN /= opprK -sqrrN sqrrK.
+Qed.
+
+End SquareRoot.

@@ -3087,18 +3087,18 @@ Proof. by rewrite coeft0_eq0Z // log_in_coeft0_eq0. Qed.
 Lemma coeft0_eq1_expr c : f ^^ c \in coeft0_eq1.
 Proof. by rewrite /expr_tfps exp_in_coeft0_eq1. Qed.
 
-Lemma expr_tfpsn m : f ^^ m%:R = f ^+ m.
-Proof.
-rewrite /expr_tfps; elim: m => [|m IHm]; first by rewrite expr0 scale0r exp0.
-rewrite -{1}add1n natrD scalerDl scale1r expD ?log_in_coeft0_eq0 //.
-by rewrite {}IHm logK // exprS.
-Qed.
+Lemma expr_tfps0 : f ^^ 0 = 1.
+Proof. by rewrite /expr_tfps scale0r exp0. Qed.
 
 Lemma expr_tfps1 : f ^^ 1 = f.
-Proof. by rewrite -[1]/(1%:R) expr_tfpsn expr1. Qed.
+Proof. by rewrite /expr_tfps scale1r logK. Qed.
 
-Lemma expr_tfps0 : f ^^ 0 = 1.
-Proof. by rewrite -[0]/(0%:R) expr_tfpsn expr0. Qed.
+Lemma expr_tfpsn m : f ^^ m%:R = f ^+ m.
+Proof.
+elim: m => [|m IHm]; first exact: expr_tfps0.
+rewrite /expr_tfps -{1}add1n natrD scalerDl scale1r expD ?log_in_coeft0_eq0 //.
+by rewrite -/(expr_tfps _ _) {}IHm logK // exprS.
+Qed.
 
 Lemma expr_tfpsN a : f ^^ (- a) = (f ^^ a)^-1.
 Proof. by rewrite /expr_tfps scaleNr expN. Qed.
@@ -3272,7 +3272,7 @@ Definition logV               := TFPSUnitRing.logV               nuf.
 Definition log_div            := TFPSUnitRing.log_div            nuf.
 Definition coeft0_eq1_expr    := TFPSUnitRing.coeft0_eq1_expr.
 Definition expr_tfpsn         := TFPSUnitRing.expr_tfpsn         nuf.
-Definition expr_tfps0         := TFPSUnitRing.expr_tfps0         nuf.
+Definition expr_tfps0         := TFPSUnitRing.expr_tfps0.
 Definition expr_tfps1         := TFPSUnitRing.expr_tfps1         nuf.
 Definition expr_tfpsN         := TFPSUnitRing.expr_tfpsN         nuf.
 Definition expr_tfpsN1        := TFPSUnitRing.expr_tfpsN1        nuf.
