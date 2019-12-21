@@ -12,4 +12,5 @@ theories/fps.v
 theories/auxresults.v
 theories/tfps.v
 theories/catalan.v
+theories/catalan_fps.v
 
