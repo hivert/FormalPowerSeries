@@ -1529,12 +1529,25 @@ rewrite nth_default // (leq_trans (size_tfps f)) //.
 by move: Hi; case m.
 Qed.
 
+Lemma trXnt_tmulX m (f : {tfps R m}) n :
+  trXnt n.+1 (tmulX f) = tmulX (trXnt n f).
+Proof.
+apply/tfpsP => i le_in1.
+rewrite coef_trXnt le_in1 !coeft_tmulX coef_trXnt.
+by case: i le_in1 => [|i]//=; rewrite ltnS => ->.
+Qed.
+Lemma trXnt_tdivX m (f : {tfps R m.+1}) n :
+  trXnt n (tdivX f) = tdivX (trXnt n.+1 f).
+Proof.
+apply/tfpsP => i le_in1.
+by rewrite coef_trXnt le_in1 !coeft_tdivX coef_trXnt ltnS le_in1.
+Qed.
+
 Lemma tmulXK m : cancel (@tmulX m) (@tdivX m.+1).
 Proof.
 move=> p; apply/tfpsP => i Hi.
 by rewrite coeft_tdivX coeft_tmulX.
 Qed.
-
 Lemma tdivXK m : {in coeft0_eq0, cancel (@tdivX m.+1) (@tmulX m)}.
 Proof.
 move=> p Hp.
@@ -1579,14 +1592,6 @@ Proof.
 apply/tfpsP => i Hi.
 rewrite coeft_tmulX coef_tfpsXM coef_trXnt Hi.
 by case: i Hi => //= i /ltnW ->.
-Qed.
-
-Lemma trXnt_tmulX f n :
-  n <= m -> trXnt n.+1 (tmulX f) = tmulX (trXnt n f).
-Proof.
-move=> le_nm; apply/tfpsP => i le_in1.
-rewrite coef_trXnt !coeft_tmulX le_in1.
-by case: i le_in1 => //= i; rewrite ltnS coef_trXnt => ->.
 Qed.
 
 Lemma tmulXM f (g : {tfps R m.+1}) : (tmulX f) * g = tmulX (f * trXnt m g).
@@ -2173,6 +2178,18 @@ End Composition.
 Notation "f \oT g" := (comp_tfps g f) : tfps_scope.
 
 
+Section CompUnitRing.
+
+Variables (R : unitRingType) (n : nat).
+Implicit Types (f g : {tfps R n}).
+
+Lemma comp_tfps_unitE f g :
+  ((f \oT g) \is a GRing.unit) = (f \is a GRing.unit).
+Proof. by rewrite !unit_tfpsE coef0_comp_tfps. Qed.
+
+End CompUnitRing.
+
+
 Section CompComRing.
 
 Variables (R : comRingType) (n : nat).
@@ -2258,11 +2275,10 @@ End CompComRing.
 Section Lagrange.
 
 Variables R : comUnitRingType.
-Variable n : nat.
-
 
 Section LagrangeFixPoint.
 
+Variable n : nat.
 Variable g : {tfps R n}.
 Hypothesis gU : g \is a GRing.unit.
 
@@ -2279,6 +2295,17 @@ by rewrite coeft0_eq0E; case: ord => [|i]; rewrite ?coeft0 ?coeft_tmulX.
 Qed.
 Lemma coeft0_eq0_lagrfix : lagrfix \in coeft0_eq0.
 Proof. exact: coeft0_eq0_lagriter. Qed.
+
+Lemma trXnt_lagriter i j : i <= j -> trXnt i (lagriter j) = lagriter i.
+Proof.
+move=> /subnKC <-; elim: (j - i)%N => {j} [|j IHj].
+  by rewrite addn0 trXnt_id.
+rewrite addnS -(trXnt_trXnt _ (leq_addr j i)) -{}IHj; congr trXnt.
+elim: {i j} (i + j)%N => [|i IHi] /=.
+  apply tfpsP => i; rewrite leqn0 => /eqP ->.
+  by rewrite coef_trXnt leqnn coeft_tmulX coeft0.
+by rewrite !(trXnt_tmulX, trXnt_comp, trXnt_trXnt) ?IHi.
+Qed.
 
 Lemma lagrfixP : lagrfix = tmulX (g \oT trXnt n lagrfix).
 Proof.
@@ -2302,7 +2329,7 @@ rewrite !coef_comp_tfps //; apply eq_bigr => k _; congr (_ * _).
 rewrite {}[in LHS]IHm -rmorphX coef_trXnt le_im1.
 set X :=  (_ ^+ k in RHS); have -> : X`_i = (trXnt m.+1 X)`_i.
   by rewrite {}/X coef_trXnt le_im1.
-rewrite {}/X rmorphX /= trXnt_tmulX // trXnt_comp; last exact: leqnSn.
+rewrite {}/X rmorphX /= trXnt_tmulX trXnt_comp; last exact: leqnSn.
 by rewrite trXnt_trXnt.
 Qed.
 
@@ -2327,10 +2354,27 @@ Proof. exact: (lagrfix_inv coeft0_eq0_lagrfix lagrfixP). Qed.
 
 End LagrangeFixPoint.
 
+Variable n : nat.
+
+Lemma lagriter_trXnt (f : {tfps R n}) i m :
+  i <= m.+1 -> lagriter (trXnt m f) i = lagriter f i.
+Proof.
+elim: i => [|i IHi] le_im //=.
+by rewrite IHi ?trXnt_trXnt // ltnW.
+Qed.
+
+Lemma trXnt_lagrfix (f : {tfps R n}) m :
+  m <= n -> trXnt m.+1 (lagrfix f) = lagrfix (trXnt m f).
+Proof.
+rewrite /lagrfix => le_mn.
+by rewrite trXnt_lagriter ?(leq_ltn_trans lt_mn) // lagriter_trXnt.
+Qed.
+
+
 Implicit Types (f g : {tfps R n.+1}).
 
 Definition lagrunit f := (f \in coeft0_eq0) && (tdivX f \is a GRing.unit).
-Definition lagrinv f := lagrfix (tdivX f)^-1.
+Definition lagrinv f : {tfps R n.+1} := lagrfix (tdivX f)^-1.
 
 Lemma lagrfixE (f : {tfps R n}) : lagrfix f = lagrinv (tmulX f^-1).
 Proof. by rewrite /lagrinv tmulXK invrK. Qed.

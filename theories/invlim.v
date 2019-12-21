@@ -319,8 +319,24 @@ Proof. by move=> i j Hij; have /= -> := (proj_compat Hij x). Qed.
 Lemma ilprojP : iscompat Sys (pi_phant (ilT := ilT) (Phant _)).
 Proof. move=> i j Hij x /=; exact: ilprojE. Qed.
 
+Lemma invlim_exE (x y : ilT) :
+  (forall i, exists2 i0, i0 >= i & 'pi_i0 x = 'pi_i0 y) -> x = y.
+Proof.
+move=> Heq; apply invlimE => i.
+have:= Heq i => [][i0 le_ii0] /(congr1 (bonding le_ii0)).
+by rewrite !ilprojE.
+Qed.
+
+Lemma invlim_geE b (x y : ilT) :
+  (forall i, i >= b -> 'pi_i x = 'pi_i y) -> x = y.
+Proof.
+move=> Heq; apply invlim_exE => i.
+by have:= directedP i b => [][j le_ij {}/Heq Heq]; exists j.
+Qed.
+
 End Theory.
 Arguments ilthr {disp I Ob bonding Sys ilT thr}.
+Arguments invlim_geE {disp I Ob bonding Sys ilT}.
 
 
 (****************************************************************************)

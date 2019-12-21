@@ -1468,6 +1468,18 @@ End Composition.
 Notation "f \oS g" := (comp_fps g f) : fps_scope.
 
 
+Section CompUnitRing.
+
+Variables (R : unitRingType).
+Implicit Types (f g : {fps R}).
+
+Lemma comp_fps_unitE f g :
+  ((f \oS g) \is a GRing.unit)%fps = (f \is a GRing.unit).
+Proof. by rewrite !unit_fpsE coef0_comp_fps. Qed.
+
+End CompUnitRing.
+
+
 Section CompComRing.
 
 Variables (R : comRingType).
@@ -1502,9 +1514,229 @@ Qed.
 End CompComRing.
 
 
-Section ExpLog.
-
 Local Open Scope fps_scope.
+
+Section Lagrange.
+
+Variables R : comUnitRingType.
+Implicit Type (f g : {fps R}).
+
+Lemma compat_lagrfix :
+  iscompat (fps_invsys R)
+           (fun i => if i is i'.+1
+                     then (@lagrfix R i') \o 'pi[{fps R}]_i'
+                     else fun=> 0).
+Proof.
+move=> i j le_ij f /=; rewrite fps_bondE.
+move: le_ij; rewrite {1}leEnat.
+case: i j => [|i] [|j] //; first by rewrite trXnt0.
+  move=> _; apply tfpsP => i; rewrite leqn0 => /eqP ->.
+  by rewrite coef_trXnt (eqP (coeft0_eq0_lagrfix _)) coeft0.
+rewrite ltnS => le_ij.
+by rewrite trXnt_lagrfix // -!fps_bondE !ilprojE.
+Qed.
+
+Definition lagrfix : {fps R} -> {fps R} := \ind compat_lagrfix.
+
+Lemma proj0_lagrfix f : 'pi_0%N (lagrfix f) = 0.
+Proof. exact: piindE. Qed.
+
+Lemma proj_lagrfix i f : 'pi_i.+1 (lagrfix f) = tfps.lagrfix ('pi_i f).
+Proof. exact: piindE. Qed.
+
+Lemma coefs0_eq0_lagrfix f : lagrfix f \in coefs0_eq0.
+Proof. by rewrite coefs0_eq0E coefs_projE proj0_lagrfix coeft0. Qed.
+
+Lemma lagrfixP f : lagrfix f = ''X * (f \oS lagrfix f).
+Proof.
+rewrite /lagrfix; apply/fpsP => [][|i]; rewrite !coef_fpsXM //=.
+  by rewrite coefs_projE proj0_lagrfix coeft0.
+rewrite !coefs_projE proj_lagrfix.
+rewrite proj_comp_fps lagrfixP coeft_tmulX /= piindE /=.
+case: i => [|i]; first by rewrite !coef0_comp_tfps.
+by rewrite trXnt_lagrfix // -!fps_bondE !ilprojE.
+Qed.
+
+Lemma lagrfix_divP f : sdivX (lagrfix f) = f \oS lagrfix f.
+Proof. by rewrite {1}lagrfixP smulXK. Qed.
+Lemma sdivX_lagrfix_unit g :
+  g \is a GRing.unit -> sdivX (lagrfix g) \is a GRing.unit.
+Proof.
+by move=> gU; rewrite lagrfix_divP unit_fpsE coef0_comp_fps -unit_fpsE.
+Qed.
+
+Lemma lagrfix_inv f g :
+  g \is a GRing.unit -> f \in coefs0_eq0 ->
+  f = ''X * (g \oS f) -> (''X * g^-1) \oS f = ''X.
+Proof.
+move=> gU f0eq0 feq; rewrite feq.
+rewrite rmorphM /= rmorphV //= comp_fpsX ?coefs0_eq0E ?coef_fpsXM // -{2}feq.
+by rewrite mulrK // comp_fps_unitE.
+Qed.
+
+Lemma lagrfix_invPr g :
+  g \is a GRing.unit -> (''X * g^-1) \oS lagrfix g = ''X.
+Proof. by move/lagrfix_inv/(_ (coefs0_eq0_lagrfix g))/(_ (lagrfixP g)). Qed.
+
+Definition lagrunit f := (f \in coefs0_eq0) && (sdivX f \is a GRing.unit).
+Definition lagrinv f := lagrfix (sdivX f)^-1.
+
+Lemma proj_lagrunit f :
+  reflect (forall i, tfps.lagrunit ('pi_i.+1 f)) (lagrunit f).
+Proof.
+rewrite /lagrunit /tfps.lagrunit; apply (iffP andP) => [|H]; last split.
+- move => [/proj_coefs0_eq0 f0eq0 /proj_unit_fps divfU i].
+  by apply/andP; split; last by rewrite -proj_divXE.
+- apply/proj_coefs0_eq0 => [][|i]; last by have /andP [] := H i.
+  by have /andP [] := H 0%N; rewrite !coeft0_eq0E !coeft_proj.
+- apply/proj_unit_fps => i.
+  by rewrite proj_divXE; have /andP [_] := H i.
+Qed.
+Lemma proj_lagrinv i f : 'pi_i.+1 (lagrinv f) = tfps.lagrinv ('pi_i.+1 f).
+Proof. by rewrite /lagrinv proj_lagrfix projV proj_divXE. Qed.
+
+Lemma lagrfixE f : lagrfix f = lagrinv (''X * f^-1).
+Proof. by rewrite /lagrinv smulXK invrK. Qed.
+
+Lemma coef1_comp_fps f g :
+  f \in coefs0_eq0 -> g \in coefs0_eq0 -> (f \oS g)``_1 = f``_1 * g``_1.
+Proof.
+move=> f0 g0.
+rewrite coef_comp_fps // big_ord_recl (eqP f0) mul0r add0r.
+by rewrite big_ord_recl /= big_ord0 /bump /= -!/(_`_ 1) !add1n addr0.
+Qed.
+
+Lemma sdivX_unitE f : (sdivX f \is a GRing.unit) = (f``_1 \is a GRing.unit).
+Proof. by rewrite unit_fpsE coefs_sdivX. Qed.
+
+Lemma lagrunit_comp : {in lagrunit &, forall f g, lagrunit (f \oS g) }.
+Proof.
+move=> f g /proj_lagrunit fU /proj_lagrunit gU; apply/proj_lagrunit => i.
+by rewrite proj_comp_fps lagrunit_comp //; [exact: fU i|exact: gU i].
+Qed.
+
+Lemma lagrunitV : {in lagrunit, forall f, lagrunit (lagrinv f) }.
+Proof.
+move=> f /proj_lagrunit fU; apply/proj_lagrunit => i.
+by rewrite proj_lagrinv; apply/lagrunitV/(fU i).
+Qed.
+
+Lemma lagrinvPr : {in lagrunit, forall f, f \oS (lagrinv f) = ''X }.
+Proof.
+move=> f /proj_lagrunit fU; apply/(invlim_geE 1%N)=> [][|i] // _.
+rewrite proj_comp_fps proj_lagrinv lagrinvPr ?proj_fpsX //.
+exact: (fU i).
+Qed.
+
+Lemma lagrinvPl : {in lagrunit, forall f, (lagrinv f) \oS f = ''X }.
+Proof.
+move=> f /proj_lagrunit fU; apply/(invlim_geE 1%N)=> [][|i] // _.
+rewrite proj_comp_fps proj_lagrinv lagrinvPl ?proj_fpsX //.
+exact: (fU i).
+Qed.
+
+Lemma lagrinvPr_uniq f g :
+  f \in lagrunit -> f \oS g = ''X -> g = lagrinv f.
+Proof.
+move=> /proj_lagrunit fU Heq; apply/(invlim_geE 1%N)=> [][|i] // _.
+rewrite proj_lagrinv; apply: (lagrinvPr_uniq (fU i)).
+by rewrite -proj_comp_fps Heq proj_fpsX.
+Qed.
+
+Lemma lagrinvPl_uniq f g :
+  f \in lagrunit -> g \oS f = ''X -> g = lagrinv f.
+Proof.
+move=> /proj_lagrunit fU Heq; apply/(invlim_geE 1%N)=> [][|i] // _.
+rewrite proj_lagrinv; apply: (lagrinvPl_uniq (fU i)).
+by rewrite -proj_comp_fps Heq proj_fpsX.
+Qed.
+
+Lemma lagrinvK : {in lagrunit, involutive lagrinv}.
+Proof.
+(** Standard group theoretic argument: inverse is involutive *)
+move=> f Hf.
+by apply/esym/lagrinvPl_uniq; [apply: lagrunitV | apply: lagrinvPr].
+Qed.
+
+Lemma lagrfix_invPl :
+  {in GRing.unit, forall g, lagrfix g \oS (''X * g^-1) = ''X}.
+Proof.
+move=> g /proj_unit_fps gU; apply/(invlim_geE 1%N)=> [][|i] // _.
+rewrite proj_comp_fps proj_lagrfix proj_mulXE !proj_simpl.
+exact: (lagrfix_invPl (gU i)).
+Qed.
+
+Lemma lagrfix_uniq g : g \in GRing.unit ->
+  forall f, f = ''X * (g \oS f) -> f = lagrfix g.
+Proof.
+move=> /proj_unit_fps gU f Hf.
+apply/(invlim_geE 1%N)=> [][|i] // _; rewrite proj_lagrfix.
+apply (lagrfix_uniq (gU i)).
+by rewrite {1}Hf proj_mulXE proj_comp_fps -!fps_bondE !ilprojE.
+Qed.
+
+End Lagrange.
+
+
+Section LagrangeTheorem.
+
+Variables R : comUnitRingType.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
+Implicit Type (f g : {fps R}).
+
+Theorem Lagrange_Bürmann_exp g i k :
+  g \in GRing.unit ->
+  (k <= i)%N -> ((lagrfix g) ^+ k)``_i *+ i = (g ^+ i)``_(i - k) *+ k.
+Proof.
+move=> /proj_unit_fps gU; case: i => [|i le_ki1].
+  by rewrite leqn0 => /eqP ->; rewrite mulr0n.
+rewrite -(coeft_proj (leq_subr k _)) coefs_projE !proj_simpl.
+rewrite proj_lagrfix Lagrange_Bürmann_exp // ?le_ki1 //=.
+case: k le_ki1 => [|k] //; rewrite ltnS subSS => le_ki.
+by rewrite -!projX !coeft_proj ?leq_subr ?(leq_trans (leq_subr _ _)).
+Qed.
+
+Theorem coefs_lagrfix g i :
+  g \in GRing.unit -> (lagrfix g)``_i.+1 = (g ^+ i.+1)``_i / i.+1%:R.
+Proof.
+move/Lagrange_Bürmann_exp => /(_ i.+1 _ (ltn0Sn _)).
+rewrite subSS subn0 mulr1n expr1 => <-.
+by rewrite -mulr_natr mulrK.
+Qed.
+
+Theorem Lagrange_Bürmann g h i :
+  g \in GRing.unit ->
+  (h \oS lagrfix g)``_i.+1 = (h^`()%fps * g ^+ i.+1)``_i / i.+1%:R.
+Proof.
+move=> /proj_unit_fps gU.
+rewrite !coefs_projE proj_comp_fps proj_lagrfix Lagrange_Bürmann //.
+by rewrite !proj_simpl proj_deriv_fps.
+Qed.
+
+Theorem Lagrange_Bürmann2 g h i :
+  g \in GRing.unit ->
+  (h \oS lagrfix g)``_i = ((1 - ''X * g^`()%fps / g) * h * g ^+ i)``_i.
+Proof.
+move=> /proj_unit_fps gU.
+rewrite -(coeft_proj (leqnSn _)) proj_comp_fps.
+have:= Lagrange_Bürmann2 nat_unit ('pi_i.+1 h) i (gU i.+1).
+rewrite -proj_lagrfix -fps_bondE ilprojE => ->.
+rewrite [''X * _]lock -(coeft_proj (leqnSn _)) !proj_simpl.
+by rewrite -lock proj_mulXE -proj_deriv_fps.
+Qed.
+
+Theorem Lagrange_Bürmann_exp2 g i k :
+  g \in GRing.unit ->
+  ((lagrfix g) ^+ k)``_i = ((1 - ''X * g^`()%fps / g) * ''X ^+ k * g ^+ i)``_i.
+Proof.
+move/Lagrange_Bürmann2 => <-.
+by rewrite comp_fpsXn ?coefs0_eq0_lagrfix.
+Qed.
+
+End LagrangeTheorem.
+
+
+Section ExpLog.
 
 Variables (R : unitRingType).
 Implicit Types (f g : {fps R}).
