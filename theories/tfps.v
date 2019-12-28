@@ -445,11 +445,7 @@ Lemma tfpsC0 : (0%:S : {tfps R n}) = 0.
 Proof. exact: raddf0. Qed.
 
 Lemma tfpsC_eq0 (c : R) : (c%:S == 0 :> {tfps R n}) = (c == 0).
-Proof.
-apply/eqP/eqP => [/(congr1 (fun s : {tfps R n} => s`_0%N))|->].
-  by rewrite coeftC coeft0.
-exact: tfpsC0.
-Qed.
+Proof. by rewrite -tfpsC0; apply/inj_eq/tfpsC_inj. Qed.
 
 
 (* ringType structure *)
