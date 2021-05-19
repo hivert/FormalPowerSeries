@@ -1,6 +1,6 @@
-(** Truncated polynomial, i.e. polynom mod X^n *)
+(** Truncated power series, i.e. polynom mod X^n *)
 (******************************************************************************)
-(*       Copyright (C) 2019 Florent Hivert <florent.hivert@lri.fr>            *)
+(*    Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>          *)
 (*                                                                            *)
 (*  Distributed under the terms of the GNU General Public License (GPL)       *)
 (*                                                                            *)
@@ -12,6 +12,24 @@
 (*  The full text of the GPL is available at:                                 *)
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
+(******************************************************************************)
+(** * Truncated power series
+
+We define the following notions (where in the following [R] is a ring and [n]
+is an integer)
+
+- [{tfps R n}] == The truncated power series ring with coefficient in [R] and
+                  order of truncation [n] (which is included). So the series
+                  are computed modulo [X^{n+1}]
+
+- [is_stdtab t] == [t] is a *standard tableau* that is a tableau whose row
+            reading is a standard word - [last_big t b] == the index of the
+            first row of [t] which ends with [b] - [remn t] == remove the
+            largest entry ie [n] from a standard tableau of size [n] -
+            [conj_tab t] == the conjugate standard tableau of [t] (this is
+            indeed a tableau when [t] is itself a standard tableau.
+
+                                                                              *)
 (******************************************************************************)
 From mathcomp Require Import all_ssreflect.
 From mathcomp Require Import ssralg poly polydiv ring_quotient.
@@ -1094,7 +1112,7 @@ rewrite -{1}(poly_cat p n) addrC mulrC Pdiv.IdomainUnit.modp_addl_mul_small //.
   by rewrite size_take -/(minn _ _) geq_minl.
 Qed.
 
-Lemma trXn_modE m (p : {poly R}) : p %% 'X^ m.+1 = tfps (trXn m p).
+Lemma trXn_modE m (p : {poly R}) : p %% 'X^m.+1 = tfps (trXn m p).
 Proof. by apply/val_inj => /=; rewrite trXnE poly_modXn. Qed.
 
 Fact tfps_modp (n m : nat) (p : {poly R}) : n <= m ->
@@ -1791,7 +1809,7 @@ Theorem derivX_tfps f k :
   (f ^+ k)^`() = (trXnt n.-1 f) ^+ k.-1 * f^`()%tfps *+ k.
 Proof.
 have Hn := leq_pred n.
-rewrite derivX_tfps_nc -{9}(card_ord k) -sumr_const.
+rewrite derivX_tfps_nc -[X in _ *+ X](card_ord k) -sumr_const.
 apply eq_bigr => [] [i /= Hi] _.
 by rewrite mulrC mulrA -!rmorphX -rmorphM /= -exprD subnK //; case: k Hi.
 Qed.
@@ -2279,7 +2297,7 @@ Variable g : {tfps R n}.
 Hypothesis gU : g \is a GRing.unit.
 
 
-(** We iterate f := x (g o f) until fixpoint is reached. *)
+(** We iterate f := X (g o f) until fixpoint is reached. *)
 (** At each step, the precision is incremented.          *)
 Fixpoint lagriter ord : {tfps R ord} :=
   if ord is ord'.+1 then tmulX (trXnt ord' g \oT lagriter ord') else 0.
@@ -3321,20 +3339,18 @@ End TFPSField.
 Export TFPSField.
 
 
-
-
-
-
 From mathcomp Require Import ssrint rat ssrnum.
 
-Section Essai.
+Section FromRMorphism.
 
 Variables R : unitRingType.
 
-Fact nat_unit_ratr_is_rmorphism :
-  (forall i, i.+1%:R \is a @GRing.unit R) <-> rmorphism (@ratr R).
+Fact ratr_rmorphism_nat_unit :
+  rmorphism (@ratr R) <-> (forall i, i.+1%:R \is a @GRing.unit R).
 Proof.
-split=> [nat_unit | ratr_morph].
+split=> [ratr_morph i | nat_unit].
+- rewrite -ratr_nat; apply: (rmorph_unit (RMorphism ratr_morph)).
+  by rewrite unitfE Num.Theory.pnatr_eq0.
 - have injZtoQ: @injective rat int intr by apply: intr_inj.
   have den_unit x : ((denq x)%:~R : R) \is a GRing.unit.
     by case: (ratP x) => num den _ {num}; exact: nat_unit.
@@ -3355,9 +3371,20 @@ split=> [nat_unit | ratr_morph].
   rewrite -!(rmorphM, rmorphB); congr _%:~R; apply: injZtoQ.
   rewrite !(rmorphM, rmorphB) [_ - _]lock /= -lock !numqE.
   by rewrite (mulrAC y) -!mulrBl -mulrA mulrAC !mulrA.
-- move=> i.
-  rewrite -ratr_nat; apply: (rmorph_unit (RMorphism ratr_morph)).
-  by rewrite unitfE Num.Theory.pnatr_eq0.
 Qed.
 
-End Essai.
+End FromRMorphism.
+
+
+Section FromRatAlgType.
+
+Variables R : unitAlgType rat.
+
+Fact rat_algtype_nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
+Proof.
+rewrite -ratr_rmorphism_nat_unit.
+have eq_in_ratr := fmorph_eq_rat [rmorphism of (in_alg R)].
+by repeat split => [x y|]; rewrite -!eq_in_ratr ?rmorphB ?rmorphM ?rmorph1.
+Qed.
+
+End FromRatAlgType.
