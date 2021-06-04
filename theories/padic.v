@@ -152,7 +152,7 @@ apply/forallbP/idP => [/(_ 0%N) | /= Hx i].
   rewrite /inZp /= -(natr_Zp (Ordinal _)) /= -unitfE unitFpE //.
   rewrite pdiv_id // in m |- *.
   rewrite (@Zp_cast p) ?prime_gt1 // coprime_modr.
-  exact: coprime_expl.
+  exact: coprimeXl.
 Qed.
 
 Fact padic_mul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).

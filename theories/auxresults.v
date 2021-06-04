@@ -410,6 +410,7 @@ Qed.
 Canonical map_poly_is_injective := InjMorphism map_poly_injective.
 
 End InjectiveTheory.
+#[export]
 Hint Resolve rmorph_inj : core.
 
 Canonical polyC_is_injective (R : ringType) := InjMorphism (@polyC_inj R).

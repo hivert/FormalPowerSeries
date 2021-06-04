@@ -105,8 +105,8 @@ Definition lebar u v :=
   | _, _ => false
   end.
 Definition ltbar u v := (v != u) && (lebar u v).
-Definition meetbar x y := if lebar x y then x else y.
-Definition joinbar x y := if lebar y x then x else y.
+Definition meetbar x y := if ltbar x y then x else y.
+Definition joinbar x y := if ltbar x y then y else x.
 Definition lebar_display : unit. Proof. exact: tt. Qed.
 
 Program Definition natbar_OrderMixin :=
@@ -117,14 +117,16 @@ Next Obligation. by case=> [m|] [n|] //=; exact: leq_total. Qed.
 
 Canonical natbar_porderType :=
   Eval hnf in POrderType lebar_display natbar natbar_OrderMixin.
+Canonical natbar_atticeType :=
+  Eval hnf in LatticeType natbar natbar_OrderMixin.
 Canonical natbar_distrLatticeType :=
   Eval hnf in DistrLatticeType natbar natbar_OrderMixin.
 Canonical natbar_orderType :=
   Eval hnf in OrderType natbar natbar_OrderMixin.
 
 Lemma le0bar v : Nat 0 <= v. Proof. by case: v. Qed.
-Canonical natbar_bDistrLatticeType :=
-  Eval hnf in BDistrLatticeType natbar (BDistrLatticeMixin le0bar).
+Canonical natbar_bLatticeType :=
+  Eval hnf in BLatticeType natbar (BottomMixin le0bar).
 
 Lemma leEnatbar (n m : nat) : (Nat n <= Nat m) = (n <= m)%N.
 Proof. by []. Qed.
@@ -138,7 +140,7 @@ Proof. exact: le_total. Qed.
 Lemma lebarI v : v <= Inf. Proof. by case v. Qed.
 
 Canonical natbar_tbDistrLatticeType :=
-  Eval hnf in TBDistrLatticeType natbar (TBDistrLatticeMixin lebarI).
+  Eval hnf in TBLatticeType natbar (TopMixin lebarI).
 
 Lemma ltbar0Sn n : 0 < Nat n.+1.       Proof. by []. Qed.
 Lemma ltbarS n : Nat n < Nat n.+1.     Proof. by rewrite ltEnatbar. Qed.
@@ -150,16 +152,16 @@ Proof. by []. Qed.
 
 Lemma minbarE : {morph Nat : m n / minn m n >-> Order.meet m n}.
 Proof.
-move=> m n; case: (leqP m n) => [mlen | /ltnW nlem].
-- by rewrite (minn_idPl mlen); move: mlen; rewrite -leEnatbar => /meet_idPl.
-- by rewrite (minn_idPr nlem); move: nlem; rewrite -leEnatbar => /meet_idPr.
+move=> m n; case: (leqP m n) => [| /ltnW].
+- by rewrite -leEnatbar => /meet_idPl.
+- by rewrite -leEnatbar => /meet_idPr.
 Qed.
 
 Lemma maxbarE : {morph Nat : m n / maxn m n >-> Order.join m n}.
 Proof.
-move=> m n; case: (leqP m n) => [mlen | /ltnW nlem].
-- by rewrite (maxn_idPr mlen); move: mlen; rewrite -leEnatbar => /join_idPl.
-- by rewrite (maxn_idPl nlem); move: nlem; rewrite -leEnatbar => /join_idPr.
+move=> m n; case: (leqP m n) => [| /ltnW].
+- by rewrite -leEnatbar => /join_idPr.
+- by rewrite -leEnatbar => /join_idPl.
 Qed.
 
 End NatBar.

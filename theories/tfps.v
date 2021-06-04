@@ -49,9 +49,9 @@ Delimit Scope tfps_scope with tfps.
 Reserved Notation "{ 'tfps' R n }"
          (at level 0, R, n at level 2, format "{ 'tfps'  R  n }").
 Reserved Notation "[ 'tfps' s <= n => F ]"
-  (at level 0, n at next level, s ident, format "[ 'tfps' s <= n  =>  F ]").
+  (at level 0, n at next level, s name, format "[ 'tfps' s <= n  =>  F ]").
 Reserved Notation "[ 'tfps' s => F ]"
-  (at level 0, s ident, format "[ 'tfps'  s  =>  F ]").
+  (at level 0, s name, format "[ 'tfps'  s  =>  F ]").
 Reserved Notation "c %:S" (at level 2, format "c %:S").
 Reserved Notation "\X" (at level 0).
 Reserved Notation "\Xo( n )" (at level 0).
@@ -247,6 +247,7 @@ Notation "{ 'tfps' R n }" :=  (tfps_of n (Phant R)).
 Arguments coeftfps_head {R n} h i%N p%R.
 Notation coeftfps i := (coeftfps_head tt i).
 
+#[export]
 Hint Resolve size_tfps : core.
 
 
