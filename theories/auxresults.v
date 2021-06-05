@@ -9,67 +9,6 @@ Unset Printing Implicit Defensive.
 
 Import GRing.Theory.
 
-Fact aux_equivb (P : Prop) (b c : bool) : reflect P b -> b = c -> reflect P c.
-Proof. by move => reflect_P_b b_eq_c ; rewrite b_eq_c in reflect_P_b. Qed.
-
-Section MoreNatTheory.
-
-Lemma lt_predn n : (n.-1 < n) = (n != 0).
-Proof. by case: n => [//|n]; rewrite ltnSn. Qed.
-
-Fact n_eq1 n : n != 0 -> n < 2 -> n = 1.
-Proof. by case: n => [?|[?|[]]]. Qed.
-
-Fact leq_npred m n : m > 0 -> (m <= n.-1) = (m < n).
-Proof. by move: m n => [|m] [|n]. Qed.
-
-Fact predn_sub m n : (m - n).-1 = (m.-1 - n).
-Proof. by case: m => //= m; rewrite subSKn. Qed.
-
-Lemma geq_subn m n : m <= n -> m - n = 0.
-Proof. by rewrite -subn_eq0 => /eqP. Qed.
-
-Lemma ltn_subLR m n p : 0 < p -> (m - n < p) = (m < n + p).
-Proof. by case: p => // p _; rewrite addnS !ltnS leq_subLR. Qed.
-
-Lemma leq_subRL m n p : 0 < n -> (n <= p - m) = (m + n <= p).
-Proof. by case: n => // n _; rewrite addnS ltn_subRL. Qed.
-
-Fact ltpredn a b c : a != 0 -> ((a + b).-1 < c + b) = (a.-1 < c).
-Proof. by rewrite -lt0n => a_gt0; rewrite !prednK ?ltn_addr // leq_add2r. Qed.
-
-Lemma leq_leq_subRL m n p : m <= p -> (n <= p - m) = (m + n <= p).
-Proof. by move=> ?; case: n => [|n]; rewrite ?leq0n ?addn0 ?leq_subRL. Qed.
-
-Lemma leq_ltn_subLR m n p : n <= m -> (m - n < p) = (m < n + p).
-Proof.
-move=> le_nm; case: p => [|p]; last by rewrite ltn_subLR.
-by rewrite addn0 ltn0 ltnNge le_nm.
-Qed.
-
-Lemma ltnpredn m n : (m < n.-1) = (m.+1 < n).
-Proof. by case: n => [//|n]; rewrite succnK. Qed.
-
-Lemma ltn_subCl m n p : 0 < p -> 0 < n -> (m - n < p) = (m - p < n).
-Proof. by move=> ??; rewrite !ltn_subLR // addnC. Qed.
-
-Lemma leq_ltn_subCl m n p : n <= m -> p <= m -> (m - n < p) = (m - p < n).
-Proof. by move=> ??; rewrite !leq_ltn_subLR // addnC. Qed.
-
-Lemma ltn_subCr m n p : (p < m - n) = (n < m - p).
-Proof. by rewrite !ltn_subRL // addnC. Qed.
-
-Lemma leq_subCr m n p : 0 < p -> 0 < n -> (p <= m - n) = (n <= m - p).
-Proof. by move=> ??; rewrite !leq_subRL // addnC. Qed.
-
-Lemma leq_leq_subCr m n p : n <= m -> p <= m -> (p <= m - n) = (n <= m - p).
-Proof. by move=> ??; rewrite !leq_leq_subRL // addnC. Qed.
-
-Lemma leq_subCl m n p : (m - n <= p) = (m - p <= n).
-Proof. by rewrite !leq_subLR // addnC. Qed.
-
-End MoreNatTheory.
-
 Section MoreBigop.
 
 Lemma big_morph_in (R1 R2 : Type)
@@ -243,38 +182,14 @@ End MoreFieldTheory.
 
 Local Notation "p ^ f" := (map_poly f p).
 
-Section AuxiliaryResults.
-
-Local Notation "x =p y"  := (perm_eq x y) (at level 70, no associativity).
-
-Lemma perm_eq_nil (T : eqType) (s : seq T) : (s =p [::]) = (s == [::]).
+Lemma map_poly_injective (R S : ringType) (f : {rmorphism R -> S}) :
+  injective f -> injective (map_poly f).
 Proof.
-apply/idP/idP ; last by move/eqP ->.
-move => H ; apply/eqP.
-by apply: perm_small_eq.
+move=> finj p q /polyP eq_pq; apply/polyP=> i; have := eq_pq i.
+rewrite !coef_map; exact: finj.
 Qed.
 
-Fact head_rev (T : Type) (s : seq T) (x : T) : head x (rev s) = last x s.
-Proof. by case/lastP: s => [//= |t y]; rewrite rev_rcons last_rcons //=. Qed.
-
-Fact last_rev (T : Type) (s : seq T) (x : T) : last x (rev s) = head x s.
-Proof. case: s => [//= |t y /=]; rewrite rev_cons last_rcons //=. Qed.
-
-Lemma nseqS T (n : nat) (x : T) : nseq n.+1 x = rcons (nseq n x) x.
-Proof. by elim: n => //= n <-. Qed.
-
-Lemma rev_nseq T (n : nat) (x : T) : rev (nseq n x) = nseq n x.
-Proof. by elim: n => // n; rewrite {1}nseqS rev_rcons => ->. Qed.
-
-Lemma rev_ncons (T : Type) (n : nat) (x : T) (s : seq T) :
-  rev (ncons n x s) = rev s ++ nseq n x.
-Proof. by rewrite -cat_nseq rev_cat rev_nseq. Qed.
-
-Lemma rem_cons  (T : eqType) (s : seq T) (a : T) : rem a (a :: s) = s.
-Proof. by rewrite /= eqxx. Qed.
-
-Lemma rcons_nil (T : eqType) (a : T) : rcons [::] a = [:: a].
-Proof. by rewrite -cats1 cat0s. Qed.
+Section AuxiliaryResults.
 
 Variable (R : ringType).
 Implicit Types (p : {poly R}).
@@ -301,126 +216,4 @@ Lemma deriv_sum (T : Type) (s : seq T) (F : T -> {poly R}) (P : pred T):
   deriv (\sum_(i <- s | P i) F i) = \sum_(i <- s | P i) deriv (F i).
 Proof. by apply: big_morph; [exact: derivD|exact: deriv0]. Qed.
 
-Lemma poly_rcons (s : seq R) : Poly (rcons s 0) = Poly s.
-Proof.
-elim: s => [|a l ihs].
-+ rewrite rcons_nil; apply/val_inj => /=.
-  by rewrite polyseq_cons nil_poly polyC0 eqxx.
-+ rewrite rcons_cons; apply/val_inj => /=.
-  by rewrite ihs.
-Qed.
-
-Lemma poly_cat_nseq (s : seq R) (n : nat) : Poly (s ++ (nseq n 0)) = Poly s.
-Proof.
-elim: n => [|n ihn] ; first by rewrite cats0.
-by rewrite nseqS -rcons_cat poly_rcons ihn.
-Qed.
-
-Lemma coef0M (p q : {poly R}) : (p * q)`_0 = p`_0 * q`_0.
-Proof. by rewrite coefM big_ord_recl big_ord0 addr0. Qed.
-
-Variable (K : fieldType).
-
-(* p : {poly K} can be generalize ? *)
-Fact modp_sumn (I : Type) (r : seq I) (P : pred I)
-               (F : I -> {poly K}) (p : {poly K}) :
-               (\sum_(i <- r | P i) F i) %% p = \sum_(i <- r | P i) (F i %% p).
-Proof. by rewrite (big_morph ((@modp _)^~ p) (modp_add _) (mod0p _) _). Qed.
-
-Fact modp_mul2 (p q m : {poly K}): ((p %% m) * q) %% m = (p * q) %% m.
-Proof. by rewrite mulrC modp_mul mulrC. Qed.
-
 End AuxiliaryResults.
-
-Module InjMorphism.
-
-Section ClassDef.
-
-Variables (R S : ringType).
-
-Record class_of (f : R -> S) : Type :=
-  Class {base : rmorphism f; mixin : injective f}.
-Local Coercion base : class_of >-> rmorphism.
-
-Structure map (phRS : phant (R -> S)) := Pack {apply; _ : class_of apply}.
-Local Coercion apply : map >-> Funclass.
-
-Variables (phRS : phant (R -> S)) (f g : R -> S) (cF : map phRS).
-
-Definition class := let: Pack _ c as cF' := cF return class_of cF' in c.
-
-Definition clone fM of phant_id g (apply cF) & phant_id fM class :=
-  @Pack phRS f fM.
-
-Definition pack (fM : injective f) :=
-  fun (bF : GRing.RMorphism.map phRS) fA & phant_id (GRing.RMorphism.class bF) fA =>
-  Pack phRS (Class fA fM).
-
-Canonical additive := GRing.Additive.Pack phRS class.
-Canonical rmorphism := GRing.RMorphism.Pack phRS class.
-
-End ClassDef.
-
-Module Exports.
-Notation injmorphism f := (class_of f).
-Coercion base : injmorphism >-> GRing.RMorphism.class_of.
-Coercion mixin : injmorphism >-> injective.
-Coercion apply : map >-> Funclass.
-Notation InjMorphism fM := (pack fM id).
-Notation "{ 'injmorphism' fRS }" := (map (Phant fRS))
-  (at level 0, format "{ 'injmorphism'  fRS }") : ring_scope.
-Notation "[ 'injmorphism' 'of' f 'as' g ]" := (@clone _ _ _ f g _ _ idfun id)
-  (at level 0, format "[ 'injmorphism'  'of'  f  'as'  g ]") : form_scope.
-Notation "[ 'injmorphism' 'of' f ]" := (@clone _ _ _ f f _ _ id id)
-  (at level 0, format "[ 'injmorphism'  'of'  f ]") : form_scope.
-Coercion additive : map >-> GRing.Additive.map.
-Canonical additive.
-Coercion rmorphism : map >-> GRing.RMorphism.map.
-Canonical rmorphism.
-End Exports.
-
-End InjMorphism.
-Include InjMorphism.Exports.
-
-Section InjectiveTheory.
-
-Lemma raddf_inj (R S : zmodType) (f : {additive R -> S}) :
-   (forall x, f x = 0 -> x = 0) -> injective f.
-Proof.
-move=> f_inj x y /eqP; rewrite -subr_eq0 -raddfB => /eqP /f_inj /eqP.
-by rewrite subr_eq0 => /eqP.
-Qed.
-
-Variable (R S : ringType) (f : {injmorphism R -> S}).
-
-Lemma rmorph_inj : injective f. Proof. by case: f => [? []]. Qed.
-
-Lemma rmorph_eq (x y : R) : (f x == f y) = (x == y).
-Proof. by rewrite (inj_eq (rmorph_inj)). Qed.
-
-Lemma rmorph_eq0 (x : R) : (f x == 0) = (x == 0).
-Proof. by rewrite -(rmorph0 f) (inj_eq (rmorph_inj)). Qed.
-
-Definition map_poly_injective : injective (map_poly f).
-Proof.
-move=> p q /polyP eq_pq; apply/polyP=> i; have := eq_pq i.
-by rewrite !coef_map => /rmorph_inj.
-Qed.
-
-Canonical map_poly_is_injective := InjMorphism map_poly_injective.
-
-End InjectiveTheory.
-#[export]
-Hint Resolve rmorph_inj : core.
-
-Canonical polyC_is_injective (R : ringType) := InjMorphism (@polyC_inj R).
-
-Canonical comp_is_injmorphism (R S T : ringType)
-  (f : {injmorphism R -> S}) (g : {injmorphism S -> T}) :=
-  InjMorphism (inj_comp (@rmorph_inj _ _ g) (@rmorph_inj _ _ f)).
-
-(* Hack to go around a bug in canonical structure resolution *)
-Definition fmorph (F R : Type) (f : F -> R) := f.
-Canonical fmorph_is_injmorphism (F : fieldType) (R : ringType)
-  (f : {rmorphism F -> R}) :=
-  InjMorphism (fmorph_inj f : injective (fmorph f)).

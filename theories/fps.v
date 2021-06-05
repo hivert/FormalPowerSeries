@@ -299,11 +299,8 @@ Canonical fpsC_rmorphism := AddRMorphism fpsC_is_multiplicative.
 
 Lemma fpsCK : cancel fpsC (coefs 0%N).
 Proof. by move=> c; rewrite /= coefsC. Qed.
-Canonical fpsC_injmorphism := Eval hnf in InjMorphism (can_inj fpsCK).
-
-
-Lemma fpsC_eq0 (c : R) : (c%:S == 0 :> {fps R}) = (c == 0).
-Proof. exact: rmorph_eq0 fpsC_injmorphism c. Qed.
+Lemma fpsC_inj : injective fpsC.
+Proof. exact: can_inj fpsCK. Qed.
 
 Lemma fpsC0 : 0%:S = 0.
 Proof. exact: rmorph0. Qed.
@@ -331,6 +328,10 @@ Lemma fpsC_prod I (r : seq I) (s : pred I) (F : I -> R) :
   (\prod_(i <- r | s i) F i)%:S = \prod_(i <- r | s i) (F i)%:S.
 Proof. exact: rmorph_prod. Qed.
 
+Lemma fpsC_eq0 (c : R) : (c%:S == 0 :> {fps R}) = (c == 0).
+Proof. rewrite -fpsC0; apply/inj_eq/fpsC_inj. Qed.
+Lemma fpsC_eq1 (c : R) : (c%:S == 1 :> {fps R}) = (c == 1).
+Proof. rewrite -fpsC1; apply/inj_eq/fpsC_inj. Qed.
 
 Lemma compat_poly : iscompat (fps_invsys R) (@trXn R).
 Proof. by  move=> i j le_ij p; rewrite /= fps_bondE /trXnt /= trXn_trXn. Qed.
@@ -361,8 +362,6 @@ Proof. exact: InvLimitRing.ilind_is_multiplicative _ compat_poly. Qed.
 Canonical fps_poly_rmorphism :=
   Eval hnf in AddRMorphism fps_poly_is_multiplicative.
 Canonical fps_poly_lrmorphism := [lrmorphism of fps_poly].
-Canonical fps_poly_injmorphism := Eval hnf in InjMorphism fps_poly_inj.
-
 
 Lemma fps_poly0 : fps_poly 0 = 0.
 Proof. exact: raddf0. Qed.
@@ -941,11 +940,11 @@ Proof. by rewrite linearD. Qed.
 
 End MapFPS.
 
-Lemma map_fps_injective (K L : ringType) (F : {injmorphism K -> L}) :
-  injective (@map_fps _ _ F).
+Lemma map_fps_injective (K L : ringType) (F : {rmorphism K -> L}) :
+  injective F -> injective (@map_fps _ _ F).
 Proof.
-move=> x y eqmap; apply/invlimE => i.
-by apply: (map_tfps_injective (F := F)); rewrite -!proj_map_fps eqmap.
+move=> Finj x y eqmap; apply/invlimE => i.
+by apply: (map_tfps_injective Finj); rewrite -!proj_map_fps eqmap.
 Qed.
 
 Lemma map_fps_inj (K : fieldType) (L : ringType) (F : {rmorphism K -> L}) :

@@ -341,7 +341,6 @@ Proof. by apply/polyP => i /=; rewrite coeftC coefC. Qed.
 
 Lemma tfpsCK : cancel tfpsC (coeftfps 0).
 Proof. by move=> c; rewrite [coeftfps 0 _]coeftC. Qed.
-
 Lemma tfpsC_inj : injective tfpsC.
 Proof. exact: can_inj tfpsCK. Qed.
 
@@ -540,6 +539,8 @@ Canonical tfpsC_rmorphism :=
 
 Lemma tfpsC1 : (1%:S : {tfps R n}) = 1.
 Proof. exact: rmorph1. Qed.
+Lemma tfpsC_eq1 (c : R) : (c%:S == 1 :> {tfps R n}) = (c == 1).
+Proof. by rewrite -tfpsC1; apply/inj_eq/tfpsC_inj. Qed.
 
 Lemma tfpsCM : {morph (@tfpsC R n) : a b / a * b >-> a * b}.
 Proof. exact: rmorphM. Qed.
@@ -1203,10 +1204,10 @@ Qed.
 
 End MapTFPS.
 
-Lemma map_tfps_injective (K L : ringType) n (F : {injmorphism K -> L}) :
-  injective (@map_tfps _ _ n F).
+Lemma map_tfps_injective (K L : ringType) n (F : {rmorphism K -> L}) :
+  injective F -> injective (@map_tfps _ _ n F).
 Proof.
-by move=> x y /val_eqP/eqP /= /map_poly_injective H; apply tfps_inj.
+by move=> Finj x y /val_eqP/eqP/(map_poly_injective Finj)/tfps_inj.
 Qed.
 
 Lemma map_tfps_inj (K : fieldType) (L : ringType) n (F : {rmorphism K -> L}) :
@@ -1220,10 +1221,6 @@ Proof. by apply/tfpsP=> i le_in; rewrite !(coef_map, coef_trXn) le_in. Qed.
 
 Lemma map_poly_idfun (R : ringType) : map_poly (@idfun R) =1 @idfun {poly R}.
 Proof. exact: coefK. Qed.
-
-Lemma idfun_injective A : injective (@idfun A). Proof. done. Qed.
-Canonical idfun_is_injmorphism (A : ringType) :=
-    Eval hnf in InjMorphism (@idfun_injective A).
 
 Lemma map_tfps_idfun (K : fieldType) (m : nat) :
   map_tfps [rmorphism of (@idfun K)] =1 @idfun {tfps K m}.
@@ -1412,7 +1409,7 @@ rewrite (bigID (fun k => val k >= i)) /= ?big1 ?addr0 // => [] [k Hk] /= H.
   by rewrite coefX_eq0 ?mul0r.
 - rewrite ltnS in Hk.
   rewrite [X in _* X]coefX_eq0 ?mulr0 //.
-  rewrite leq_ltn_subLR //.
+  rewrite ltn_subLR //.
   exact: (leq_ltn_trans le_li (leq_trans lt_n_addij (leq_add _ _))).
 Qed.
 
