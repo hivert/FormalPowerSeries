@@ -366,7 +366,7 @@ Local Open Scope tfps_scope.
 Notation "[ 'tfps' s <= n => F ]" :=
   (tfps_of_fun n (fun s => F)) : tfps_scope.
 Notation "[ 'tfps' s => F ]" := [tfps s <= _ => F] : tfps_scope.
-Notation "c %:S" := (tfpsC _ c) (at level 2) : tfps_scope.
+Notation "c %:S" := (tfpsC _ c) : tfps_scope.
 Notation "\X" := (trXn _ 'X) : tfps_scope.
 Notation "\Xo( n )" := (trXn n 'X) (only parsing): tfps_scope.
 
