@@ -147,7 +147,7 @@ apply/forallbP/idP => [/(_ 0%N) | /= Hx i].
 - by apply/memPn: ('pi_0%N x); rewrite unitr0.
 - have:= leq0n i; rewrite -leEnat => Hi.
   move: (ilprojE x Hi) Hx; rewrite {Hi} /padic_bond /Zmn => <-.
-  move: ('pi_i x); rewrite {x} expn1 -(pdiv_id p_pr) => m /=.
+  move: ('pi_i x); rewrite {x} expn1 -(pdiv_id p_pr) => /= m.
   rewrite -{2}(natr_Zp m) unitZpE ?expgt1 ?pdiv_id //.
   rewrite /inZp /= -(natr_Zp (Ordinal _)) /= -unitfE unitFpE //.
   rewrite pdiv_id // in m |- *.
