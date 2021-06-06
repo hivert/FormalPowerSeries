@@ -461,6 +461,21 @@ Canonical tfpsC_additive := Eval hnf in Additive tfpsC_is_additive.
 
 Lemma tfpsC0 : (0%:S : {tfps R n}) = 0.
 Proof. exact: raddf0. Qed.
+Lemma tfpsCB : {morph (@tfpsC R n) : a b / a + b}.
+Proof. exact: raddfD. Qed.
+Lemma tfpsCN : {morph (@tfpsC R n) : c / - c}.
+Proof. exact: raddfN. Qed.
+Lemma tfpsCD : {morph (@tfpsC R n) : a b / a - b}.
+Proof. exact: raddfB. Qed.
+Lemma tfpsC_sum I (r : seq I) (s : pred I) (F : I -> R) :
+  (\sum_(i <- r | s i) F i)%:S = \sum_(i <- r | s i) (F i)%:S.
+Proof. exact: raddf_sum. Qed.
+
+Lemma tfpsCMn m : {morph (@tfpsC R n) : c / c *+ m}.
+Proof. exact: raddfMn. Qed.
+Lemma tfpsCMNn m : {morph (@tfpsC R n) : c / c *- m}.
+Proof. exact: raddfMNn. Qed.
+
 
 Lemma tfpsC_eq0 (c : R) : (c%:S == 0 :> {tfps R n}) = (c == 0).
 Proof. by rewrite -tfpsC0; apply/inj_eq/tfpsC_inj. Qed.
@@ -539,11 +554,16 @@ Canonical tfpsC_rmorphism :=
 
 Lemma tfpsC1 : (1%:S : {tfps R n}) = 1.
 Proof. exact: rmorph1. Qed.
+Lemma tfpsCM : {morph (@tfpsC R n) : a b / a * b}.
+Proof. exact: rmorphM. Qed.
+Lemma tfpsCX m : {morph (@tfpsC R n) : c / c ^+ m}.
+Proof. exact: rmorphX. Qed.
+Lemma tfpsC_prod I (r : seq I) (s : pred I) (F : I -> R) :
+  (\prod_(i <- r | s i) F i)%:S = \prod_(i <- r | s i) (F i)%:S.
+Proof. exact: rmorph_prod. Qed.
+
 Lemma tfpsC_eq1 (c : R) : (c%:S == 1 :> {tfps R n}) = (c == 1).
 Proof. by rewrite -tfpsC1; apply/inj_eq/tfpsC_inj. Qed.
-
-Lemma tfpsCM : {morph (@tfpsC R n) : a b / a * b >-> a * b}.
-Proof. exact: rmorphM. Qed.
 
 
 (* lmodType structure *)
