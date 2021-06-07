@@ -109,3 +109,42 @@ Canonical lattice_dirType := DirType T lattice_dirMixin.
 End Generic.
 
 Canonical nat_dirType := DirType nat (@lattice_dirMixin _ _).
+
+
+Section UpSets.
+
+Variables (disp : unit) (I : dirType disp).
+Implicit Types (i j k : I).
+Implicit Types (s t : set I).
+
+Definition up_set (S : set I) :=
+  nonempty S /\ forall i j, i <= j -> S i -> S j.
+
+Lemma up_setI S T : up_set S -> up_set T -> up_set (S `&` T).
+Proof.
+move=> [[x Sx upS]] [[y Sy upT]]; split.
+- have [z le_xz le_yz] := directedP x y; exists z.
+  by split; [apply: upS; first exact: le_xz | apply: upT; first exact: le_yz].
+by move=> i j le_ij [/(upS _ _ le_ij) Si /(upT _ _ le_ij) Sj].
+Qed.
+Lemma up_setU S T : up_set S -> up_set T -> up_set (S `|` T).
+Proof.
+move=> [[x Sx upS]] [[y Sy upT]]; split; first by exists x; left.
+by move=> i j le_ij [/(upS _ _ le_ij) Si | /(upT _ _ le_ij) Sj]; [left|right].
+Qed.
+
+Variables (T : Type) (P : set T) (F : T -> set I).
+
+Lemma up_set_bigcup :
+  nonempty P ->
+  (forall t : T, P t -> up_set (F t)) ->
+  up_set (\bigcup_(t in P) F t).
+Proof.
+move=> [t Pt] H; split.
+  by have [[i Fti] _] := H t Pt; exists i; exists t.
+move=> {t Pt} i j le_ij [t Pt Fti]; exists t => //.
+by have [_ ] := (H t Pt); apply; first apply: le_ij.
+Qed.
+
+End UpSets.
+

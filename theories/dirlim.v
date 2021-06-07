@@ -59,19 +59,23 @@ Record dirsys : Type := DirSys {
 Definition dirsys_obj of dirsys := Ob.
 Definition dirsys_mor of dirsys := bonding.
 
+Lemma bondingE i j (Hij1 Hij2 : i <= j) : bonding Hij1 = bonding Hij2.
+Proof. by rewrite (Prop_irrelevance Hij1 Hij2). Qed.
+
+Lemma bonding_transE (Sys : dirsys) i j k (Hij : i <= j) (Hjk : j <= k) x :
+  (bonding Hjk) (bonding Hij x) = bonding (le_trans Hij Hjk) x.
+Proof. by move/dirsys_comp : Sys; apply. Qed.
+
 (* Is cocone *)
 Definition iscompat of dirsys := fun T (mors : forall i, Ob i -> T) =>
   forall i j, forall (Hij : i <= j), mors j \o bonding Hij =1 mors i.
 
 (* Is section ? *)
 Definition isthread of dirsys :=
-  fun thr : forall i, option (Ob i) =>
-    forall i j, forall (Hij : i <= j),
-        if thr i is Some x then 
-                                       bonding Hij (thr i) = thr j.
-(* Is cocone *)
-Definition iscompat of dirsys := fun T (mors : forall i, Ob i -> T) =>
-  forall i j, forall (Hij : i <= j), mors j \o bonding Hij =1 mors i.
+  fun (thread : set I * forall i, Ob i) =>
+    let: (supp, thr) := thread in
+    up_set supp /\
+    forall i j, supp i -> forall (Hij : i <= j), bonding Hij (thr i) = thr j.
 
 End DirectSystem.
 
@@ -83,6 +87,7 @@ End DirectSystem.
 (***************************************************************************)
 Module DirLim.
 
+
 Section ClassDefs.
 
 Variables (disp : unit) (I : dirType disp).
@@ -90,15 +95,15 @@ Variable Ob : I -> Type.
 Variable bonding : forall i j, i <= j -> Ob i -> Ob j.
 Variable Sys : dirsys bonding.
 
-Record mixin_of (Tdir : Type) := Mixin {
-  dirlim_inj : forall i, Ob i -> Tdir;
+Record mixin_of (TLim : Type) := Mixin {
+  dirlim_inj : forall i, Ob i -> TLim;
   dirlim_ind : forall (T : Type) (f : forall i, Ob i -> T),
-      (iscompat Sys f) -> Tdir -> T;
+      (iscompat Sys f) -> TLim -> T;
   _ : iscompat Sys dirlim_inj;
-  _ : forall T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f),
+  _ : forall (T : Type) (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f),
       forall i, dirlim_ind Hcomp \o @dirlim_inj i =1 f i;
-  _ : forall T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f),
-      forall (ind : Tdir -> T),
+  _ : forall (T : Type) (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f),
+      forall (ind : TLim -> T),
         (forall i, ind \o @dirlim_inj i =1 f i) ->
         ind =1 dirlim_ind Hcomp
   }.
@@ -149,13 +154,13 @@ Definition ind_phant of phant ilT := dirlim_ind (mixin (class ilT)).
 Local Notation "\ind" := (ind_phant (Phant ilT)).
 
 Lemma inj_compat : iscompat Sys \inj.
-Proof. by rewrite /inj_phant; case: ilT => /= [Tdir [eqM []]]. Qed.
+Proof. by rewrite /inj_phant; case: ilT => /= [TLim [eqM []]]. Qed.
 
 Lemma ind_commute T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f) :
   forall i, \ind Hcomp \o \inj_ i =1 f i.
-Proof. by rewrite /inj_phant /ind_phant; case: ilT => /= [Tdir [eqM []]]. Qed.
+Proof. by rewrite /inj_phant /ind_phant; case: ilT => /= [TLim [eqM []]]. Qed.
 
-Lemma piindE  T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f) i x :
+Lemma injindE  T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f) i x :
   (\ind Hcomp) (\inj_ i x) = f i x.
 Proof. exact: ind_commute. Qed.
 
@@ -164,7 +169,7 @@ Lemma ind_uniq T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f) :
     (forall i, ind \o \inj_ i =1 f i) -> ind =1 \ind Hcomp.
 Proof.
 rewrite /inj_phant /ind_phant.
-case: ilT => /= [Tdir [eqM /= [pi ind comp comm uniq]]] indT commT t /=.
+case: ilT => /= [TLim [eqM /= [pi ind comp comm uniq]]] indT commT t /=.
 by apply uniq; apply commT.
 Qed.
 
@@ -182,9 +187,14 @@ Notation "[ 'dirLimType' 'of' T ]" :=
   (@DirLim.clone _ _ _ _ _ T _ _ id)
   (at level 0, format "[ 'dirLimType'  'of'  T ]") : form_scope.
 
+Notation "''inj[' dlType ']'" := (@inj_phant _ _ _ _ _ dlType (Phant _))
+                                   (at level 8).
+
 Notation "''inj_' i" := (@inj_phant _ _ _ _ _ _ (Phant _) i).
+(*
 Notation "''inj[' T ']_' i" := (@inj_phant _ _ _ _ _ _ (Phant T) i)
                               (at level 8, i at level 2, only parsing).
+*)
 Notation "\ind" := (ind_phant (Phant _)).
 
 
@@ -194,26 +204,126 @@ Variables (disp : unit) (I : dirType disp).
 Variable Ob : I -> Type.
 Variable bonding : forall i j, i <= j -> Ob i -> Ob j.
 Variable Sys : dirsys bonding.
-Variable ilT : dirLimType Sys.
+Variable dlT : dirLimType Sys.
 
-Lemma dirlimE (x y : ilT) : (forall i, 'inj_i x = 'inj_i y) -> x = y.
+Lemma dirlimP (t : dlT) : exists k (y : Ob k), 'inj[dlT] y = t.
 Proof.
-move=> Heq.
-pose fx : forall i : I, unit -> Ob i := fun i tt => 'pi_i x.
-have compf : iscompat Sys fx.
-  rewrite /fx => i j le_ij tt /=.
-  by rewrite -/((bonding le_ij \o 'pi_j) x) proj_compat.
-pose ind z : unit -> ilT := fun tt => z.
-have Huniqy : forall i, 'pi_i \o ind y =1 fx i.
-  by move=> i tt /=; rewrite /ind /fx Heq.
-have Huniqx : forall i, 'pi_i \o ind x =1 fx i.
-  by move=> i tt /=; rewrite /ind /fx Heq.
-move: (ind_uniq compf Huniqx tt) (ind_uniq compf Huniqy tt).
-by rewrite /ind /ind_phant => -> ->.
+rewrite not_existsP => H.
+pose f i := pred0 (T := Ob i).
+have Hcomp : iscompat Sys f by [].
+have /(ind_uniq Hcomp)/(_ t) :
+  forall i, (pred0 (T := dlT)) \o 'inj_i =1 f i by [].
+suff /(ind_uniq Hcomp)/(_ t) <- : forall i, (pred1 t) \o 'inj_i =1 f i.
+  by rewrite /= eqxx.
+rewrite /f => i x /=; apply/negP => /eqP eq_inj.
+by apply/(H i); exists x.
 Qed.
 
+Lemma dirlim_choiceP :
+  { dlrepr : dlT -> {i : I & Ob i} &
+     forall (t : dlT), let: existT i x := dlrepr t in 'inj[dlT] x = t }.
+Proof.
+have:= dirlimP => /choice [f] /(_ _)/cid -/all_tag [fdep Hfdep].
+by exists (fun t : dlT => existT _ (f t) (fdep t)).
+Qed.
+
+Definition inthread i j (x : Ob i) (z : Ob j) :=
+  exists k (le_ik : i <= k) (le_jk : j <= k),
+    bonding le_jk z = bonding le_ik x.
+
+Lemma inthread_refl i (x : Ob i) : inthread x x.
+Proof. by exists i; exists (lexx i); exists (lexx i). Qed.
+Lemma inthread_sym_impl (i j : I) (x : Ob i) (y : Ob j) :
+  inthread x y -> inthread y x.
+Proof.
+move=> [k [le_ik] [le_jk] Hbond].
+by exists k; exists le_jk; exists le_ik; rewrite Hbond.
+Qed.
+Lemma inthread_sym (i j : I) (x : Ob i) (y : Ob j) :
+  inthread x y = inthread y x.
+Proof. by rewrite propeqE; split; apply: inthread_sym_impl. Qed.
+Lemma inthread_trans (i j k : I) (x : Ob i) (y : Ob j) (z : Ob k) :
+  inthread x y -> inthread y z -> inthread x z.
+Proof.
+move=> [l [le_il] [le_jl] Hyx].
+move=> [m [le_jm] [le_km] Hzy].
+have [n le_ln le_mn] := directedP l m.
+exists n; exists (le_trans le_il le_ln); exists (le_trans le_km le_mn).
+rewrite -!bonding_transE // {}Hzy -{}Hyx !bonding_transE //.
+congr bonding; exact: Prop_irrelevance.
+Qed.
+
+End Theory.
+
+(****************************************************************************)
+(** Direct limits in various algebraic categories                           *)
+(**                                                                         *)
+(** We don't deal with multiplicative groups as they are all assumed finite *)
+(** in mathcomp.                                                            *)
+(****************************************************************************)
+
+
+Section DirLimitEqType.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> eqType.
+Variable bonding : forall i j, i <= j -> Ob i -> Ob j.
+Variable Sys : dirsys bonding.
+Variable dlT : dirLimType Sys.
+
+Implicit Types (i j : I).
+
+Lemma inthread_compat i (x : Ob i) :
+  iscompat Sys (fun j (y : Ob j) => `[< inthread bonding x y >]).
+Proof.
+move=> j k le_jk y /=.
+case: (boolP `[< inthread bonding x y >]) => [Hthr | Hnthr].
+- move: Hthr => /asboolP [l [le_il] [le_jl] Hbond]; apply/asboolP.
+  have [m le_km le_lm] := directedP k l.
+  exists m; exists (le_trans le_il le_lm); exists (le_km).
+  rewrite -(dirsys_comp Sys le_il le_lm) /= -Hbond.
+  rewrite !bonding_transE //; congr bonding.
+  exact: Prop_irrelevance.
+- apply/negP => /= /asboolP [l [le_il] [le_kl]].
+  rewrite bonding_transE // => Hbond.
+  move: Hnthr => /asboolP; apply.
+  by exists l; exists le_il; exists (le_trans le_jk le_kl).
+Qed.
+
+Lemma dirlimEI (i : I) (x : Ob i) (y : Ob i) :
+  'inj[dlT] x = 'inj[dlT] y ->
+  exists (k : I) (le_ik : i <= k),
+    bonding le_ik x = bonding le_ik y.
+Proof.
+move => Heq; apply contrapT; rewrite -forallNP => Hbond.
+have Hcomp := inthread_compat x.
+have:= injindE dlT Hcomp y; rewrite -Heq injindE.
+have /asboolP -> := inthread_refl bonding x.
+move => /esym/asboolP [j [le_ij] [le_ij2]] Habs.
+apply: (Hbond j); exists (le_ij); rewrite -Habs.
+congr bonding; exact: Prop_irrelevance.
+Qed.
+
+Lemma dirlimE (i j : I) (x : Ob i) (y : Ob j) :
+  ('inj[dlT] x = 'inj[dlT] y) <-> (inthread bonding x y).
+Proof.
+split => [H | [k [le_ik] [le_jk] Hbond]].
+- have [l le_il le_jl] := directedP i j.
+  have /dirlimEI [k [le_lk]] :
+      'inj[dlT] (bonding le_il x) = 'inj[dlT] (bonding le_jl y).
+    have /= -> := (inj_compat dlT le_il x).
+    by rewrite H -(inj_compat dlT le_jl y).
+  rewrite !bonding_transE // => Hk.
+  by exists k; exists (le_trans le_il le_lk); exists (le_trans le_jl le_lk).
+- have /= <- := (inj_compat dlT le_ik x).
+  by rewrite -Hbond -(inj_compat dlT le_jk y).
+Qed.
+
+End DirLimitEqType.
+
+(*
 Lemma from_thread_spec (thr : forall i : I, Ob i) :
-  isthread Sys thr -> { t : ilT | forall i, 'pi_i t = thr i }.
+  isthread Sys thr -> { t : dlT | forall i, 'pi_i t = thr i }.
 Proof.
 rewrite /isthread => Hhtr.
 pose f : forall i : I, unit -> Ob i := fun i tt => thr i.
@@ -228,14 +338,14 @@ Lemma dirLimP thr (Hthr : isthread Sys thr) :
   forall i, 'pi_i (ilthr Hthr) = thr i.
 Proof. by rewrite /ilthr; case: from_thread_spec. Qed.
 
-Lemma ilprojE (x : ilT) :
+Lemma ilprojE (x : dlT) :
   forall i j, forall (Hij : i <= j), bonding Hij ('pi_j x) = 'pi_i x.
 Proof. by move=> i j Hij; have /= -> := (proj_compat Hij x). Qed.
 
-Lemma ilprojP : iscompat Sys (pi_phant (ilT := ilT) (Phant _)).
+Lemma ilprojP : iscompat Sys (pi_phant (dlT := dlT) (Phant _)).
 Proof. move=> i j Hij x /=; exact: ilprojE. Qed.
 
-Lemma dirlim_exE (x y : ilT) :
+Lemma dirlim_exE (x y : dlT) :
   (forall i, exists2 i0, i0 >= i & 'pi_i0 x = 'pi_i0 y) -> x = y.
 Proof.
 move=> Heq; apply dirlimE => i.
@@ -243,7 +353,7 @@ have:= Heq i => [][i0 le_ii0] /(congr1 (bonding le_ii0)).
 by rewrite !ilprojE.
 Qed.
 
-Lemma dirlim_geE b (x y : ilT) :
+Lemma dirlim_geE b (x y : dlT) :
   (forall i, i >= b -> 'pi_i x = 'pi_i y) -> x = y.
 Proof.
 move=> Heq; apply dirlim_exE => i.
@@ -251,12 +361,15 @@ by have:= directedP i b => [][j le_ij {}/Heq Heq]; exists j.
 Qed.
 
 End Theory.
-Arguments ilthr {disp I Ob bonding Sys ilT thr}.
-Arguments dirlim_geE {disp I Ob bonding Sys ilT}.
+Arguments ilthr {disp I Ob bonding Sys dlT thr}.
+Arguments dirlim_geE {disp I Ob bonding Sys dlT}.
+
+Open Scope ring_scope.
+Import GRing.Theory.
 
 
 (****************************************************************************)
-(** Direrse limits in various algebraic categories                          *)
+(** Direct limits in various algebraic categories                           *)
 (**                                                                         *)
 (** We don't deal with multiplicative groups as they are all assumed finite *)
 (** in mathcomp.                                                            *)
@@ -292,23 +405,23 @@ Variable Ob : I -> zmodType.
 Variable bonding : forall i j, (i <= j)%O -> {additive (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type x y : Tdir.
+Variable TLim : dirLimType Sys.
+Implicit Type x y : TLim.
 
 Fact ilzeroP : isthread Sys (fun i => 0 : Ob i).
 Proof. by move=> i j Hij; rewrite raddf0. Qed.
-Definition ilzero : Tdir := ilthr ilzeroP.
+Definition ilzero : TLim := ilthr ilzeroP.
 
 Fact iloppP x : isthread Sys (fun i => - ('pi_i x)).
 Proof. by move=> i j Hij; rewrite raddfN (ilprojE x). Qed.
-Definition ilopp x : Tdir := ilthr (iloppP x).
+Definition ilopp x : TLim := ilthr (iloppP x).
 
 Fact iladdP x y : isthread Sys (fun i => 'pi_i x + 'pi_i y).
 Proof. by move=> i j Hij; rewrite raddfD (ilprojE x) (ilprojE y). Qed.
-Definition iladd x y : Tdir := ilthr (iladdP x y).
+Definition iladd x y : TLim := ilthr (iladdP x y).
 
-Program Definition dirlim_zmodMixin of phant Tdir :=
-  @ZmodMixin Tdir ilzero ilopp iladd _ _ _ _.
+Program Definition dirlim_zmodMixin of phant TLim :=
+  @ZmodMixin TLim ilzero ilopp iladd _ _ _ _.
 Next Obligation. by move=> a b c; apply dirlimE=> i; rewrite !dirLimP addrA. Qed.
 Next Obligation. by move=> a b; apply dirlimE=> i; rewrite !dirLimP addrC. Qed.
 Next Obligation. by move=> b; apply dirlimE=> i; rewrite !dirLimP add0r. Qed.
@@ -317,11 +430,11 @@ Next Obligation. by move=> b; apply dirlimE=> i; rewrite !dirLimP addNr. Qed.
 (* A mettre dans un module pour avoir le canonical local *)
 
 Local Canonical dirlim_zmodType :=
-  Eval hnf in ZmodType Tdir (dirlim_zmodMixin (Phant Tdir)).
+  Eval hnf in ZmodType TLim (dirlim_zmodMixin (Phant TLim)).
 
 Fact ilproj_is_additive i : additive 'pi_i.
 Proof. by move=> x y; rewrite !dirLimP. Qed.
-Canonical ilproj_additive i : {additive Tdir -> Ob i} :=
+Canonical ilproj_additive i : {additive TLim -> Ob i} :=
   Additive (ilproj_is_additive i).
 
 Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
@@ -337,7 +450,7 @@ Fact ilind_is_additive : additive (\ind Hcomp).
 Proof.
 by move=> t u; apply dirlimE=> i; rewrite raddfB /= !piindE raddfB.
 Qed.
-Canonical ilind_additive : {additive T -> Tdir} :=
+Canonical ilind_additive : {additive T -> TLim} :=
   Additive ilind_is_additive.
 
 End UniversalProperty.
@@ -362,21 +475,21 @@ Variable Ob : I -> ringType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type x y : Tdir.
+Variable TLim : dirLimType Sys.
+Implicit Type x y : TLim.
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
 
 Fact iloneP : isthread Sys (fun i => 1 : Ob i).
 Proof. by move=> i j Hij; rewrite rmorph1. Qed.
-Definition ilone : Tdir := ilthr iloneP.
+Definition ilone : TLim := ilthr iloneP.
 
 Fact ilmulP x y : isthread Sys (fun i => 'pi_i x * 'pi_i y).
 Proof. by move=> i j Hij; rewrite rmorphM (ilprojE x) (ilprojE y). Qed.
-Definition ilmul x y : Tdir := ilthr (ilmulP x y).
+Definition ilmul x y : TLim := ilthr (ilmulP x y).
 
-Program Definition dirlim_ringMixin of phant Tdir :=
+Program Definition dirlim_ringMixin of phant TLim :=
   @RingMixin _ ilone ilmul _ _ _ _ _ _.
 Next Obligation. by move=> a b c; apply dirlimE=> i; rewrite !dirLimP mulrA. Qed.
 Next Obligation. by move=> a; apply dirlimE=> i; rewrite !dirLimP mul1r. Qed.
@@ -388,11 +501,11 @@ apply/negP => /eqP/(congr1 (fun x => 'pi_(dirsys_inh Sys) x)) /= /eqP.
 by rewrite !dirLimP; exact/negP/oner_neq0.
 Qed.
 Local Canonical dirlim_ringType :=
-  Eval hnf in RingType Tdir (dirlim_ringMixin (Phant Tdir)).
+  Eval hnf in RingType TLim (dirlim_ringMixin (Phant TLim)).
 
 Fact ilproj_is_multiplicative i : multiplicative 'pi_i.
 Proof. by split => [x y|]; rewrite !dirLimP. Qed.
-Canonical ilproj_rmorphism i : {rmorphism Tdir -> Ob i} :=
+Canonical ilproj_rmorphism i : {rmorphism TLim -> Ob i} :=
   AddRMorphism (ilproj_is_multiplicative i).
 
 Section UniversalProperty.
@@ -406,7 +519,7 @@ split.
 - by move=> t u; apply dirlimE=> i; rewrite !piindE !rmorphM /= !piindE.
 - by apply dirlimE=> i; rewrite piindE !rmorph1.
 Qed.
-Canonical ilind_rmorphism : {rmorphism T -> Tdir} :=
+Canonical ilind_rmorphism : {rmorphism T -> TLim} :=
   AddRMorphism ilind_is_multiplicative.
 
 End UniversalProperty.
@@ -430,17 +543,17 @@ Variable Ob : I -> comRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type x y : Tdir.
+Variable TLim : dirLimType Sys.
+Implicit Type x y : TLim.
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
-Local Canonical Tdir_ringType :=
-  Eval hnf in RingType Tdir [ringMixin of Tdir by <-].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
+Local Canonical TLim_ringType :=
+  Eval hnf in RingType TLim [ringMixin of TLim by <-].
 
 Fact ilmulC x y : x * y = y * x.
 Proof. by apply dirlimE=> i; rewrite !dirLimP mulrC. Qed.
-Definition dirlim_comRingMixin of phant Tdir := ilmulC.
+Definition dirlim_comRingMixin of phant TLim := ilmulC.
 
 End DirLimitComRing.
 End DirLimitComRing.
@@ -458,13 +571,13 @@ Variable Ob : I -> unitRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type x y : Tdir.
+Variable TLim : dirLimType Sys.
+Implicit Type x y : TLim.
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
-Local Canonical Tdir_ringType :=
-  Eval hnf in RingType Tdir [ringMixin of Tdir by <-].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
+Local Canonical TLim_ringType :=
+  Eval hnf in RingType TLim [ringMixin of TLim by <-].
 
 Definition ilunit x := `[forall i, 'pi_i x \is a GRing.unit].
 
@@ -473,7 +586,7 @@ Fact dir_isunitP x :
 Proof.
 by move=> Hunit i j ilej; rewrite /= rmorphV ?(ilprojE x) // Hunit.
 Qed.
-Definition ildir x : Tdir :=
+Definition ildir x : TLim :=
   if pselect (forall i, 'pi_i x \is a GRing.unit) is left Pf
   then ilthr (dir_isunitP Pf) else x.
 
@@ -500,10 +613,10 @@ Proof.
 move=> x; rewrite inE /= => /forallbP Hx.
 by rewrite /ildir; case: pselect => /= [/= H|//]; have:= Hx H.
 Qed.
-Definition dirlim_unitRingMixin of (phant Tdir) :=
+Definition dirlim_unitRingMixin of (phant TLim) :=
   Eval hnf in UnitRingMixin ilmulVr ilmulrV ilunit_impl ildir0id.
-Local Canonical Tdir_unitRingType :=
-  Eval hnf in UnitRingType Tdir (dirlim_unitRingMixin (Phant Tdir)).
+Local Canonical TLim_unitRingType :=
+  Eval hnf in UnitRingType TLim (dirlim_unitRingMixin (Phant TLim)).
 
 Lemma ilunitP x :
   reflect (forall i, 'pi_i x \is a GRing.unit) (x \is a GRing.unit).
@@ -526,17 +639,17 @@ Variable Ob : I -> comUnitRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
+Variable TLim : dirLimType Sys.
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
-Local Canonical Tdir_ringType :=
-  Eval hnf in RingType Tdir [ringMixin of Tdir by <-].
-Local Canonical Tdir_unitRingType :=
-  Eval hnf in UnitRingType Tdir [unitRingMixin of Tdir by <-].
-Local Canonical Tdir_comRingType :=
-  Eval hnf in ComRingType Tdir [comRingMixin of Tdir by <-].
-Local Canonical dirlim_comUnitRingType := Eval hnf in [comUnitRingType of Tdir].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
+Local Canonical TLim_ringType :=
+  Eval hnf in RingType TLim [ringMixin of TLim by <-].
+Local Canonical TLim_unitRingType :=
+  Eval hnf in UnitRingType TLim [unitRingMixin of TLim by <-].
+Local Canonical TLim_comRingType :=
+  Eval hnf in ComRingType TLim [comRingMixin of TLim by <-].
+Local Canonical dirlim_comUnitRingType := Eval hnf in [comUnitRingType of TLim].
 
 End DirLimitComUnitRing.
 *)
@@ -550,18 +663,18 @@ Variable Ob : I -> idomainType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type (x y : Tdir).
+Variable TLim : dirLimType Sys.
+Implicit Type (x y : TLim).
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
-Local Canonical Tdir_ringType :=
-  Eval hnf in RingType Tdir [ringMixin of Tdir by <-].
-Local Canonical Tdir_unitRingType :=
-  Eval hnf in UnitRingType Tdir [unitRingMixin of Tdir by <-].
-Local Canonical Tdir_comRingType :=
-  Eval hnf in ComRingType Tdir [comRingMixin of Tdir by <-].
-Local Canonical Tdir_comUnitRingType := Eval hnf in [comUnitRingType of Tdir].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
+Local Canonical TLim_ringType :=
+  Eval hnf in RingType TLim [ringMixin of TLim by <-].
+Local Canonical TLim_unitRingType :=
+  Eval hnf in UnitRingType TLim [unitRingMixin of TLim by <-].
+Local Canonical TLim_comRingType :=
+  Eval hnf in ComRingType TLim [comRingMixin of TLim by <-].
+Local Canonical TLim_comUnitRingType := Eval hnf in [comUnitRingType of TLim].
 
 Fact ilmul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
 Proof.
@@ -578,7 +691,7 @@ apply/negP => /eqP/(congr1 'pi_k)/eqP.
 by rewrite rmorph0 rmorphM mulf_eq0 Hx Hy.
 Qed.
 
-Definition dirlim_idomainMixin of phant Tdir := ilmul_eq0.
+Definition dirlim_idomainMixin of phant TLim := ilmul_eq0.
 
 End DirLimitIDomain.
 End DirLimitIDomain.
@@ -597,29 +710,29 @@ Variable Ob : I -> lmodType R.
 Variable bonding : forall i j, (i <= j)%O -> {linear (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type (x y : Tdir) (r : R).
+Variable TLim : dirLimType Sys.
+Implicit Type (x y : TLim) (r : R).
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
 
 Fact ilscaleP r x : isthread Sys (fun i => r *: 'pi_i x).
 Proof. by move=> i j Hij; rewrite linearZ (ilprojE x). Qed.
-Definition ilscale r x : Tdir := ilthr (ilscaleP r x).
+Definition ilscale r x : TLim := ilthr (ilscaleP r x).
 
-Program Definition dirlim_lmodMixin of phant Tdir :=
-  @LmodMixin R [zmodType of Tdir] ilscale _ _ _ _.
+Program Definition dirlim_lmodMixin of phant TLim :=
+  @LmodMixin R [zmodType of TLim] ilscale _ _ _ _.
 Next Obligation. by apply dirlimE=> i /=; rewrite !dirLimP scalerA. Qed.
 Next Obligation. by move=> x; apply dirlimE=> i; rewrite !dirLimP scale1r. Qed.
 Next Obligation. by move=> r x y; apply dirlimE=> i; rewrite !dirLimP scalerDr. Qed.
 Next Obligation. by move=> r s; apply dirlimE=> i; rewrite !dirLimP scalerDl. Qed.
 
 Local Canonical dirlim_lmodType :=
-  Eval hnf in LmodType R Tdir (dirlim_lmodMixin (Phant Tdir)).
+  Eval hnf in LmodType R TLim (dirlim_lmodMixin (Phant TLim)).
 
 Fact ilproj_is_linear i : linear 'pi_i.
 Proof. by move=> c x y; rewrite !dirLimP. Qed.
-Canonical ilproj_linear i : {linear Tdir -> Ob i} :=
+Canonical ilproj_linear i : {linear TLim -> Ob i} :=
   AddLinear (ilproj_is_linear i).
 
 Section UniversalProperty.
@@ -631,7 +744,7 @@ Fact ilind_is_linear : linear (\ind Hcomp).
 Proof.
 by move=> r t u; apply dirlimE=> i; rewrite !dirLimP !piindE !linearP.
 Qed.
-Canonical ilind_linear : {linear T -> Tdir} := AddLinear ilind_is_linear.
+Canonical ilind_linear : {linear T -> TLim} := AddLinear ilind_is_linear.
 
 End UniversalProperty.
 
@@ -655,30 +768,30 @@ Variable Ob : I -> lalgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type (x y : Tdir) (r : R).
+Variable TLim : dirLimType Sys.
+Implicit Type (x y : TLim) (r : R).
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
-Local Canonical Tdir_ringType :=
-  Eval hnf in RingType Tdir [ringMixin of Tdir by <-].
-Local Canonical Tdir_lmodType :=
-  Eval hnf in LmodType R Tdir [lmodMixin of Tdir by <-].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
+Local Canonical TLim_ringType :=
+  Eval hnf in RingType TLim [ringMixin of TLim by <-].
+Local Canonical TLim_lmodType :=
+  Eval hnf in LmodType R TLim [lmodMixin of TLim by <-].
 
 Fact ilscaleAl r x y : r *: (x * y) = r *: x * y.
 Proof. by apply dirlimE=> i /=; rewrite !dirLimP scalerAl. Qed.
-Definition dirlim_lalgMixin of phant Tdir := ilscaleAl.
-Local Canonical dirlim_lalgType := Eval hnf in LalgType R Tdir ilscaleAl.
+Definition dirlim_lalgMixin of phant TLim := ilscaleAl.
+Local Canonical dirlim_lalgType := Eval hnf in LalgType R TLim ilscaleAl.
 
-Canonical ilproj_lrmorphism i : {lrmorphism Tdir -> Ob i} :=
+Canonical ilproj_lrmorphism i : {lrmorphism TLim -> Ob i} :=
   AddLRMorphism (DirLimitLinear.ilproj_is_linear i).
 
 Section UniversalProperty.
 
 Variable (T : lalgType R) (f : forall i, {lrmorphism T -> (Ob i)}).
 Hypothesis Hcomp : iscompat Sys f.
-Canonical ilind_lrmorphism : {lrmorphism T -> Tdir} :=
-  AddLRMorphism (DirLimitLinear.ilind_is_linear Tdir Hcomp).
+Canonical ilind_lrmorphism : {lrmorphism T -> TLim} :=
+  AddLRMorphism (DirLimitLinear.ilind_is_linear TLim Hcomp).
 
 End UniversalProperty.
 
@@ -702,22 +815,22 @@ Variable Ob : I -> algType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
-Implicit Type (x y : Tdir) (r : R).
+Variable TLim : dirLimType Sys.
+Implicit Type (x y : TLim) (r : R).
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
-Local Canonical Tdir_ringType :=
-  Eval hnf in RingType Tdir [ringMixin of Tdir by <-].
-Local Canonical Tdir_lmodType :=
-  Eval hnf in LmodType R Tdir [lmodMixin of Tdir by <-].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
+Local Canonical TLim_ringType :=
+  Eval hnf in RingType TLim [ringMixin of TLim by <-].
+Local Canonical TLim_lmodType :=
+  Eval hnf in LmodType R TLim [lmodMixin of TLim by <-].
 Local Canonical dirlim_lalgType :=
-  Eval hnf in LalgType R Tdir [lalgMixin of Tdir by <-].
+  Eval hnf in LalgType R TLim [lalgMixin of TLim by <-].
 
 Fact ilscaleAr r x y : r *: (x * y) = x * (r *: y).
 Proof. by apply dirlimE=> i /=; rewrite !dirLimP scalerAr. Qed.
-Definition dirlim_algMixin of phant Tdir := ilscaleAr.
-Canonical dirlim_algType := Eval hnf in AlgType R Tdir ilscaleAr.
+Definition dirlim_algMixin of phant TLim := ilscaleAr.
+Canonical dirlim_algType := Eval hnf in AlgType R TLim ilscaleAr.
 
 End DirLimitAlg.
 End DirLimitAlg.
@@ -736,9 +849,9 @@ Variable Ob : I -> unitAlgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
+Variable TLim : dirLimType Sys.
 
-Canonical dirlim_unitalgType := [unitAlgType R of Tdir].
+Canonical dirlim_unitalgType := [unitAlgType R of TLim].
 
 End DirLimitUnitAlg.
  *)
@@ -752,22 +865,22 @@ Variable Ob : I -> fieldType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
 Variable Sys : dirsys bonding.
 
-Variable Tdir : dirLimType Sys.
+Variable TLim : dirLimType Sys.
 
-Local Canonical Tdir_zmodType :=
-  Eval hnf in ZmodType Tdir [zmodMixin of Tdir by <-].
-Local Canonical Tdir_ringType :=
-  Eval hnf in RingType Tdir [ringMixin of Tdir by <-].
-Local Canonical Tdir_unitRingType :=
-  Eval hnf in UnitRingType Tdir [unitRingMixin of Tdir by <-].
-Local Canonical Tdir_comRingType :=
-  Eval hnf in ComRingType Tdir [comRingMixin of Tdir by <-].
-Local Canonical dirlim_comUnitRingType := Eval hnf in [comUnitRingType of Tdir].
-Local Canonical Tdir_idomainType :=
-  Eval hnf in IdomainType Tdir [idomainMixin of Tdir by <-].
+Local Canonical TLim_zmodType :=
+  Eval hnf in ZmodType TLim [zmodMixin of TLim by <-].
+Local Canonical TLim_ringType :=
+  Eval hnf in RingType TLim [ringMixin of TLim by <-].
+Local Canonical TLim_unitRingType :=
+  Eval hnf in UnitRingType TLim [unitRingMixin of TLim by <-].
+Local Canonical TLim_comRingType :=
+  Eval hnf in ComRingType TLim [comRingMixin of TLim by <-].
+Local Canonical dirlim_comUnitRingType := Eval hnf in [comUnitRingType of TLim].
+Local Canonical TLim_idomainType :=
+  Eval hnf in IdomainType TLim [idomainMixin of TLim by <-].
 
-Fact dirlim_fieldMixin of phant Tdir :
-  GRing.Field.mixin_of [unitRingType of Tdir].
+Fact dirlim_fieldMixin of phant TLim :
+  GRing.Field.mixin_of [unitRingType of TLim].
 Proof.
 move=> x /il_neq0 [i Hi].
 apply/forallbP => j; rewrite unitfE.
@@ -1233,3 +1346,5 @@ Qed.
 
 End CommHugeOp.
 *)
+*)
+
