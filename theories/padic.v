@@ -16,7 +16,7 @@ From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
-Require Import natbar invlim.
+Require Import natbar directed invlim.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

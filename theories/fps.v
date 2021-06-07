@@ -17,7 +17,7 @@ From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
-Require Import auxresults natbar tfps invlim.
+Require Import auxresults natbar directed tfps invlim.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -138,7 +138,7 @@ Qed.
 Section UniversalProperty.
 
 Variable (T : Type) (f : forall i, T -> {tfps R i}).
-Definition fpsind (_ : iscompat fps_invsys f) t : {fps R} :=
+Definition fpsind of iscompat fps_invsys f := fun t =>
   FPSeries (fun i => (f i t)`_i).
 
 Hypothesis Hcomp : iscompat fps_invsys f.
