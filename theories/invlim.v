@@ -1246,7 +1246,7 @@ Variable (C : choiceType).
 Implicit Type F : C -> {invlim Sys}.
 Implicit Types (s x y z t : {invlim Sys}).
 
-Local Definition add_law := (GRing.add_comoid [zmodType of {invlim Sys}]).
+Local Notation add_law := (GRing.add_comoid [zmodType of {invlim Sys}]).
 
 Definition is_summable F := is_ilopable add_law F.
 Definition summand F (sm : is_summable F) := ilopand sm.
@@ -1286,7 +1286,67 @@ Lemma coefsHugeSum F i (S : {fset C}) :
   'pi_i (\Sum_(c) F c) = 'pi_i (\sum_(c <- S) F c).
 Proof.
 move=> /coefsHugeOp H Hpred; apply: H => c {}/Hpred /= H.
-by apply/asboolP => x /=; rewrite raddfD /= H add0r.
+by apply/asboolP; rewrite invar_addE.
 Qed.
 
 End Summable.
+
+
+
+Section Prodable.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> comRingType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism (Ob j) -> (Ob i)}.
+Variable Sys : invsys bonding.
+
+Variable (C : choiceType).
+
+Implicit Type F : C -> {invlim Sys}.
+Implicit Types (s x y z t : {invlim Sys}).
+
+Local Notation mul_law := (GRing.mul_comoid [comRingType of {invlim Sys}]).
+
+Definition is_prodable F := is_ilopable mul_law F.
+Definition prodand F (sm : is_prodable F) := ilopand sm.
+Definition HugeProd F : {invlim Sys} := HugeOp mul_law F.
+
+Local Notation "\Prod_( c ) F" := (HugeProd (fun c => F)) (at level 0).
+
+Lemma invar_mulE F i c : invar mul_law i (F c) <-> 'pi_i (F c) = 1.
+Proof.
+rewrite /invar /=; split => [/(_ 1)| H0 x].
+  by rewrite rmorphM /= rmorph1 mulr1.
+by rewrite rmorphM /= H0 mul1r.
+Qed.
+
+Lemma is_prodableP F :
+  (is_prodable F) <->
+  (forall i, exists S : {fset C}, forall c, c \notin S -> 'pi_i (F c) = 1).
+Proof.
+split.
+- rewrite /is_prodable/is_ilopable => /asboolP H i.
+  move: H => /(_ i) [S HS]; exists S => c /HS.
+  by rewrite invar_mulE.
+- move=> H; apply/asboolP => i; move/(_ i): H => [S Hs].
+  by exists S => c; rewrite invar_mulE => /Hs.
+Qed.
+
+Lemma prodandP F (sm : is_prodable F) i c :
+  reflect ('pi_i (F c) = 1) (c \notin (prodand sm i)).
+Proof. by apply (iffP (ilopandP _ _ _)); rewrite invar_mulE. Qed.
+
+Lemma prodand_subset F (sm : is_prodable F) i j :
+  (i <= j)%O -> (prodand sm i `<=` prodand sm j)%fset.
+Proof. exact: ilopand_subset. Qed.
+
+Lemma coefsHugeProd F i (S : {fset C}) :
+  is_prodable F ->
+  (forall c : C, c \notin S -> 'pi_i (F c) = 1) ->
+  'pi_i (\Prod_( c ) (F c)) = 'pi_i (\prod_(c <- S) F c).
+Proof.
+move=> /coefsHugeOp H Hpred; apply: H => c {}/Hpred /= H.
+by apply/asboolP; rewrite invar_mulE.
+Qed.
+
+End Prodable.
