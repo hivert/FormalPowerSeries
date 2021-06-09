@@ -253,6 +253,20 @@ case: (boolP `[< dlcongr x y >]) => [Hthr | Hnthr].
   by exists l; exists le_il; exists (le_trans le_jk le_kl).
 Qed.
 
+Section Compatibility.
+
+Variables (T : Type) (f : forall i, Ob i -> T).
+Hypothesis Hcomp : iscompat Sys f.
+
+Lemma iscompatE i j (x : Ob i) (y : Ob j) : dlcongr x y -> f x = f y.
+Proof.
+move=> [k [le_ik] [le_jk] Hbond].
+by rewrite -(Hcomp le_ik x) /= Hbond -(Hcomp le_jk y).
+Qed.
+
+End Compatibility.
+
+
 Variable TLim : dirLimType Sys.
 
 Lemma dirlimP (t : TLim) : exists k (y : Ob k), 'inj y = t.
@@ -1076,23 +1090,15 @@ Definition dlind of iscompat Sys f := fun a => f (projT2 (dlpair a)).
 
 Hypothesis Hcomp : iscompat Sys f.
 
-Lemma iscompatE i j (x : Ob i) (y : Ob j) :
-  dlcongr bonding x y -> f x = f y.
-Proof.
-move=> [k [le_ik] [le_jk] Hbond].
-by rewrite -(Hcomp le_ik x) /= Hbond -(Hcomp le_jk y).
-Qed.
-
 Lemma dlindP i (x : Ob i) : dlind Hcomp ('inj_i x) = f x.
 Proof.
-rewrite /dlind; apply iscompatE.
-rewrite dlcongr_sym.
-exact: (dlinjP x).
+rewrite /dlind; apply (iscompatE Hcomp).
+by rewrite dlcongr_sym; apply: (dlinjP x).
 Qed.
 
 Lemma dlindE i j (x : Ob i) (y : Ob j) :
   dlcongr bonding x y -> dlind Hcomp ('inj_i x) = dlind Hcomp ('inj_j y).
-Proof. by rewrite !dlindP => /iscompatE. Qed.
+Proof. by rewrite !dlindP => /(iscompatE Hcomp). Qed.
 
 End UniversalProperty.
 
