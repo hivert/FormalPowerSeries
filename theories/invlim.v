@@ -1208,7 +1208,7 @@ Definition HugeOp F : {invlim Sys} :=
 
 Local Notation "\Op_( c ) F" := (HugeOp (fun c => F)) (at level 0).
 
-Lemma coefsHugeOp F i (S : {fset C}) :
+Lemma projHugeOp F i (S : {fset C}) :
   is_ilopable F ->
   subpred (predC (mem S)) (fun c => `[< invar i (F c)>]) ->
   'pi_i (\Op_(c) (F c)) = 'pi_i (\big[op/idx]_(c <- S) F c).
@@ -1280,12 +1280,12 @@ Lemma summand_subset F (sm : is_summable F) i j :
   (i <= j)%O -> (summand sm i `<=` summand sm j)%fset.
 Proof. exact: ilopand_subset. Qed.
 
-Lemma coefsHugeSum F i (S : {fset C}) :
+Lemma projHugeSum F i (S : {fset C}) :
   is_summable F ->
   (forall c : C, c \notin S -> 'pi_i (F c) = 0) ->
   'pi_i (\Sum_(c) F c) = 'pi_i (\sum_(c <- S) F c).
 Proof.
-move=> /coefsHugeOp H Hpred; apply: H => c {}/Hpred /= H.
+move=> /projHugeOp H Hpred; apply: H => c {}/Hpred /= H.
 by apply/asboolP; rewrite invar_addE.
 Qed.
 
@@ -1340,12 +1340,12 @@ Lemma prodand_subset F (sm : is_prodable F) i j :
   (i <= j)%O -> (prodand sm i `<=` prodand sm j)%fset.
 Proof. exact: ilopand_subset. Qed.
 
-Lemma coefsHugeProd F i (S : {fset C}) :
+Lemma projHugeProd F i (S : {fset C}) :
   is_prodable F ->
   (forall c : C, c \notin S -> 'pi_i (F c) = 1) ->
   'pi_i (\Prod_( c ) (F c)) = 'pi_i (\prod_(c <- S) F c).
 Proof.
-move=> /coefsHugeOp H Hpred; apply: H => c {}/Hpred /= H.
+move=> /projHugeOp H Hpred; apply: H => c {}/Hpred /= H.
 by apply/asboolP; rewrite invar_mulE.
 Qed.
 
