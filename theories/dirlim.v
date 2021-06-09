@@ -207,32 +207,34 @@ Variable Sys : dirsys bonding.
 Implicit Types (i j k : I).
 
 
-Definition dlcongr i j (x : Ob i) (y : Ob j) :=
-  exists k (le_ik : i <= k) (le_jk : j <= k), bonding le_ik x = bonding le_jk y.
+Inductive dlcongr i j (x : Ob i) (y : Ob j) : Prop :=
+  | DLCongr : forall k (le_ik : i <= k) (le_jk : j <= k),
+              (bonding le_ik x = bonding le_jk y) -> dlcongr x y.
+Arguments DLCongr {i j x y k} (le_ik le_jk).
 
 Lemma dlcongr_bonding i j (le_ij : i <= j) (x : Ob i) :
   dlcongr x (bonding le_ij x).
 Proof.
-exists j; exists le_ij; exists (lexx j).
+apply: (DLCongr le_ij (lexx j)).
 by rewrite bonding_transE //; apply: bondingE.
 Qed.
 
 Lemma dlcongr_refl i (x : Ob i) : dlcongr x x.
-Proof. by exists i; exists (lexx i); exists (lexx i). Qed.
+Proof. exact: DLCongr. Qed.
 Lemma dlcongr_sym_impl i j (x : Ob i) (y : Ob j) : dlcongr x y -> dlcongr y x.
 Proof.
-move=> [k [le_ik] [le_jk] Hbond].
-by exists k; exists le_jk; exists le_ik; rewrite Hbond.
+move=> [k le_ik le_jk Hbond].
+by apply: (DLCongr le_jk le_ik); rewrite Hbond.
 Qed.
 Lemma dlcongr_sym i j (x : Ob i) (y : Ob j) : dlcongr x y = dlcongr y x.
 Proof. by rewrite propeqE; split; apply: dlcongr_sym_impl. Qed.
 Lemma dlcongr_trans i j k (x : Ob i) (y : Ob j) (z : Ob k) :
   dlcongr x y -> dlcongr y z -> dlcongr x z.
 Proof.
-move=> [l [le_il] [le_jl] Hxy].
-move=> [m [le_jm] [le_km] Hyz].
+move=> [l le_il le_jl Hxy].
+move=> [m le_jm le_km Hyz].
 have [n le_ln le_mn] := directedP l m.
-exists n; exists (le_trans le_il le_ln); exists (le_trans le_km le_mn).
+apply: (DLCongr (le_trans le_il le_ln) (le_trans le_km le_mn)).
 rewrite -!bonding_transE // {}Hxy -{}Hyz !bonding_transE //.
 exact: bondingE.
 Qed.
@@ -242,15 +244,15 @@ Lemma dlcongr_compat i (x : Ob i) :
 Proof.
 move=> j k le_jk y /=.
 case: (boolP `[< dlcongr x y >]) => [Hthr | Hnthr].
-- move: Hthr => /asboolP [l [le_il] [le_jl] Hbond]; apply/asboolP.
+- move: Hthr => /asboolP [l le_il le_jl Hbond]; apply/asboolP.
   have [m le_km le_lm] := directedP k l.
-  exists m; exists (le_trans le_il le_lm); exists (le_km).
+  apply: (DLCongr (le_trans le_il le_lm) le_km).
   rewrite -(dirsys_comp Sys le_il le_lm) /= Hbond.
   by rewrite !bonding_transE //; apply: bondingE.
-- apply/negP => /= /asboolP [l [le_il] [le_kl]].
+- apply/negP => /= /asboolP [l le_il le_kl].
   rewrite bonding_transE // => Hbond.
   move: Hnthr => /asboolP; apply.
-  by exists l; exists le_il; exists (le_trans le_jk le_kl).
+  exact: (DLCongr le_il (le_trans le_jk le_kl)).
 Qed.
 
 Section Compatibility.
@@ -260,7 +262,7 @@ Hypothesis Hcomp : iscompat Sys f.
 
 Lemma iscompatE i j (x : Ob i) (y : Ob j) : dlcongr x y -> f x = f y.
 Proof.
-move=> [k [le_ik] [le_jk] Hbond].
+move=> [k le_ik le_jk Hbond].
 by rewrite -(Hcomp le_ik x) /= Hbond -(Hcomp le_jk y).
 Qed.
 
@@ -288,6 +290,7 @@ by apply cid; case: (dirlimP t) => i [x eqinj]; exists (existT _ i x).
 Qed.
 
 End DirLimitCongr.
+Arguments DLCongr {disp I Ob bonding i j x y k} (le_ik le_jk).
 
 
 Section DirLimitChoiceType.
@@ -334,7 +337,7 @@ move => Heq; apply contrapT; rewrite -forallNP => Hbond.
 have Hcomp := dlcongr_compat Sys y.
 have:= injindE TLim Hcomp y; rewrite -Heq injindE.
 have /asboolP -> := dlcongr_refl bonding y.
-move=> /asboolP [j [le_ij] [le_ij2]] Habs.
+move=> /asboolP [j le_ij le_ij2] Habs.
 apply: (Hbond j); exists (le_ij); rewrite Habs.
 exact: bondingE.
 Qed.
@@ -342,14 +345,14 @@ Qed.
 Lemma dirlimE (i j : I) (x : Ob i) (y : Ob j) :
   ('inj[TLim] x = 'inj[TLim] y) <-> (dlcongr bonding x y).
 Proof.
-split => [H | [k [le_ik] [le_jk] Hbond]].
+split => [H | [k le_ik le_jk Hbond]].
 - have [l le_il le_jl] := directedP i j.
   have /dirlimEI [k [le_lk]] :
       'inj[TLim] (bonding le_il x) = 'inj[TLim] (bonding le_jl y).
     have /= -> := (inj_compat TLim le_il x).
     by rewrite H -(inj_compat TLim le_jl y).
   rewrite !bonding_transE // => Hk.
-  by exists k; exists (le_trans le_il le_lk); exists (le_trans le_jl le_lk).
+  exact: (DLCongr (le_trans le_il le_lk) (le_trans le_jl le_lk)).
 - have /= <- := (inj_compat TLim le_ik x).
   by rewrite Hbond -(inj_compat TLim le_jk y).
 Qed.
@@ -429,16 +432,14 @@ Lemma dlzeroE i : dlzero = 'inj_i 0.
 Proof.
 rewrite /dlzero dirlimE.
 case: (directedP (dirsys_inh Sys) i) => j le_j le_ij.
-exists j; exists le_j; exists le_ij.
-by rewrite !raddf0.
+by apply (DLCongr le_j le_ij); rewrite !raddf0.
 Qed.
 Lemma dloppE i (x : Ob i) : dlopp ('inj x) = 'inj (-x).
 Proof.
 rewrite /dlzero dirlimE.
 case: (dlrepr ('inj[TLim] x)) (dlreprP ('inj[TLim] x)) => /= ia ra.
-rewrite dirlimE => [[j] [le_iaj] [le_ij]] Hbond.
-exists j; exists le_iaj; exists le_ij.
-by rewrite !raddfN Hbond.
+rewrite dirlimE => [[j le_iaj le_ij Hbond]].
+by apply: (DLCongr le_iaj le_ij); rewrite !raddfN Hbond.
 Qed.
 Lemma dladdE i (x : Ob i) (y : Ob i) : dladd ('inj x) ('inj y) = 'inj (x + y).
 Proof.
@@ -446,12 +447,12 @@ rewrite /dladd.
 case: (dlrepr ('inj[TLim] x)) (dlreprP ('inj[TLim] x)) => /= ia ra Hra.
 case: (dlrepr ('inj[TLim] y)) (dlreprP ('inj[TLim] y)) => /= ib rb Hrb.
 case: directedP => m le_iam le_ibm.
-move: Hra; rewrite dirlimE => [[ja] [le_iaja] [le_ija] Hbonda].
-move: Hrb; rewrite dirlimE => [[jb] [le_ibjb] [le_ijb] Hbondb].
+move: Hra; rewrite dirlimE => [[ja le_iaja le_ija Hbonda]].
+move: Hrb; rewrite dirlimE => [[jb le_ibjb le_ijb Hbondb]].
 case: (directedP ja jb) => n le_jan le_jbn.
 case: (directedP m n) => bnd le_mbnd le_nbnd.
-rewrite dirlimE; exists bnd; exists le_mbnd.
-exists (le_trans le_ija (le_trans le_jan le_nbnd)).
+rewrite dirlimE.
+apply: (DLCongr le_mbnd (le_trans le_ija (le_trans le_jan le_nbnd))).
 rewrite !raddfD /= -!(bonding_transE Sys) -{}Hbonda.
 have -> : bonding le_jan (bonding le_ija y) = bonding le_jbn (bonding le_ijb y).
   by rewrite !(bonding_transE Sys); apply (bondingE bonding).
@@ -546,8 +547,7 @@ Lemma dloneE i : dlone = 'inj_i 1.
 Proof.
 rewrite /dlone dirlimE.
 case: (directedP (dirsys_inh Sys) i) => j le_j le_ij.
-exists j; exists le_j; exists le_ij.
-by rewrite !rmorph1.
+by apply: (DLCongr le_j le_ij); rewrite !rmorph1.
 Qed.
 
 Definition dlmul a b : TLim :=
@@ -562,12 +562,12 @@ rewrite /dlmul.
 case: (dlrepr ('inj[TLim] x)) (dlreprP ('inj[TLim] x)) => /= ia ra Hra.
 case: (dlrepr ('inj[TLim] y)) (dlreprP ('inj[TLim] y)) => /= ib rb Hrb.
 case: directedP => m le_iam le_ibm.
-move: Hra; rewrite dirlimE => [[ja] [le_iaja] [le_ija] Hbonda].
-move: Hrb; rewrite dirlimE => [[jb] [le_ibjb] [le_ijb] Hbondb].
+move: Hra; rewrite dirlimE => [[ja le_iaja le_ija Hbonda]].
+move: Hrb; rewrite dirlimE => [[jb le_ibjb le_ijb Hbondb]].
 case: (directedP ja jb) => n le_jan le_jbn.
 case: (directedP m n) => bnd le_mbnd le_nbnd.
-rewrite dirlimE; exists bnd; exists le_mbnd.
-exists (le_trans le_ija (le_trans le_jan le_nbnd)).
+rewrite dirlimE.
+apply: (DLCongr le_mbnd (le_trans le_ija (le_trans le_jan le_nbnd))).
 rewrite !rmorphM /= -!(bonding_transE Sys) -{}Hbonda.
 have -> : bonding le_jan (bonding le_ija y) = bonding le_jbn (bonding le_ijb y).
   by rewrite !(bonding_transE Sys); apply (bondingE bonding).
@@ -605,7 +605,7 @@ Qed.
 Next Obligation.
 apply/negP => /eqP.
 rewrite /GRing.zero /= /DirLimitZMod.dlzero /dlone.
-rewrite dirlimE => [[i] [le1] [le2]].
+rewrite dirlimE => [[i le1 le2]].
 by rewrite rmorph0 rmorph1 => /eqP; rewrite oner_eq0.
 Qed.
 Local Canonical dirlim_ringType :=
@@ -728,8 +728,8 @@ Next Obligation.
 case: dl1E => [i1 Hi1].
 case: (get_repr2 x y) => i [u] [v] [Hx Hy]; subst x y.
 move: H0 H1; rewrite -!rmorphM /= -{}Hi1.
-rewrite dirlimE => [[il] [le_i_il] [le_il] Hl].
-rewrite dirlimE => [[ir] [le_i_ir] [le_ir] Hr].
+rewrite dirlimE => [[il le_i_il le_il Hl]].
+rewrite dirlimE => [[ir le_i_ir le_ir Hr]].
 move: Hl Hr; rewrite !rmorphM !rmorph1 {le_il le_ir i1}.
 case: (directedP il ir) => m le_ilm le_irm.
 move/(congr1 (bonding le_ilm)); rewrite !rmorphM rmorph1 => Hl.
@@ -797,7 +797,7 @@ move=> Heq; apply/orP.
 case: dl0E => [i0 Hi0].
 case: (get_repr2 x y) => i [u] [v] [Hx Hy]; subst x y.
 move: Heq; rewrite -!rmorphM /= -{}Hi0.
-rewrite dirlimE => [[l] [le_il] [le_i0l]].
+rewrite dirlimE => [[l le_il le_i0l]].
 rewrite !rmorphM !rmorph0 {le_i0l i0} => /eqP.
 by rewrite mulf_eq0 => /orP [] /eqP /(congr1 'inj[TLim]) H; [left|right];
    move: H; have /= -> := inj_compat TLim _ _ => ->; rewrite rmorph0.
@@ -833,9 +833,8 @@ Lemma dlscaleE r i (x : Ob i) : dlscale r ('inj x) = 'inj (r *: x).
 Proof.
 rewrite dirlimE.
 case: (dlrepr ('inj[TLim] x)) (dlreprP ('inj[TLim] x)) => /= ia ra.
-rewrite dirlimE => [[j] [le_iaj] [le_ij]] Hbond.
-exists j; exists le_iaj; exists le_ij.
-by rewrite !linearZ Hbond.
+rewrite dirlimE => [[j le_iaj le_ij Hbond]].
+by exists j le_iaj le_ij; rewrite !linearZ Hbond.
 Qed.
 
 Program Definition dirlim_lmodMixin of phant TLim :=
