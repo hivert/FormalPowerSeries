@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*       Copyright (C) 2019 Florent Hivert <florent.hivert@lri.fr>            *)
+(*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
 (*  Distributed under the terms of the GNU General Public License (GPL)       *)
 (*                                                                            *)
