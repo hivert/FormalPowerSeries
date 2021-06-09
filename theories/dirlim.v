@@ -306,6 +306,11 @@ split => [|Heq].
   exact: dlcanonP.
 Qed.
 
+Lemma dlcanon_id p : invariant dlcanon dlcanon p.
+Proof.
+rewrite /invariant; apply/eqP/dlcanonE.
+by rewrite dlcongr_sym; apply: dlcanonP.
+Qed.
 
 Variable TLim : dirLimType Sys.
 Implicit Types (t a b c : TLim).
@@ -1012,22 +1017,21 @@ Notation "[ 'fieldMixin' 'of' U 'by' <- ]" :=
 Close Scope ring_scope.
 
 
-(*
 
 (***************************************************************************)
-(** A default implementation for direrse limits                            *)
+(** A default implementation for direrct limits                            *)
 (*                                                                         *)
 (***************************************************************************)
 Section Implem.
 
 Variables (disp : unit) (I : dirType disp).
-Variable Ob : I -> Type.
-Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
+Variable Ob : I -> choiceType.
+Variable bonding : forall i j, i <= j -> Ob i -> Ob j.
 Variable Sys : dirsys bonding.
 
 Record dirlim := DirLim {
-                     dirlimthr :> forall i, Ob i;
-                     _ : `[<isthread Sys dirlimthr>];
+                     dlpair :> {i & Ob i};
+                     _ : dlcanon bonding dlpair == dlpair;
                    }.
 
 Definition dirlim_of of phantom (dirsys bonding) Sys := dirlim.
@@ -1040,22 +1044,17 @@ Canonical dirlim_eqType := EqType dirlim gen_eqMixin.
 Canonical dirlimp_eqType := EqType {dirlim Sys} gen_eqMixin.
 Canonical dirlim_choiceType := ChoiceType dirlim gen_choiceMixin.
 Canonical dirlimp_choiceType := ChoiceType {dirlim Sys} gen_choiceMixin.
-Canonical dirlimp_subType := [subType for dirlimthr].
-
-Definition MkDirLim thr (thrP : isthread Sys thr) := DirLim (asboolT thrP).
-Lemma MkDirLimE thr (thrP : isthread Sys thr) :
-  val (MkDirLim thrP) = thr.
-Proof. by []. Qed.
+Canonical dirlimp_subType := [subType for dlpair].
 
 End Implem.
 Notation "{ 'dirlim' S }" := (dirlim_of (Phantom _ S)).
 
-
-Section DirerseLimitTheory.
+(*
+Section DirectLimitTheory.
 
 Variables (disp : unit) (I : dirType disp).
-Variable Ob : I -> Type.
-Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
+Variable Ob : I -> choiceType.
+Variable bonding : forall i j, i <= j -> Ob i -> Ob j.
 
 Variable Sys : dirsys bonding.
 Implicit Type x y : {dirlim Sys}.
