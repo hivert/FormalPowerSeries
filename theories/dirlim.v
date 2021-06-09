@@ -207,8 +207,8 @@ Variable Sys : dirsys bonding.
 Implicit Types (i j k : I).
 
 
-Definition dlcongr i j (x : Ob i) (z : Ob j) :=
-  exists k (le_ik : i <= k) (le_jk : j <= k), bonding le_jk z = bonding le_ik x.
+Definition dlcongr i j (x : Ob i) (y : Ob j) :=
+  exists k (le_ik : i <= k) (le_jk : j <= k), bonding le_ik x = bonding le_jk y.
 
 Lemma dlcongr_bonding i j (le_ij : i <= j) (x : Ob i) :
   dlcongr x (bonding le_ij x).
@@ -229,11 +229,11 @@ Proof. by rewrite propeqE; split; apply: dlcongr_sym_impl. Qed.
 Lemma dlcongr_trans i j k (x : Ob i) (y : Ob j) (z : Ob k) :
   dlcongr x y -> dlcongr y z -> dlcongr x z.
 Proof.
-move=> [l [le_il] [le_jl] Hyx].
-move=> [m [le_jm] [le_km] Hzy].
+move=> [l [le_il] [le_jl] Hxy].
+move=> [m [le_jm] [le_km] Hyz].
 have [n le_ln le_mn] := directedP l m.
 exists n; exists (le_trans le_il le_ln); exists (le_trans le_km le_mn).
-rewrite -!bonding_transE // {}Hzy -{}Hyx !bonding_transE //.
+rewrite -!bonding_transE // {}Hxy -{}Hyz !bonding_transE //.
 exact: bondingE.
 Qed.
 
@@ -245,7 +245,7 @@ case: (boolP `[< dlcongr x y >]) => [Hthr | Hnthr].
 - move: Hthr => /asboolP [l [le_il] [le_jl] Hbond]; apply/asboolP.
   have [m le_km le_lm] := directedP k l.
   exists m; exists (le_trans le_il le_lm); exists (le_km).
-  rewrite -(dirsys_comp Sys le_il le_lm) /= -Hbond.
+  rewrite -(dirsys_comp Sys le_il le_lm) /= Hbond.
   by rewrite !bonding_transE //; apply: bondingE.
 - apply/negP => /= /asboolP [l [le_il] [le_kl]].
   rewrite bonding_transE // => Hbond.
@@ -320,11 +320,11 @@ Lemma dirlimEI (i : I) (x : Ob i) (y : Ob i) :
   exists (k : I) (le_ik : i <= k), bonding le_ik x = bonding le_ik y.
 Proof.
 move => Heq; apply contrapT; rewrite -forallNP => Hbond.
-have Hcomp := dlcongr_compat Sys x.
+have Hcomp := dlcongr_compat Sys y.
 have:= injindE TLim Hcomp y; rewrite -Heq injindE.
-have /asboolP -> := dlcongr_refl bonding x.
-move => /esym/asboolP [j [le_ij] [le_ij2]] Habs.
-apply: (Hbond j); exists (le_ij); rewrite -Habs.
+have /asboolP -> := dlcongr_refl bonding y.
+move=> /asboolP [j [le_ij] [le_ij2]] Habs.
+apply: (Hbond j); exists (le_ij); rewrite Habs.
 exact: bondingE.
 Qed.
 
@@ -340,7 +340,7 @@ split => [H | [k [le_ik] [le_jk] Hbond]].
   rewrite !bonding_transE // => Hk.
   by exists k; exists (le_trans le_il le_lk); exists (le_trans le_jl le_lk).
 - have /= <- := (inj_compat TLim le_ik x).
-  by rewrite -Hbond -(inj_compat TLim le_jk y).
+  by rewrite Hbond -(inj_compat TLim le_jk y).
 Qed.
 
 Lemma dlrepc_ex t :
@@ -357,8 +357,7 @@ Qed.
 Lemma dlrepr_dlcanonE t p : 'inj (projT2 p) = t -> dlcanon p = dlrepr t.
 Proof.
 move=> <- {t}; apply: eq_xchoose => [[i x]] /=.
-apply esym; apply: asbool_equiv_eq.
-by rewrite dirlimE dlcongr_sym.
+by apply: asbool_equiv_eq; rewrite dirlimE dlcongr_sym.
 Qed.
 
 Lemma get_repr2 a b :
@@ -442,10 +441,10 @@ case: (directedP ja jb) => n le_jan le_jbn.
 case: (directedP m n) => bnd le_mbnd le_nbnd.
 rewrite dirlimE; exists bnd; exists le_mbnd.
 exists (le_trans le_ija (le_trans le_jan le_nbnd)).
-rewrite !raddfD /= -!(bonding_transE Sys) {}Hbonda.
+rewrite !raddfD /= -!(bonding_transE Sys) -{}Hbonda.
 have -> : bonding le_jan (bonding le_ija y) = bonding le_jbn (bonding le_ijb y).
   by rewrite !(bonding_transE Sys); apply (bondingE bonding).
-rewrite {}Hbondb.
+rewrite -{}Hbondb.
 by congr (_ + _); rewrite !(bonding_transE Sys); apply (bondingE bonding).
 Qed.
 
@@ -558,10 +557,10 @@ case: (directedP ja jb) => n le_jan le_jbn.
 case: (directedP m n) => bnd le_mbnd le_nbnd.
 rewrite dirlimE; exists bnd; exists le_mbnd.
 exists (le_trans le_ija (le_trans le_jan le_nbnd)).
-rewrite !rmorphM /= -!(bonding_transE Sys) {}Hbonda.
+rewrite !rmorphM /= -!(bonding_transE Sys) -{}Hbonda.
 have -> : bonding le_jan (bonding le_ija y) = bonding le_jbn (bonding le_ijb y).
   by rewrite !(bonding_transE Sys); apply (bondingE bonding).
-rewrite {}Hbondb.
+rewrite -{}Hbondb.
 by congr (_ * _); rewrite !(bonding_transE Sys); apply (bondingE bonding).
 Qed.
 
@@ -596,8 +595,7 @@ Next Obligation.
 apply/negP => /eqP.
 rewrite /GRing.zero /= /DirLimitZMod.dlzero /dlone.
 rewrite dirlimE => [[i] [le1] [le2]].
-rewrite rmorph0 rmorph1 => /esym/eqP.
-by rewrite oner_eq0.
+by rewrite rmorph0 rmorph1 => /eqP; rewrite oner_eq0.
 Qed.
 Local Canonical dirlim_ringType :=
   Eval hnf in RingType TLim (dirlim_ringMixin (Phant TLim)).
@@ -733,7 +731,7 @@ have -> : bonding (le_trans le_i_il le_ilm) v = bonding (le_trans le_i_ir le_irm
 set bu := bonding _ u; set bv := bonding _ v => Hvu Huv.
 apply/existsbP; exists (existT _ m bu) => /=; apply/andP; split.
   by rewrite /bu; have /= -> := inj_compat TLim _ u.
-by apply/unitrP; exists bv; split; apply esym.
+by apply/unitrP; exists bv.
 Qed.
 Next Obligation.
 move=> a; rewrite /dlinv; case (boolP (dlunit a)) => // H1 H2; exfalso.
@@ -789,7 +787,7 @@ case: dl0E => [i0 Hi0].
 case: (get_repr2 x y) => i [u] [v] [Hx Hy]; subst x y.
 move: Heq; rewrite -!rmorphM /= -{}Hi0.
 rewrite dirlimE => [[l] [le_il] [le_i0l]].
-rewrite !rmorphM !rmorph0 {le_i0l i0} => /esym/eqP.
+rewrite !rmorphM !rmorph0 {le_i0l i0} => /eqP.
 by rewrite mulf_eq0 => /orP [] /eqP /(congr1 'inj[TLim]) H; [left|right];
    move: H; have /= -> := inj_compat TLim _ _ => ->; rewrite rmorph0.
 Qed.
