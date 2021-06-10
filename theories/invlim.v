@@ -65,12 +65,16 @@ Record invsys : Type := InvSys {
 Definition invsys_obj of invsys := Ob.
 Definition invsys_mor of invsys := bonding.
 
-(* Is section ? *)
 Definition isthread of invsys := fun thr : forall i, Ob i =>
   forall i j, forall (Hij : i <= j), bonding Hij (thr j) = thr i.
-(* Is cocone *)
-Definition iscompat of invsys := fun T (mors : forall i, T -> Ob i) =>
+
+Definition cone of invsys := fun T (mors : forall i, T -> Ob i) =>
   forall i j, forall (Hij : i <= j), bonding Hij \o mors j =1 mors i.
+
+Lemma coneE Sys T (mors : forall i, T -> Ob i) : cone Sys mors ->
+  forall i j (Hij : i <= j) x,
+  bonding Hij (mors j x) = mors i x.
+Proof. by rewrite /cone => H i j le_ij x; rewrite -(H i j le_ij). Qed.
 
 End InverseSystem.
 
@@ -92,14 +96,14 @@ Variable Sys : invsys bonding.
 Record mixin_of (TLim : Type) := Mixin {
   invlim_proj : forall i, TLim -> Ob i;
   invlim_ind  : forall (T : Type) (f : forall i, T -> Ob i),
-      (iscompat Sys f) -> T -> TLim;
-  _ : iscompat Sys invlim_proj;
-  _ : forall T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f),
-      forall i, invlim_proj i \o invlim_ind Hcomp =1 f i;
-  _ : forall T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f),
+      (cone Sys f) -> T -> TLim;
+  _ : cone Sys invlim_proj;
+  _ : forall T (f : forall i, T -> Ob i) (Hcone : cone Sys f),
+      forall i, invlim_proj i \o invlim_ind Hcone =1 f i;
+  _ : forall T (f : forall i, T -> Ob i) (Hcone : cone Sys f),
       forall (ind : T -> TLim),
         (forall i, invlim_proj i \o ind =1 f i) ->
-        ind =1 invlim_ind Hcomp
+        ind =1 invlim_ind Hcone
   }.
 
 Record class_of T := Class {base : Choice.class_of T; mixin : mixin_of T}.
@@ -146,20 +150,20 @@ Local Notation "\pi" := (pi_phant (Phant ilT)).
 Definition ind_phant of phant ilT := invlim_ind (mixin (class ilT)).
 Local Notation "\ind" := (ind_phant (Phant ilT)).
 
-Lemma proj_compat : iscompat Sys \pi.
+Lemma proj_compat : cone Sys \pi.
 Proof. by rewrite /pi_phant; case: ilT => /= [TLim [eqM []]]. Qed.
 
-Lemma ind_commute T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) :
-  forall i, \pi i \o \ind Hcomp =1 f i.
+Lemma ind_commute T (f : forall i, T -> Ob i) (Hcone : cone Sys f) :
+  forall i, \pi i \o \ind Hcone =1 f i.
 Proof. by rewrite /pi_phant /ind_phant; case: ilT => /= [TLim [eqM []]]. Qed.
 
-Lemma piindE  T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) i x :
-  \pi i (\ind Hcomp x) = f i x.
+Lemma piindE  T (f : forall i, T -> Ob i) (Hcone : cone Sys f) i x :
+  \pi i (\ind Hcone x) = f i x.
 Proof. exact: ind_commute. Qed.
 
-Lemma ind_uniq T (f : forall i, T -> Ob i) (Hcomp : iscompat Sys f) :
+Lemma ind_uniq T (f : forall i, T -> Ob i) (Hcone : cone Sys f) :
   forall (ind : T -> ilT),
-    (forall i, \pi i \o ind =1 f i) -> ind =1 \ind Hcomp.
+    (forall i, \pi i \o ind =1 f i) -> ind =1 \ind Hcone.
 Proof.
 rewrite /pi_phant /ind_phant.
 case: ilT => /= [TLim [eqM /= [pi ind comp comm uniq]]] indT commT t /=.
@@ -198,7 +202,7 @@ Lemma invlimE (x y : ilT) : (forall i, 'pi_i x = 'pi_i y) -> x = y.
 Proof.
 move=> Heq.
 pose fx : forall i : I, unit -> Ob i := fun i tt => 'pi_i x.
-have compf : iscompat Sys fx.
+have compf : cone Sys fx.
   rewrite /fx => i j le_ij tt /=.
   by rewrite -/((bonding le_ij \o 'pi_j) x) proj_compat.
 pose ind z : unit -> ilT := fun tt => z.
@@ -215,7 +219,7 @@ Lemma from_thread_spec (thr : forall i : I, Ob i) :
 Proof.
 rewrite /isthread => Hhtr.
 pose f : forall i : I, unit -> Ob i := fun i tt => thr i.
-have compf : iscompat Sys f by rewrite /f => i j le_ij tt /=.
+have compf : cone Sys f by rewrite /f => i j le_ij tt /=.
 exists (\ind compf tt) => i.
 by rewrite -/(('pi_i \o \ind compf) tt) ind_commute.
 Qed.
@@ -230,7 +234,7 @@ Lemma ilprojE (x : ilT) :
   forall i j, forall (Hij : i <= j), bonding Hij ('pi_j x) = 'pi_i x.
 Proof. by move=> i j Hij; have /= -> := (proj_compat Hij x). Qed.
 
-Lemma ilprojP : iscompat Sys (pi_phant (ilT := ilT) (Phant _)).
+Lemma ilprojP : cone Sys (pi_phant (ilT := ilT) (Phant _)).
 Proof. move=> i j Hij x /=; exact: ilprojE. Qed.
 
 Lemma invlim_exE (x y : ilT) :
@@ -329,9 +333,9 @@ Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
 Section UniversalProperty.
 
 Variable (T : zmodType) (f : forall i, {additive T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cone Sys f.
 
-Fact ilind_is_additive : additive (\ind Hcomp).
+Fact ilind_is_additive : additive (\ind Hcone).
 Proof.
 by move=> t u; apply invlimE=> i; rewrite raddfB /= !piindE raddfB.
 Qed.
@@ -396,9 +400,9 @@ Canonical ilproj_rmorphism i : {rmorphism TLim -> Ob i} :=
 Section UniversalProperty.
 
 Variable (T : ringType) (f : forall i, {rmorphism T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cone Sys f.
 
-Fact ilind_is_multiplicative : multiplicative (\ind Hcomp).
+Fact ilind_is_multiplicative : multiplicative (\ind Hcone).
 Proof.
 split.
 - by move=> t u; apply invlimE=> i; rewrite !piindE !rmorphM /= !piindE.
@@ -623,9 +627,9 @@ Canonical ilproj_linear i : {linear TLim -> Ob i} :=
 Section UniversalProperty.
 
 Variable (T : lmodType R) (f : forall i, {linear T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cone Sys f.
 
-Fact ilind_is_linear : linear (\ind Hcomp).
+Fact ilind_is_linear : linear (\ind Hcone).
 Proof.
 by move=> r t u; apply invlimE=> i; rewrite !invLimP !piindE !linearP.
 Qed.
@@ -674,9 +678,9 @@ Canonical ilproj_lrmorphism i : {lrmorphism TLim -> Ob i} :=
 Section UniversalProperty.
 
 Variable (T : lalgType R) (f : forall i, {lrmorphism T -> (Ob i)}).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cone Sys f.
 Canonical ilind_lrmorphism : {lrmorphism T -> TLim} :=
-  AddLRMorphism (InvLimitLinear.ilind_is_linear TLim Hcomp).
+  AddLRMorphism (InvLimitLinear.ilind_is_linear TLim Hcone).
 
 End UniversalProperty.
 
@@ -842,7 +846,7 @@ Lemma ilproj_implE x :
       bonding Hij (ilproj_impl j x) = ilproj_impl i x.
 Proof. by case: x => [thr /asboolP] /=. Qed.
 
-Lemma ilproj_implP : iscompat Sys ilproj_impl.
+Lemma ilproj_implP : cone Sys ilproj_impl.
 Proof. by move=> i j Hij [thr /asboolP] /=. Qed.
 
 Local Notation "''pi_' i" := (ilproj_impl i).
@@ -858,12 +862,12 @@ Qed.
 Section UniversalProperty.
 
 Variable (T : Type) (f : forall i, T -> Ob i).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cone Sys f.
 
 Fact ilind_spec :
   { ilind : T -> invlim Sys | forall i, 'pi_i \o ilind = f i }.
 Proof.
-move: Hcomp; rewrite /iscompat => Hf; pose fil t i := f i t.
+move: Hcone; rewrite /cone => Hf; pose fil t i := f i t.
 have Hfil t : isthread Sys (fil t) by rewrite /fil=> i j Hij; apply Hf.
 by exists (fun t => MkInvLim (Hfil t)).
 Qed.
@@ -898,7 +902,7 @@ Program Definition invlim_Mixin :=
                (ilproj_impl (Sys := Sys)) (ilind_impl (Sys := Sys)) _ _ _.
 Next Obligation. by move=> i j Hij x; apply: ilproj_implE. Qed.
 Next Obligation. by move=> x /=; rewrite ilind_implP. Qed.
-Next Obligation. by move=> x; apply: (ilind_implE Hcomp). Qed.
+Next Obligation. by move=> x; apply: (ilind_implE Hcone). Qed.
 Canonical invlim_invlimType := InvLimType {invlim Sys} invlim_Mixin.
 
 Lemma ilproj_mkinvlim thr (thrP : isthread Sys thr) i :

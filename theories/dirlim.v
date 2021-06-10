@@ -66,16 +66,13 @@ Lemma bonding_transE (Sys : dirsys) i j k (Hij : i <= j) (Hjk : j <= k) x :
   (bonding Hjk) (bonding Hij x) = bonding (le_trans Hij Hjk) x.
 Proof. by move/dirsys_comp : Sys; apply. Qed.
 
-(* Is cocone *)
-Definition iscompat of dirsys := fun T (mors : forall i, Ob i -> T) =>
+Definition cocone of dirsys := fun T (mors : forall i, Ob i -> T) =>
   forall i j, forall (Hij : i <= j), mors j \o bonding Hij =1 mors i.
 
-(* Is section ? *)
-Definition isthread of dirsys :=
-  fun (thread : set I * forall i, Ob i) =>
-    let: (supp, thr) := thread in
-    up_set supp /\
-    forall i j, supp i -> forall (Hij : i <= j), bonding Hij (thr i) = thr j.
+Lemma coconeE Sys T (mors : forall i, Ob i -> T) : cocone Sys mors ->
+  forall i j (Hij : i <= j) x,
+  mors j (bonding Hij x) = mors i x.
+Proof. by rewrite /cocone => H i j le_ij x; rewrite -(H i j le_ij). Qed.
 
 End DirectSystem.
 
@@ -98,14 +95,14 @@ Variable Sys : dirsys bonding.
 Record mixin_of (TLim : Type) := Mixin {
   dirlim_inj : forall i, Ob i -> TLim;
   dirlim_ind : forall (T : Type) (f : forall i, Ob i -> T),
-      (iscompat Sys f) -> TLim -> T;
-  _ : iscompat Sys dirlim_inj;
-  _ : forall (T : Type) (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f),
-      forall i, dirlim_ind Hcomp \o @dirlim_inj i =1 f i;
-  _ : forall (T : Type) (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f),
+      (cocone Sys f) -> TLim -> T;
+  _ : cocone Sys dirlim_inj;
+  _ : forall (T : Type) (f : forall i, Ob i -> T) (Hcone : cocone Sys f),
+      forall i, dirlim_ind Hcone \o @dirlim_inj i =1 f i;
+  _ : forall (T : Type) (f : forall i, Ob i -> T) (Hcone : cocone Sys f),
       forall (ind : TLim -> T),
         (forall i, ind \o @dirlim_inj i =1 f i) ->
-        ind =1 dirlim_ind Hcomp
+        ind =1 dirlim_ind Hcone
   }.
 
 Record class_of T := Class {base : Choice.class_of T; mixin : mixin_of T}.
@@ -153,20 +150,20 @@ Local Notation "\inj_ i" := (@inj_phant (Phant dlT) i) (at level 5).
 Definition ind_phant of phant dlT := dirlim_ind (mixin (class dlT)).
 Local Notation "\ind" := (ind_phant (Phant dlT)).
 
-Lemma inj_compat : iscompat Sys \inj.
+Lemma inj_cocone : cocone Sys \inj.
 Proof. by rewrite /inj_phant; case: dlT => /= [TLim [eqM []]]. Qed.
 
-Lemma ind_commute T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f) :
-  forall i, \ind Hcomp \o \inj_ i =1 f i.
+Lemma ind_commute T (f : forall i, Ob i -> T) (Hcone : cocone Sys f) :
+  forall i, \ind Hcone \o \inj_ i =1 f i.
 Proof. by rewrite /inj_phant /ind_phant; case: dlT => /= [TLim [eqM []]]. Qed.
 
-Lemma injindE  T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f) i x :
-  (\ind Hcomp) (\inj_ i x) = f i x.
+Lemma injindE  T (f : forall i, Ob i -> T) (Hcone : cocone Sys f) i x :
+  (\ind Hcone) (\inj_ i x) = f i x.
 Proof. exact: ind_commute. Qed.
 
-Lemma ind_uniq T (f : forall i, Ob i -> T) (Hcomp : iscompat Sys f) :
+Lemma ind_uniq T (f : forall i, Ob i -> T) (Hcone : cocone Sys f) :
   forall (ind : dlT -> T),
-    (forall i, ind \o \inj_ i =1 f i) -> ind =1 \ind Hcomp.
+    (forall i, ind \o \inj_ i =1 f i) -> ind =1 \ind Hcone.
 Proof.
 rewrite /inj_phant /ind_phant.
 case: dlT => /= [TLim [eqM /= [pi ind comp comm uniq]]] indT commT t /=.
@@ -239,8 +236,8 @@ rewrite -!bonding_transE // {}Hxy -{}Hyz !bonding_transE //.
 exact: bondingE.
 Qed.
 
-Lemma dlcongr_compat i (x : Ob i) :
-  iscompat Sys (fun j (y : Ob j) => `[< dlcongr x y >]).
+Lemma cocone_dlcongr i (x : Ob i) :
+  cocone Sys (fun j (y : Ob j) => `[< dlcongr x y >]).
 Proof.
 move=> j k le_jk y /=.
 case: (boolP `[< dlcongr x y >]) => [Hthr | Hnthr].
@@ -258,12 +255,12 @@ Qed.
 Section Compatibility.
 
 Variables (T : Type) (f : forall i, Ob i -> T).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cocone Sys f.
 
 Lemma dlcongrE i j (x : Ob i) (y : Ob j) : dlcongr x y -> f x = f y.
 Proof.
 move=> [k le_ik le_jk Hbond].
-by rewrite -(Hcomp le_ik x) /= Hbond -(Hcomp le_jk y).
+by rewrite -(coconeE Hcone le_ik) Hbond (coconeE Hcone).
 Qed.
 
 End Compatibility.
@@ -275,10 +272,10 @@ Lemma dirlimP (t : TLim) : exists k (y : Ob k), 'inj y = t.
 Proof.
 rewrite not_existsP => H.
 pose f i := pred0 (T := Ob i).
-have Hcomp : iscompat Sys f by [].
-have /(ind_uniq Hcomp)/(_ t) :
+have Hcone : cocone Sys f by [].
+have /(ind_uniq Hcone)/(_ t) :
   forall i, (pred0 (T := TLim)) \o 'inj =1 f i by [].
-suff /(ind_uniq Hcomp)/(_ t) <- : forall i, (pred1 t) \o 'inj =1 f i.
+suff /(ind_uniq Hcone)/(_ t) <- : forall i, (pred1 t) \o 'inj =1 f i.
   by rewrite /= eqxx.
 rewrite /f => i x /=; apply/negP => /eqP eq_inj.
 by apply/(H i); exists x.
@@ -334,8 +331,8 @@ Lemma dirlimEI (i : I) (x : Ob i) (y : Ob i) :
   exists (k : I) (le_ik : i <= k), bonding le_ik x = bonding le_ik y.
 Proof.
 move => Heq; apply contrapT; rewrite -forallNP => Hbond.
-have Hcomp := dlcongr_compat Sys y.
-have:= injindE TLim Hcomp y; rewrite -Heq injindE.
+have Hcone := cocone_dlcongr Sys y.
+have:= injindE TLim Hcone y; rewrite -Heq injindE.
 have /asboolP -> := dlcongr_refl bonding y.
 move=> /asboolP [j le_ij le_ij2] Habs.
 apply: (Hbond j); exists (le_ij); rewrite Habs.
@@ -349,12 +346,12 @@ split => [H | [k le_ik le_jk Hbond]].
 - have [l le_il le_jl] := directedP i j.
   have /dirlimEI [k [le_lk]] :
       'inj[TLim] (bonding le_il x) = 'inj[TLim] (bonding le_jl y).
-    have /= -> := (inj_compat TLim le_il x).
-    by rewrite H -(inj_compat TLim le_jl y).
+    have /= -> := (inj_cocone TLim le_il x).
+    by rewrite H -(inj_cocone TLim le_jl y).
   rewrite !bonding_transE // => Hk.
   exact: (DLCongr (le_trans le_il le_lk) (le_trans le_jl le_lk)).
-- have /= <- := (inj_compat TLim le_ik x).
-  by rewrite Hbond -(inj_compat TLim le_jk y).
+- have /= <- := (inj_cocone TLim le_ik x).
+  by rewrite Hbond -(inj_cocone TLim le_jk y).
 Qed.
 
 Lemma dlrepc_ex t :
@@ -381,7 +378,7 @@ case: (dlrepr a) (dlreprP a) => /= ia ra <-{a}.
 case: (dlrepr b) (dlreprP b) => /= ib rb <-{b}.
 case: (directedP ia ib) => n le_ian le_ibn.
 exists n; exists (bonding le_ian ra); exists (bonding le_ibn rb).
-by split; have /= -> := (inj_compat TLim) _ _ _ _.
+by split; have /= -> := (inj_cocone TLim) _ _ _ _.
 Qed.
 Lemma get_repr3 a b c :
   exists i (x y z : Ob i), [/\ 'inj x = a, 'inj y = b & 'inj z = c].
@@ -391,7 +388,7 @@ case: (dlrepr c) (dlreprP c) => /= j z <-{c}.
 case: (directedP i j) => n le_in le_jn.
 exists n; exists (bonding le_in x); exists (bonding le_in y);
   exists (bonding le_jn z).
-by split; have /= -> := (inj_compat TLim) _ _ _ _.
+by split; have /= -> := (inj_cocone TLim) _ _ _ _.
 Qed.
 
 End DirLimitChoiceType.
@@ -503,9 +500,9 @@ Canonical dlinj_additive i : {additive Ob i -> TLim} :=
 Section UniversalProperty.
 
 Variable (T : zmodType) (f : forall i, {additive (Ob i) -> T}).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cocone Sys f.
 
-Fact dlind_is_additive : additive (\ind Hcomp).
+Fact dlind_is_additive : additive (\ind Hcone).
 Proof.
 move=> a b.
 case: (get_repr2 a b) => i [x] [y] [<-{a} <-{b}].
@@ -627,9 +624,9 @@ Canonical dlinj_rmorphism i : {rmorphism Ob i -> TLim} :=
 Section UniversalProperty.
 
 Variable (T : ringType) (f : forall i, {rmorphism (Ob i) -> T}).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cocone Sys f.
 
-Fact dlind_is_multiplicative : multiplicative (\ind Hcomp).
+Fact dlind_is_multiplicative : multiplicative (\ind Hcone).
 Proof.
 split.
 - move=> a b.
@@ -741,7 +738,7 @@ have -> : bonding (le_trans le_i_il le_ilm) v = bonding (le_trans le_i_ir le_irm
   exact: (bondingE bonding).
 set bu := bonding _ u; set bv := bonding _ v => Hvu Huv.
 apply/existsbP; exists (existT _ m bu) => /=; apply/andP; split.
-  by rewrite /bu; have /= -> := inj_compat TLim _ u.
+  by rewrite /bu; have /= -> := inj_cocone TLim _ u.
 by apply/unitrP; exists bv.
 Qed.
 Next Obligation.
@@ -800,7 +797,7 @@ move: Heq; rewrite -!rmorphM /= -{}Hi0.
 rewrite dirlimE => [[l le_il le_i0l]].
 rewrite !rmorphM !rmorph0 {le_i0l i0} => /eqP.
 by rewrite mulf_eq0 => /orP [] /eqP /(congr1 'inj[TLim]) H; [left|right];
-   move: H; have /= -> := inj_compat TLim _ _ => ->; rewrite rmorph0.
+   move: H; have /= -> := inj_cocone TLim _ _ => ->; rewrite rmorph0.
 Qed.
 Definition dirlim_idomainMixin of phant TLim := dlmul_eq0.
 
@@ -873,9 +870,9 @@ Canonical dlinj_linear i : {linear Ob i -> TLim } :=
 Section UniversalProperty.
 
 Variable (T : lmodType R) (f : forall i, {linear (Ob i) -> T}).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cocone Sys f.
 
-Fact dlind_is_linear : linear (\ind Hcomp).
+Fact dlind_is_linear : linear (\ind Hcone).
 Proof.
 move=> /= r a b.
 case: (get_repr2 a b) => i [x] [y] [<-{a} <-{b}].
@@ -929,9 +926,9 @@ Canonical dlinj_lrmorphism i : {lrmorphism Ob i -> TLim} :=
 Section UniversalProperty.
 
 Variable (T : lalgType R) (f : forall i, {lrmorphism (Ob i) -> T }).
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cocone Sys f.
 Canonical dlind_lrmorphism : {lrmorphism TLim -> T} :=
-  AddLRMorphism (DirLimitLinear.dlind_is_linear Hcomp).
+  AddLRMorphism (DirLimitLinear.dlind_is_linear Hcone).
 
 End UniversalProperty.
 
@@ -1085,19 +1082,19 @@ Section UniversalProperty.
 
 Variable (T : Type) (f : forall i, Ob i -> T).
 
-Definition dlind of iscompat Sys f := fun a => f (projT2 (dlpair a)).
+Definition dlind of cocone Sys f := fun a => f (projT2 (dlpair a)).
 
-Hypothesis Hcomp : iscompat Sys f.
+Hypothesis Hcone : cocone Sys f.
 
-Lemma dlindP i (x : Ob i) : dlind Hcomp ('inj_i x) = f x.
+Lemma dlindP i (x : Ob i) : dlind Hcone ('inj_i x) = f x.
 Proof.
-rewrite /dlind; apply (dlcongrE Hcomp).
+rewrite /dlind; apply (dlcongrE Hcone).
 by rewrite dlcongr_sym; apply: (dlinjP x).
 Qed.
 
 Lemma dlindE i j (x : Ob i) (y : Ob j) :
-  dlcongr bonding x y -> dlind Hcomp ('inj_i x) = dlind Hcomp ('inj_j y).
-Proof. by rewrite !dlindP => /(dlcongrE Hcomp). Qed.
+  dlcongr bonding x y -> dlind Hcone ('inj_i x) = dlind Hcone ('inj_j y).
+Proof. by rewrite !dlindP => /(dlcongrE Hcone). Qed.
 
 End UniversalProperty.
 

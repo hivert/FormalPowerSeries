@@ -118,9 +118,9 @@ Proof. by rewrite unlock. Qed.
 
 Definition fpsproj n (f : {fps R}) : {tfps R n} := [tfps i <= n => f``_i].
 
-Lemma fpsprojP : iscompat fps_invsys fpsproj.
+Lemma fpsprojP : cone fps_invsys fpsproj.
 Proof.
-rewrite /iscompat /= unlock /= => i j; rewrite leEnat => le_ij f /=.
+rewrite /cone /= unlock /= => i j; rewrite leEnat => le_ij f /=.
 apply tfpsP=> k le_ki.
 by rewrite coef_trXnt le_ki !coef_tfps_of_fun le_ki (leq_trans le_ki le_ij).
 Qed.
@@ -138,20 +138,20 @@ Qed.
 Section UniversalProperty.
 
 Variable (T : Type) (f : forall i, T -> {tfps R i}).
-Definition fpsind of iscompat fps_invsys f := fun t =>
+Definition fpsind of cone fps_invsys f := fun t =>
   FPSeries (fun i => (f i t)`_i).
 
-Hypothesis Hcomp : iscompat fps_invsys f.
-Lemma fpsindP i t : 'pi_i (fpsind Hcomp t) = f i t.
+Hypothesis Hcone : cone fps_invsys f.
+Lemma fpsindP i t : 'pi_i (fpsind Hcone t) = f i t.
 Proof.
 rewrite /fpsind /=; apply tfpsP => j le_ji /=.
 rewrite coef_tfps_of_fun le_ji coefs_FPSeries.
-rewrite -leEnat in le_ji; rewrite -(Hcomp le_ji) /=.
+rewrite -leEnat in le_ji; rewrite -(Hcone le_ji) /=.
 by rewrite unlock coef_trXnt leqnn.
 Qed.
 
 Lemma fpsindE (un : T -> {fps R}) :
-  (forall i, 'pi_i \o un =1 f i) -> un =1 (fpsind Hcomp).
+  (forall i, 'pi_i \o un =1 f i) -> un =1 (fpsind Hcone).
 Proof.
 move=> eqproj x; apply fpsprojE => i.
 by rewrite -/(('pi_i \o un) _) eqproj fpsindP.
@@ -164,7 +164,7 @@ Program Definition fps_invlim_Mixin :=
   @InvLimMixin _ _ _ _ (*fps_bond*) fps_invsys {fps R} fpsproj fpsind _ _ _.
 Next Obligation. by move=> i j le_ij x; apply: fpsprojP. Qed.
 Next Obligation. by move=> x /=; rewrite fpsindP. Qed.
-Next Obligation. by move=> x; apply: (fpsindE Hcomp). Qed.
+Next Obligation. by move=> x; apply: (fpsindE Hcone). Qed.
 Canonical fps_invlimType :=
   Eval hnf in InvLimType {fps R} fps_invlim_Mixin.
 
@@ -279,7 +279,7 @@ Lemma coefs_sum I (r : seq I) (s : pred I) (F : I -> {fps R}) k :
 Proof. exact: (raddf_sum (coefs_additive k)). Qed.
 
 
-Fact compat_fpsC : iscompat (fps_invsys R) (@tfpsC R).
+Fact compat_fpsC : cone (fps_invsys R) (@tfpsC R).
 Proof. by move=> i j le_ij c /=; rewrite fps_bondE trXntC. Qed.
 Definition fpsC : R^o -> {fps R} := \ind compat_fpsC.
 Local Notation "c %:S" := (fpsC c).
@@ -333,7 +333,7 @@ Proof. rewrite -fpsC0; apply/inj_eq/fpsC_inj. Qed.
 Lemma fpsC_eq1 (c : R) : (c%:S == 1 :> {fps R}) = (c == 1).
 Proof. rewrite -fpsC1; apply/inj_eq/fpsC_inj. Qed.
 
-Lemma compat_poly : iscompat (fps_invsys R) (@trXn R).
+Lemma compat_poly : cone (fps_invsys R) (@trXn R).
 Proof. by  move=> i j le_ij p; rewrite /= fps_bondE /trXnt /= trXn_trXn. Qed.
 Definition fps_poly : {poly R} -> {fps R} := \ind compat_poly.
 
@@ -900,7 +900,7 @@ by rewrite coeft_proj // coef_map_fps coef_map_tfps coeft_proj.
 Qed.
 
 Lemma compat_map_fps :
-  iscompat (fps_invsys L) (fun i => map_tfps F \o 'pi[{fps K}]_i).
+  cone (fps_invsys L) (fun i => map_tfps F \o 'pi[{fps K}]_i).
 Proof. by move=> g i j le_ij /=; rewrite -!proj_map_fps /= ilprojE. Qed.
 
 Lemma map_fps_indE : map_fps = \ind compat_map_fps.
@@ -1220,8 +1220,8 @@ by rewrite coef_deriv_tfps !coeft_proj // coef_deriv_fps.
 Qed.
 
 Lemma compat_deriv_fps :
-  iscompat (fps_invsys R)
-           (fun i => (@deriv_tfps _ _) \o 'pi[{fps R}]_i.+1).
+  cone (fps_invsys R)
+       (fun i => (@deriv_tfps _ _) \o 'pi[{fps R}]_i.+1).
 Proof.
 move=> g i j le_ij /=.
 by rewrite -proj_deriv_fps /= ilprojE -proj_deriv_fps.
@@ -1367,8 +1367,8 @@ Variables (R : ringType).
 Implicit Types (f g : {fps R}).
 
 Lemma compat_comp_fps g :
-  iscompat (fps_invsys R)
-           (fun i => (comp_tfps ('pi_i g)) \o 'pi[{fps R}]_i).
+  cone (fps_invsys R)
+       (fun i => (comp_tfps ('pi_i g)) \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_comp -?leEnat // -!fps_bondE !ilprojE.
@@ -1521,10 +1521,10 @@ Variables R : comUnitRingType.
 Implicit Type (f g : {fps R}).
 
 Lemma compat_lagrfix :
-  iscompat (fps_invsys R)
-           (fun i => if i is i'.+1
-                     then (@lagrfix R i') \o 'pi[{fps R}]_i'
-                     else fun=> 0).
+  cone (fps_invsys R)
+       (fun i => if i is i'.+1
+                 then (@lagrfix R i') \o 'pi[{fps R}]_i'
+                 else fun=> 0).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 move: le_ij; rewrite {1}leEnat.
@@ -1773,7 +1773,7 @@ Lemma proj_expr_fps i c f : 'pi_i (expr_fps c f) = expr_tfps c ('pi_i f).
 Proof. by rewrite /expr_fps proj_exp projZ proj_log. Qed.
 
 Lemma compat_exp :
-  iscompat (fps_invsys R) (fun i => tfps.exp \o 'pi[{fps R}]_i).
+  cone (fps_invsys R) (fun i => tfps.exp \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_exp -?leEnat // -!fps_bondE !ilprojE.
@@ -1782,7 +1782,7 @@ Lemma exp_indE : exp = \ind compat_exp.
 Proof. by apply: funext=> g; apply: ind_uniq=> i {}g /=; apply: proj_exp. Qed.
 
 Lemma compat_log :
-  iscompat (fps_invsys R) (fun i => tfps.log \o 'pi[{fps R}]_i).
+  cone (fps_invsys R) (fun i => tfps.log \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_log -?leEnat // -!fps_bondE !ilprojE.
