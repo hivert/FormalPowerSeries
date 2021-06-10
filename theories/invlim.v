@@ -905,10 +905,6 @@ Next Obligation. by move=> x /=; rewrite ilind_implP. Qed.
 Next Obligation. by move=> x; apply: (ilind_implE Hcone). Qed.
 Canonical invlim_invlimType := InvLimType {invlim Sys} invlim_Mixin.
 
-Lemma ilproj_mkinvlim thr (thrP : isthread Sys thr) i :
-  'pi_i (MkInvLim thrP) = thr i.
-Proof. by []. Qed.
-
 End InterSpec.
 
 Open Scope ring_scope.
@@ -1028,8 +1024,9 @@ Variable Ob : nat -> zmodType.
 Variable bonding : forall i j : nat, (i <= j)%O -> {additive (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
 
+(* TODO Generalize :
+Variable TLim : invLimType Sys.*)
 Implicit Type (x y : {invlim Sys}).
-
 
 Definition valuat x : natbar :=
   if altP (x =P 0) is AltFalse Pf then Nat (ex_minn (il_neq0 Pf))
@@ -1207,7 +1204,7 @@ Qed.
 
 Definition HugeOp F : {invlim Sys} :=
   if pselect (is_ilopable F) is left sm
-  then MkInvLim (ilopand_istrhead sm)
+  then ilthr (ilopand_istrhead sm)
   else idx.
 
 Local Notation "\Op_( c ) F" := (HugeOp (fun c => F)) (at level 0).
@@ -1228,7 +1225,7 @@ transitivity ('pi_i (\big[op/idx]_(c <- S | c \in ilopand Hop i) F c));
     by case asboolP; rewrite {1}/invar => H s1 //; rewrite -Monoid.mulmA H.
   congr 'pi_i; apply: eq_big => x //.
   by apply/negb_inj; rewrite negbK; apply/ilopandP/asboolP.
-rewrite ilproj_mkinvlim; congr 'pi_i.
+rewrite ilthrP; congr 'pi_i.
 rewrite [in RHS]big_fset_condE; apply: eq_fbigl => c.
 rewrite !inE andbC.
 case: (boolP (c \in _)) => //= /ilopandP/asboolP Hc; apply/esym.
