@@ -161,10 +161,13 @@ End UniversalProperty.
 
 (** Putting fps_bond below break inference for further canonical structures *)
 Program Definition fps_invlim_Mixin :=
-  @InvLimMixin _ _ _ _ (*fps_bond*) fps_invsys {fps R} fpsproj fpsind _ _ _.
-Next Obligation. by move=> i j le_ij x; apply: fpsprojP. Qed.
-Next Obligation. by move=> x /=; rewrite fpsindP. Qed.
-Next Obligation. by move=> x; apply: (fpsindE Hcone). Qed.
+  @InvLimMixin _ _ _ _ (*fps_bond*) fps_invsys {fps R} fpsproj fpsind _.
+Next Obligation.
+split.
+- by move=> i j le_ij x; apply: fpsprojP.
+- by move=> T f H i x /=; rewrite fpsindP.
+- by move=> T f Hcone i x; apply: (fpsindE Hcone).
+Qed.
 Canonical fps_invlimType :=
   Eval hnf in InvLimType {fps R} fps_invlim_Mixin.
 

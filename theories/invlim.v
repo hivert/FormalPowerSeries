@@ -93,17 +93,23 @@ Variable Ob : I -> Type.
 Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
 
+Definition axioms (TLim : Type)
+           (invlim_proj : forall i, TLim -> Ob i)
+           (invlim_ind  :
+              forall T (f : forall i, T -> Ob i), cone Sys f -> T -> TLim) :=
+  [/\ (cone Sys invlim_proj),
+      (forall T f (Hcone : cone (T := T) Sys f),
+          forall i, invlim_proj i \o invlim_ind T f Hcone =1 f i) &
+      (forall T f (Hcone : cone Sys f),
+          forall (ind : T -> TLim),
+            (forall i, invlim_proj i \o ind =1 f i) ->
+            ind =1 invlim_ind T f Hcone)].
+
 Record mixin_of (TLim : Type) := Mixin {
   invlim_proj : forall i, TLim -> Ob i;
   invlim_ind  : forall (T : Type) (f : forall i, T -> Ob i),
       (cone Sys f) -> T -> TLim;
-  _ : cone Sys invlim_proj;
-  _ : forall T (f : forall i, T -> Ob i) (Hcone : cone Sys f),
-      forall i, invlim_proj i \o invlim_ind Hcone =1 f i;
-  _ : forall T (f : forall i, T -> Ob i) (Hcone : cone Sys f),
-      forall (ind : T -> TLim),
-        (forall i, invlim_proj i \o ind =1 f i) ->
-        ind =1 invlim_ind Hcone
+  _ : axioms invlim_proj invlim_ind
   }.
 
 Record class_of T := Class {base : Choice.class_of T; mixin : mixin_of T}.
@@ -151,11 +157,13 @@ Definition ind_phant of phant ilT := invlim_ind (mixin (class ilT)).
 Local Notation "\ind" := (ind_phant (Phant ilT)).
 
 Lemma proj_compat : cone Sys \pi.
-Proof. by rewrite /pi_phant; case: ilT => /= [TLim [eqM []]]. Qed.
+Proof. by rewrite /pi_phant; case: ilT => /= TLim [ch [pr ind []]]. Qed.
 
 Lemma ind_commute T (f : forall i, T -> Ob i) (Hcone : cone Sys f) :
   forall i, \pi i \o \ind Hcone =1 f i.
-Proof. by rewrite /pi_phant /ind_phant; case: ilT => /= [TLim [eqM []]]. Qed.
+Proof.
+by rewrite /pi_phant /ind_phant; case: ilT => /= TLim [ch [pr ind []]].
+Qed.
 
 Lemma piindE  T (f : forall i, T -> Ob i) (Hcone : cone Sys f) i x :
   \pi i (\ind Hcone x) = f i x.
@@ -166,7 +174,7 @@ Lemma ind_uniq T (f : forall i, T -> Ob i) (Hcone : cone Sys f) :
     (forall i, \pi i \o ind =1 f i) -> ind =1 \ind Hcone.
 Proof.
 rewrite /pi_phant /ind_phant.
-case: ilT => /= [TLim [eqM /= [pi ind comp comm uniq]]] indT commT t /=.
+case: ilT => /= TLim [ch [pr ind [comp comm uniq]]] indT commT t /=.
 by apply uniq; apply commT.
 Qed.
 
@@ -258,7 +266,7 @@ Arguments invlim_geE {disp I Ob bonding Sys ilT}.
 
 
 (****************************************************************************)
-(** Inverse limits in various algebraic categories                          *)
+(** Canonical structures for inverse limits in various algebraic categories *)
 (**                                                                         *)
 (** We don't deal with multiplicative groups as they are all assumed finite *)
 (** in mathcomp.                                                            *)
@@ -284,6 +292,15 @@ by apply/eqP/invlimE => /= i; apply/eqP.
 Qed.
 
 End InvLimitEqType.
+
+
+(****************************************************************************)
+(** Canonical structures for inverse limits in various algebraic categories *)
+(**                                                                         *)
+(** We don't deal with multiplicative groups as they are all assumed finite *)
+(** in mathcomp.                                                            *)
+(****************************************************************************)
+
 
 
 Module InvLimitZMod.
@@ -890,7 +907,7 @@ End UniversalProperty.
 End InverseLimitTheory.
 
 
-Section InterSpec.
+Section ImplSpec.
 
 Variables (disp : unit) (I : dirType disp).
 Variable Ob : I -> choiceType.
@@ -899,13 +916,16 @@ Variable Sys : invsys bonding.
 
 Program Definition invlim_Mixin :=
   @InvLimMixin disp I Ob bonding Sys {invlim Sys}
-               (ilproj_impl (Sys := Sys)) (ilind_impl (Sys := Sys)) _ _ _.
-Next Obligation. by move=> i j Hij x; apply: ilproj_implE. Qed.
-Next Obligation. by move=> x /=; rewrite ilind_implP. Qed.
-Next Obligation. by move=> x; apply: (ilind_implE Hcone). Qed.
+               (ilproj_impl (Sys := Sys)) (ilind_impl (Sys := Sys)) _.
+Next Obligation.
+split.
+- by move=> i j Hij x; apply: ilproj_implE.
+- by move=> T f H i x /=; rewrite ilind_implP.
+- by move=> T f Hcone i x; apply: (ilind_implE Hcone).
+Qed.
 Canonical invlim_invlimType := InvLimType {invlim Sys} invlim_Mixin.
 
-End InterSpec.
+End ImplSpec.
 
 Open Scope ring_scope.
 Section Canonicals.
