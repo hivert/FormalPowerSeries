@@ -260,7 +260,7 @@ Section Compatibility.
 Variables (T : Type) (f : forall i, Ob i -> T).
 Hypothesis Hcomp : iscompat Sys f.
 
-Lemma iscompatE i j (x : Ob i) (y : Ob j) : dlcongr x y -> f x = f y.
+Lemma dlcongrE i j (x : Ob i) (y : Ob j) : dlcongr x y -> f x = f y.
 Proof.
 move=> [k le_ik le_jk Hbond].
 by rewrite -(Hcomp le_ik x) /= Hbond -(Hcomp le_jk y).
@@ -1091,13 +1091,13 @@ Hypothesis Hcomp : iscompat Sys f.
 
 Lemma dlindP i (x : Ob i) : dlind Hcomp ('inj_i x) = f x.
 Proof.
-rewrite /dlind; apply (iscompatE Hcomp).
+rewrite /dlind; apply (dlcongrE Hcomp).
 by rewrite dlcongr_sym; apply: (dlinjP x).
 Qed.
 
 Lemma dlindE i j (x : Ob i) (y : Ob j) :
   dlcongr bonding x y -> dlind Hcomp ('inj_i x) = dlind Hcomp ('inj_j y).
-Proof. by rewrite !dlindP => /(iscompatE Hcomp). Qed.
+Proof. by rewrite !dlindP => /(dlcongrE Hcomp). Qed.
 
 End UniversalProperty.
 
