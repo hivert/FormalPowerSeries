@@ -226,7 +226,7 @@ Qed.
 Definition ilthr thr (Hthr : isthread Sys thr) :=
   let: exist res _ := from_thread_spec Hthr in res.
 
-Lemma invLimP thr (Hthr : isthread Sys thr) :
+Lemma ilthrP thr (Hthr : isthread Sys thr) :
   forall i, 'pi_i (ilthr Hthr) = thr i.
 Proof. by rewrite /ilthr; case: from_thread_spec. Qed.
 
@@ -311,18 +311,18 @@ Definition iladd x y : TLim := ilthr (iladdP x y).
 
 Program Definition invlim_zmodMixin of phant TLim :=
   @ZmodMixin TLim ilzero ilopp iladd _ _ _ _.
-Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP addrA. Qed.
-Next Obligation. by move=> a b; apply invlimE=> i; rewrite !invLimP addrC. Qed.
-Next Obligation. by move=> b; apply invlimE=> i; rewrite !invLimP add0r. Qed.
-Next Obligation. by move=> b; apply invlimE=> i; rewrite !invLimP addNr. Qed.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !ilthrP addrA. Qed.
+Next Obligation. by move=> a b; apply invlimE=> i; rewrite !ilthrP addrC. Qed.
+Next Obligation. by move=> b; apply invlimE=> i; rewrite !ilthrP add0r. Qed.
+Next Obligation. by move=> b; apply invlimE=> i; rewrite !ilthrP addNr. Qed.
+
 (* Not global canonical but accessible by [zmodMixin of ... by <-] *)
 (* A mettre dans un module pour avoir le canonical local *)
-
 Local Canonical invlim_zmodType :=
   Eval hnf in ZmodType TLim (invlim_zmodMixin (Phant TLim)).
 
 Fact ilproj_is_additive i : additive 'pi_i.
-Proof. by move=> x y; rewrite !invLimP. Qed.
+Proof. by move=> x y; rewrite !ilthrP. Qed.
 Canonical ilproj_additive i : {additive TLim -> Ob i} :=
   Additive (ilproj_is_additive i).
 
@@ -380,20 +380,20 @@ Definition ilmul x y : TLim := ilthr (ilmulP x y).
 
 Program Definition invlim_ringMixin of phant TLim :=
   @RingMixin _ ilone ilmul _ _ _ _ _ _.
-Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP mulrA. Qed.
-Next Obligation. by move=> a; apply invlimE=> i; rewrite !invLimP mul1r. Qed.
-Next Obligation. by move=> a; apply invlimE=> i; rewrite !invLimP mulr1. Qed.
-Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP mulrDl. Qed.
-Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !invLimP mulrDr. Qed.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !ilthrP mulrA. Qed.
+Next Obligation. by move=> a; apply invlimE=> i; rewrite !ilthrP mul1r. Qed.
+Next Obligation. by move=> a; apply invlimE=> i; rewrite !ilthrP mulr1. Qed.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !ilthrP mulrDl. Qed.
+Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !ilthrP mulrDr. Qed.
 Next Obligation.
 apply/negP => /eqP/(congr1 (fun x => 'pi_(invsys_inh Sys) x)) /= /eqP.
-by rewrite !invLimP; exact/negP/oner_neq0.
+by rewrite !ilthrP; exact/negP/oner_neq0.
 Qed.
 Local Canonical invlim_ringType :=
   Eval hnf in RingType TLim (invlim_ringMixin (Phant TLim)).
 
 Fact ilproj_is_multiplicative i : multiplicative 'pi_i.
-Proof. by split => [x y|]; rewrite !invLimP. Qed.
+Proof. by split => [x y|]; rewrite !ilthrP. Qed.
 Canonical ilproj_rmorphism i : {rmorphism TLim -> Ob i} :=
   AddRMorphism (ilproj_is_multiplicative i).
 
@@ -441,7 +441,7 @@ Local Canonical TLim_ringType :=
   Eval hnf in RingType TLim [ringMixin of TLim by <-].
 
 Fact ilmulC x y : x * y = y * x.
-Proof. by apply invlimE=> i; rewrite !invLimP mulrC. Qed.
+Proof. by apply invlimE=> i; rewrite !ilthrP mulrC. Qed.
 Definition invlim_comRingMixin of phant TLim := ilmulC.
 
 End InvLimitComRing.
@@ -484,13 +484,13 @@ Fact ilmulVr : {in ilunit, left_inverse 1 ilinv *%R}.
 Proof.
 move=> x /forallbP Hinv; apply invlimE=> i.
 rewrite /ilinv; case: pselect => /= [H |/(_ Hinv)//].
-by rewrite !invLimP mulVr // Hinv.
+by rewrite !ilthrP mulVr // Hinv.
 Qed.
 Fact ilmulrV : {in ilunit, right_inverse 1 ilinv *%R}.
 Proof.
 move=> x /forallbP Hinv; apply invlimE=> i.
 rewrite /ilinv; case: pselect => /= [H |/(_ Hinv)//].
-by rewrite !invLimP mulrV // Hinv.
+by rewrite !ilthrP mulrV // Hinv.
 Qed.
 Fact ilunit_impl x y : y * x = 1 /\ x * y = 1 -> ilunit x.
 Proof.
@@ -611,16 +611,16 @@ Definition ilscale r x : TLim := ilthr (ilscaleP r x).
 
 Program Definition invlim_lmodMixin of phant TLim :=
   @LmodMixin R [zmodType of TLim] ilscale _ _ _ _.
-Next Obligation. by apply invlimE=> i /=; rewrite !invLimP scalerA. Qed.
-Next Obligation. by move=> x; apply invlimE=> i; rewrite !invLimP scale1r. Qed.
-Next Obligation. by move=> r x y; apply invlimE=> i; rewrite !invLimP scalerDr. Qed.
-Next Obligation. by move=> r s; apply invlimE=> i; rewrite !invLimP scalerDl. Qed.
+Next Obligation. by apply invlimE=> i /=; rewrite !ilthrP scalerA. Qed.
+Next Obligation. by move=> x; apply invlimE=> i; rewrite !ilthrP scale1r. Qed.
+Next Obligation. by move=> r x y; apply invlimE=> i; rewrite !ilthrP scalerDr. Qed.
+Next Obligation. by move=> r s; apply invlimE=> i; rewrite !ilthrP scalerDl. Qed.
 
 Local Canonical invlim_lmodType :=
   Eval hnf in LmodType R TLim (invlim_lmodMixin (Phant TLim)).
 
 Fact ilproj_is_linear i : linear 'pi_i.
-Proof. by move=> c x y; rewrite !invLimP. Qed.
+Proof. by move=> c x y; rewrite !ilthrP. Qed.
 Canonical ilproj_linear i : {linear TLim -> Ob i} :=
   AddLinear (ilproj_is_linear i).
 
@@ -631,7 +631,7 @@ Hypothesis Hcone : cone Sys f.
 
 Fact ilind_is_linear : linear (\ind Hcone).
 Proof.
-by move=> r t u; apply invlimE=> i; rewrite !invLimP !piindE !linearP.
+by move=> r t u; apply invlimE=> i; rewrite !ilthrP !piindE !linearP.
 Qed.
 Canonical ilind_linear : {linear T -> TLim} := AddLinear ilind_is_linear.
 
@@ -668,7 +668,7 @@ Local Canonical TLim_lmodType :=
   Eval hnf in LmodType R TLim [lmodMixin of TLim by <-].
 
 Fact ilscaleAl r x y : r *: (x * y) = r *: x * y.
-Proof. by apply invlimE=> i /=; rewrite !invLimP scalerAl. Qed.
+Proof. by apply invlimE=> i /=; rewrite !ilthrP scalerAl. Qed.
 Definition invlim_lalgMixin of phant TLim := ilscaleAl.
 Local Canonical invlim_lalgType := Eval hnf in LalgType R TLim ilscaleAl.
 
@@ -717,7 +717,7 @@ Local Canonical invlim_lalgType :=
   Eval hnf in LalgType R TLim [lalgMixin of TLim by <-].
 
 Fact ilscaleAr r x y : r *: (x * y) = x * (r *: y).
-Proof. by apply invlimE=> i /=; rewrite !invLimP scalerAr. Qed.
+Proof. by apply invlimE=> i /=; rewrite !ilthrP scalerAr. Qed.
 Definition invlim_algMixin of phant TLim := ilscaleAr.
 Canonical invlim_algType := Eval hnf in AlgType R TLim ilscaleAr.
 

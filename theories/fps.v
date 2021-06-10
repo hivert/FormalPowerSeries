@@ -403,13 +403,13 @@ Proof. by apply/fpsP => n; rewrite coefs_fps_poly coefC coefsC. Qed.
 
 Fact coefsM s t i : (s * t)``_i = \sum_(j < i.+1) s``_j * t``_(i - j).
 Proof.
-rewrite coefs_projE invLimP /= coeftM leqnn.
+rewrite coefs_projE ilthrP /= coeftM leqnn.
 apply eq_bigr => [[j]] /=; rewrite ltnS => le_ji _.
 by rewrite !coeft_proj ?leq_subr.
 Qed.
 Lemma coefsMr s t n : (s * t)``_n = \sum_(j < n.+1) s``_(n - j) * t``_j.
 Proof.
-rewrite coefs_projE invLimP /= coeftMr leqnn.
+rewrite coefs_projE ilthrP /= coeftMr leqnn.
 apply eq_bigr => [[j]] /=; rewrite ltnS => le_ji _.
 by rewrite ?coeft_proj ?leq_subr.
 Qed.
