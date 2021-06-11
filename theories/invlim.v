@@ -79,7 +79,6 @@ Proof. by rewrite /cone => H i j le_ij x; rewrite -(H i j le_ij). Qed.
 End InverseSystem.
 
 
-
 (***************************************************************************)
 (** Interface for inverse limits                                           *)
 (*                                                                         *)
@@ -93,23 +92,30 @@ Variable Ob : I -> Type.
 Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
 
-Definition axioms (TLim : Type)
-           (invlim_proj : forall i, TLim -> Ob i)
-           (invlim_ind  :
-              forall T (f : forall i, T -> Ob i), cone Sys f -> T -> TLim) :=
-  [/\ (cone Sys invlim_proj),
-      (forall T f (Hcone : cone (T := T) Sys f),
-          forall i, invlim_proj i \o invlim_ind T f Hcone =1 f i) &
-      (forall T f (Hcone : cone Sys f),
-          forall (ind : T -> TLim),
-            (forall i, invlim_proj i \o ind =1 f i) ->
-            ind =1 invlim_ind T f Hcone)].
+Section Axioms.
+
+Variables (TLim : Type)
+          (invlim_proj : forall i, TLim -> Ob i)
+          (Tind : Type)
+          (f : forall i, Tind -> Ob i)
+          (invlim_ind  : Tind -> TLim).
+Definition ind_commute :=
+  forall i, invlim_proj i \o invlim_ind =1 f i.
+Definition ind_unique (ind : Tind -> TLim) :=
+  (forall i, invlim_proj i \o ind =1 f i) -> ind =1 invlim_ind.
+
+End Axioms.
 
 Record mixin_of (TLim : Type) := Mixin {
   invlim_proj : forall i, TLim -> Ob i;
   invlim_ind  : forall (T : Type) (f : forall i, T -> Ob i),
       (cone Sys f) -> T -> TLim;
-  _ : axioms invlim_proj invlim_ind
+  _ : cone Sys invlim_proj;
+  _ : forall (Tind : Type) (f : forall i, Tind -> Ob i) (Hcone : cone Sys f),
+      ind_commute invlim_proj f (invlim_ind Hcone);
+  _ : forall (Tind : Type) (f : forall i, Tind -> Ob i) (Hcone : cone Sys f)
+             (ind : Tind -> TLim),
+      ind_unique invlim_proj f (invlim_ind Hcone) ind
   }.
 
 Record class_of T := Class {base : Choice.class_of T; mixin : mixin_of T}.
@@ -157,12 +163,13 @@ Definition ind_phant of phant ilT := invlim_ind (mixin (class ilT)).
 Local Notation "\ind" := (ind_phant (Phant ilT)).
 
 Lemma proj_compat : cone Sys \pi.
-Proof. by rewrite /pi_phant; case: ilT => /= TLim [ch [pr ind []]]. Qed.
+Proof. by rewrite /pi_phant; case: ilT => /= TLim [ch [pr ind] /=]. Qed.
 
 Lemma ind_commute T (f : forall i, T -> Ob i) (Hcone : cone Sys f) :
   forall i, \pi i \o \ind Hcone =1 f i.
 Proof.
-by rewrite /pi_phant /ind_phant; case: ilT => /= TLim [ch [pr ind []]].
+rewrite /pi_phant /ind_phant.
+by case: ilT => /= TLim [ch [pr ind /= Hcn /(_ _ _ Hcone)]].
 Qed.
 
 Lemma piindE  T (f : forall i, T -> Ob i) (Hcone : cone Sys f) i x :
@@ -174,8 +181,8 @@ Lemma ind_uniq T (f : forall i, T -> Ob i) (Hcone : cone Sys f) :
     (forall i, \pi i \o ind =1 f i) -> ind =1 \ind Hcone.
 Proof.
 rewrite /pi_phant /ind_phant.
-case: ilT => /= TLim [ch [pr ind [comp comm uniq]]] indT commT t /=.
-by apply uniq; apply commT.
+case: ilT => /= TLim [ch [pr ind /= Hcn _ Huniq]] oind Hcomm.
+exact: Huniq.
 Qed.
 
 End InternalTheory.
@@ -196,6 +203,7 @@ Notation "''pi_' i" := (pi_phant (Phant _) i).
 Notation "''pi[' T ']_' i" := (pi_phant (Phant T) i)
                               (at level 8, i at level 2, only parsing).
 Notation "\ind" := (ind_phant (Phant _)).
+
 
 
 Section Theory.
@@ -265,15 +273,6 @@ Arguments ilthr {disp I Ob bonding Sys ilT thr}.
 Arguments invlim_geE {disp I Ob bonding Sys ilT}.
 
 
-(****************************************************************************)
-(** Canonical structures for inverse limits in various algebraic categories *)
-(**                                                                         *)
-(** We don't deal with multiplicative groups as they are all assumed finite *)
-(** in mathcomp.                                                            *)
-(****************************************************************************)
-Open Scope ring_scope.
-Import GRing.Theory.
-
 Section InvLimitEqType.
 
 Variables (disp : unit) (I : dirType disp).
@@ -295,13 +294,127 @@ End InvLimitEqType.
 
 
 (****************************************************************************)
+(** Interface for inverse limits in various algebraic categories            *)
+(**                                                                         *)
+(** We don't deal with multiplicative groups as they are all assumed finite *)
+(** in mathcomp.                                                            *)
+(****************************************************************************)
+Open Scope ring_scope.
+Import GRing.Theory.
+
+Module ZModInvLimitType.
+Section ZModInvLimitType.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> zmodType.
+Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
+Variable Sys : invsys bonding.
+
+Record mixin_of (TLim : zmodType) := Mixin {
+  invlim_proj : forall i, {additive TLim -> Ob i};
+  invlim_ind  : forall (T : zmodType) (f : forall i, {additive T -> Ob i}),
+      (cone Sys f) -> {additive T -> TLim};
+  _ : cone Sys invlim_proj;
+  _ : forall (Tind : zmodType) (f : forall i, {additive Tind -> Ob i})
+             (Hcone : cone Sys f),
+      InvLim.ind_commute invlim_proj f (invlim_ind Hcone);
+  _ : forall (Tind : zmodType) (f : forall i, {additive Tind -> Ob i})
+             (Hcone : cone Sys f)
+             (ind : {additive Tind -> TLim}),
+      InvLim.ind_unique invlim_proj f (invlim_ind Hcone) ind
+}.
+
+Record class_of T := Class {
+  base : GRing.Zmodule.class_of T;
+  mixin : mixin_of (GRing.Zmodule.Pack base)
+}.
+Local Coercion base : class_of >-> GRing.Zmodule.class_of.
+
+Structure type := Pack { sort; _ : class_of sort }.
+Local Coercion sort : type >-> Sortclass.
+Variables (T : Type) (cT : type).
+Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
+Definition clone c of phant_id class c := @Pack T c.
+Let xT := let: Pack T _ := cT in T.
+Notation xclass := (class : class_of xT).
+
+Definition pack b0 (m0 : mixin_of (@GRing.Zmodule.Pack T b0)) :=
+  fun bT b & phant_id (@GRing.Zmodule.class bT) b =>
+  fun    m & phant_id m0 m => Pack (@Class T b m).
+
+(* Inheritance *)
+Definition eqType := @Equality.Pack cT xclass.
+Definition choiceType := @Choice.Pack cT xclass.
+Definition zmodType := @GRing.Zmodule.Pack cT xclass.
+
+End ZModInvLimitType.
+
+Module Import Exports.
+Coercion base : class_of >-> GRing.Zmodule.class_of.
+Coercion sort : type >-> Sortclass.
+Coercion eqType : type >-> Equality.type.
+Canonical eqType.
+Coercion choiceType : type >-> Choice.type.
+Canonical choiceType.
+Coercion zmodType : type >-> GRing.Zmodule.type.
+Canonical zmodType.
+Notation zmodInvLimType := type.
+Notation ZmodInvLimMixin := Mixin.
+
+Section InternalTheory.
+
+Variables (disp : unit) (I : dirType disp).
+Variable Ob : I -> GRing.Zmodule.Exports.zmodType.
+Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
+Variable Sys : invsys bonding.
+Variable ilT : zmodInvLimType Sys.
+Implicit Type (T : GRing.Zmodule.Exports.zmodType).
+
+Definition pi_phant of phant ilT := invlim_proj (mixin (class ilT)).
+Local Notation "\pi" := (pi_phant (Phant ilT)).
+Definition ind_phant of phant ilT := invlim_ind (mixin (class ilT)).
+Local Notation "\ind" := (ind_phant (Phant ilT)).
+
+Lemma zmodproj_compat : cone Sys \pi.
+Proof. by rewrite /pi_phant; case: ilT => /= TLim [ch [pr ind] /=]. Qed.
+
+Lemma zmodind_commute T (f : forall i, {additive T -> Ob i}) (Hcone : cone Sys f) :
+  forall i, \pi i \o \ind Hcone =1 f i.
+Proof.
+rewrite /pi_phant /ind_phant.
+by case: ilT => /= TLim [ch [pr ind /= Hcn /(_ _ _ Hcone)]].
+Qed.
+
+Lemma zmodpiindE  T (f : forall i, {additive T -> Ob i}) (Hcone : cone Sys f) i x :
+  \pi i (\ind Hcone x) = f i x.
+Proof. exact: zmodind_commute. Qed.
+
+Lemma zmodind_uniq T (f : forall i, {additive T -> Ob i}) (Hcone : cone Sys f) :
+  forall (ind : {additive T -> ilT}),
+    (forall i, \pi i \o ind =1 f i) -> ind =1 \ind Hcone.
+Proof.
+rewrite /pi_phant /ind_phant.
+case: ilT => /= TLim [ch [pr ind /= Hcn /= H Huniq]] oind Hcomm.
+exact: (Huniq _ f Hcone oind).
+Qed.
+
+End InternalTheory.
+
+End Exports.
+End ZModInvLimitType.
+Import ZModInvLimitType.Exports.
+
+
+
+
+
+
+(****************************************************************************)
 (** Canonical structures for inverse limits in various algebraic categories *)
 (**                                                                         *)
 (** We don't deal with multiplicative groups as they are all assumed finite *)
 (** in mathcomp.                                                            *)
 (****************************************************************************)
-
-
 
 Module InvLimitZMod.
 Section InvLimitZMod.
@@ -916,13 +1029,10 @@ Variable Sys : invsys bonding.
 
 Program Definition invlim_Mixin :=
   @InvLimMixin disp I Ob bonding Sys {invlim Sys}
-               (ilproj_impl (Sys := Sys)) (ilind_impl (Sys := Sys)) _.
-Next Obligation.
-split.
-- by move=> i j Hij x; apply: ilproj_implE.
-- by move=> T f H i x /=; rewrite ilind_implP.
-- by move=> T f Hcone i x; apply: (ilind_implE Hcone).
-Qed.
+               (ilproj_impl (Sys := Sys)) (ilind_impl (Sys := Sys)) _ _ _.
+Next Obligation. by move=> i j Hij x; apply: ilproj_implE. Qed.
+Next Obligation. by move=> T x /=; rewrite ilind_implP. Qed.
+Next Obligation. by move=> T x; apply: (ilind_implE Hcone). Qed.
 Canonical invlim_invlimType := InvLimType {invlim Sys} invlim_Mixin.
 
 End ImplSpec.
@@ -1044,9 +1154,9 @@ Variable Ob : nat -> zmodType.
 Variable bonding : forall i j : nat, (i <= j)%O -> {additive (Ob j) -> (Ob i)}.
 Variable Sys : invsys bonding.
 
-(* TODO Generalize :
-Variable TLim : invLimType Sys.*)
-Implicit Type (x y : {invlim Sys}).
+(* TODO Generalize : *)
+Variable TLim : zmodInvLimType Sys.
+Implicit Type (x y : TLim).
 
 Definition valuat x : natbar :=
   if altP (x =P 0) is AltFalse Pf then Nat (ex_minn (il_neq0 Pf))
