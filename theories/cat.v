@@ -28,6 +28,45 @@ Import GRing.Theory.
 Open Scope ring_scope.
 
 
+(* External direct product. To be merged in math comp*)
+Section PairZmod.
+Variables M1 M2 : zmodType.
+Fact fst_is_additive : additive (@fst M1 M2).
+Proof. by []. Qed.
+Canonical fst_additive := Additive fst_is_additive.
+Fact snd_is_additive : additive (@snd M1 M2).
+Proof. by []. Qed.
+Canonical snd_additive := Additive snd_is_additive.
+End PairZmod.
+
+Section PairRing.
+Variables R1 R2 : ringType.
+Fact fst_is_multiplicative : multiplicative (@fst R1 R2).
+Proof. by []. Qed.
+Canonical fst_rmorphism := AddRMorphism fst_is_multiplicative.
+Fact snd_is_multiplicative : multiplicative (@snd R1 R2).
+Proof. by []. Qed.
+Canonical snd_rmorphism := AddRMorphism snd_is_multiplicative.
+End PairRing.
+
+Section PairLmod.
+Variables (R : ringType) (V1 V2 : lmodType R).
+Fact fst_is_scalable : scalable (@fst V1 V2).
+Proof. by []. Qed.
+Canonical fst_linear := AddLinear fst_is_scalable.
+Fact snd_is_scalable : scalable (@snd V1 V2).
+Proof. by []. Qed.
+Canonical snd_linear := AddLinear snd_is_scalable.
+End PairLmod.
+
+Section PairLalg.
+Variables (R : ringType) (A1 A2 : lalgType R).
+Definition fst_lrmorphism := [lrmorphism of (@fst A1 A2)].
+Definition snd_lrmorphism := [lrmorphism of (@snd A1 A2)].
+End PairLalg.
+
+
+
 (***************************************************************************)
 (** Small concrete categories                                              *)
 (*                                                                         *)
@@ -40,7 +79,7 @@ Record category := Category {
   TObj : Type;
   TMor : forall A B : TObj, Type;
 
-  objType : TObj -> choiceType;
+  objType : TObj -> Type;
   morFun : forall A B : TObj, TMor A B -> (objType A) -> (objType B);
   _ : forall A B (f g : TMor A B), (morFun f =1 morFun g) -> f = g;
 
@@ -135,31 +174,36 @@ End CatAxioms.
 (***************************************************************************)
 Notation CatGen rt mt mi mc :=
   (@Category rt mt (fun x => x) (fun A B f => f) _ mi _ mc _).
-Notation RingCatGen rt :=
-  (@CatGen rt
-           (fun A B => {rmorphism A -> B})
-           (fun A => [rmorphism of idfun])
-           (fun A B C f g => [rmorphism of f \o g])).
+
+Notation SetCatGen rt :=
+  (@CatGen rt (fun A B => A -> B) (fun A => id) (fun A B C f g => f \o g)).
+Program Definition TypeCat : category := SetCatGen Type.
+Next Obligation. exact: funext. Qed.
+Program Definition EqTypeCat : category := SetCatGen eqType.
+Next Obligation. exact: funext. Qed.
+Program Definition SetCat : category := SetCatGen choiceType.
+Next Obligation. exact: funext. Qed.
+
 Ltac mor_ext f g H := (
   case: f g H => [f f_add] [g g_add] /= /funext Heq;
   subst g; have -> : f_add = g_add by apply: Prop_irrelevance).
-
-
-Program Definition SetCat : category :=
-  @CatGen choiceType (fun A B => A -> B) (fun A => id) (fun A B C f g => f \o g).
-Next Obligation. exact: funext. Qed.
-
 Program Definition ZModCat : category :=
   @CatGen zmodType
           (fun A B => {additive A -> B})
           (fun A => [additive of idfun])
           (fun A B C f g => [additive of f \o g]).
 Next Obligation. by mor_ext f g H. Qed.
-Program Definition RingCat : category := @RingCatGen ringType.
+
+Notation RingCatGen rt :=
+  (@CatGen rt
+           (fun A B => {rmorphism A -> B})
+           (fun A => [rmorphism of idfun])
+           (fun A B C f g => [rmorphism of f \o g])).
+Program Definition RingCat : category := RingCatGen ringType.
 Next Obligation. by mor_ext f g H. Qed.
-Program Definition ComRingCat : category := @RingCatGen comRingType.
+Program Definition ComRingCat : category := RingCatGen comRingType.
 Next Obligation. by mor_ext f g H. Qed.
-Program Definition UnitRingCat : category := @RingCatGen unitRingType.
+Program Definition UnitRingCat : category := RingCatGen unitRingType.
 Next Obligation. by mor_ext f g H. Qed.
 Program Definition ComUnitRingCat : category := RingCatGen comUnitRingType.
 Next Obligation. by mor_ext f g H. Qed.
@@ -296,23 +340,69 @@ Notation "\pi[ T ]_2'" := (pi2_phant (Phant T)) (at level 8, only parsing).
 Notation "\ind" := (ind_phant (Phant _)).
 Notation "\ind[ T ]" := (ind_phant (Phant T)) (at level 8, only parsing).
 
-(* Definition pack m :=
-  fun b bT & phant_id (Choice.class bT) b => Pack (@Class T b m). *)
-
 Notation ProdType T m := (@Product.pack _ _ _ T m _ _ id).
 
 
-Section DefProduct.
+
+Section ProdAssoc.
+
+Variables (Cat : category) (A1 A2 A3 : Cat).
+Variable (P : forall (X1 X2 : Cat), prodType X1 X2).
+
+Let PR := P A1 (P A2 A3).
+Let PL := P (P A1 A2) A3.
+
+
+
+End ProdAssoc.
+
+
+
+Section DefProdInd.
+
+Variables (Cat : category) (A1 A2 : Cat).
+Variable (Y : Cat) (f1 : Mor Y A1) (f2 : Mor Y A2).
+Definition indProd y := (f1 y, f2 y).
+
+End DefProdInd.
+
+Section DefProductSet.
 
 Variable (A1 A2 : SetCat).
 
-Program Definition prod_Mixin : Product.mixin_of A1 A2 (A1 * A2)%type :=
+Program Definition prodSet_Mixin : Product.mixin_of A1 A2 (A1 * A2)%type :=
   @ProdMixin SetCat A1 A2 (A1 * A2)%type [choiceType of (A1 * A2)%type] _
              (fun p => p.1) (fun p => p.2)
-             (fun (Y : choiceType) (f1 : Y -> A1) (f2 : Y -> A2) y => (f1 y, f2 y))
-             _ _.
+             (indProd (A1 := A1) (A2 := A2)) _ _.
 Next Obligation. by apply: funext => y /=; apply: surjective_pairing. Qed.
+Canonical prodSet_ProdType := ProdType (A1 * A2)%type prodSet_Mixin.
 
-Canonical prod_ProdType := ProdType (A1 * A2)%type prod_Mixin.
+End DefProductSet.
 
-End DefProduct.
+
+Section DefProductZMod.
+
+Variable (A1 A2 : ZModCat).
+
+Section ZModInd.
+Variable (Y : ZModCat) (f1 : Mor Y A1) (f2 : Mor Y A2).
+Lemma indProd_is_additive : additive (indProd f1 f2).
+Proof.
+by move: f1 f2; rewrite /indProd /Mor /= => g1 g2 ya yb; rewrite !raddfB.
+Qed.
+Canonical indProd_additive := Additive indProd_is_additive.
+End ZModInd.
+
+Program Definition prodZmod_Mixin : Product.mixin_of A1 A2 (A1 * A2)%type :=
+  @ProdMixin ZModCat A1 A2 (A1 * A2)%type [zmodType of (A1 * A2)%type] _
+             [additive of fst] [additive of snd]
+             indProd_additive _ _.
+Next Obligation. by split; apply: (morext (Cat := ZModCat)). Qed.
+Next Obligation.
+apply: (morext (Cat := ZModCat)) => y; rewrite /= /indProd /=.
+exact: surjective_pairing.
+Qed.
+Canonical prodZmod_ProdType := ProdType (A1 * A2)%type prodZmod_Mixin.
+
+End DefProductZMod.
+
