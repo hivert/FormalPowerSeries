@@ -125,13 +125,19 @@ Canonical padic_int_invlimType :=
   InvLimType padic_int (invlim_Mixin (padic_invsys p_pr)).
 Canonical padic_int_zmodType :=
   Eval hnf in ZmodType padic_int [zmodMixin of padic_int by <-].
+Canonical padic_int_zmodInvLimType :=
+  Eval hnf in ZmodInvLimType padic_int [zmodInvLimMixin of padic_int by <-].
 Canonical padic_int_ringType :=
   Eval hnf in RingType padic_int [ringMixin of padic_int by <-].
+Canonical padic_int_ringInvLimType :=
+  Eval hnf in RingInvLimType padic_int [ringInvLimMixin of padic_int by <-].
 Canonical padic_int_comRingType :=
   Eval hnf in ComRingType padic_int [comRingMixin of padic_int by <-].
+Canonical padic_int_comRingInvLimType :=
+  Eval hnf in ComRingInvLimType padic_int.
 Canonical padic_int_unitRingType :=
   Eval hnf in UnitRingType padic_int [unitRingMixin of padic_int by <-].
-Canonical padic_intp_comUnitRingType := [comUnitRingType of padic_int].
+Canonical padic_int_comUnitRingType := [comUnitRingType of padic_int].
 
 End Defs.
 
@@ -177,10 +183,10 @@ have xn0 : (0 < x)%N.
 case: (ltnP 0%N y)=> [yn0|]; first last.
   rewrite leqn0 => /eqP ->; rewrite mod0n.
   (** TODO: rewrite raddd0. should be sufficient *)
-  by rewrite (raddf0 (ilproj_additive [invLimType of padic_int p_pr] j)).
+  by rewrite (raddf0 (ilproj_additive [zmodInvLimType of padic_int p_pr] j)).
 have xyn0 : (0 < x * y)%N by rewrite muln_gt0 xn0 yn0.
 (** TODO: rewrite raddd0. should be sufficient *)
-rewrite (raddf0 (ilproj_additive [invLimType of padic_int p_pr] j)).
+rewrite (raddf0 (ilproj_additive [zmodInvLimType of padic_int p_pr] j)).
 apply/eqP; rewrite -/(dvdn _ _) pfactor_dvdn //.
 move: xymod; rewrite -/(dvdn _ _) pfactor_dvdn // lognM //.
 move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
