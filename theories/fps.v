@@ -160,22 +160,30 @@ Qed.
 End UniversalProperty.
 
 (** Putting fps_bond below break inference for further canonical structures *)
-Program Definition fps_invlim_Mixin :=
+Program Definition fps_invlimMixin :=
   @InvLimMixin _ _ _ _ (*fps_bond*) fps_invsys {fps R} fpsproj fpsind _ _ _.
 Next Obligation. by move=> i j le_ij x; apply: fpsprojP. Qed.
 Next Obligation. by move=> x /=; rewrite fpsindP. Qed.
 Next Obligation. by move=> x; apply: (fpsindE Hcone). Qed.
 Canonical fps_invlimType :=
-  Eval hnf in InvLimType {fps R} fps_invlim_Mixin.
+  Eval hnf in InvLimType {fps R} fps_invlimMixin.
 
 Canonical fps_zmodType :=
   Eval hnf in ZmodType {fps R} [zmodMixin of {fps R} by <-].
+Canonical fps_zmodInvLimType :=
+  Eval hnf in ZmodInvLimType {fps R} [zmodInvLimMixin of {fps R} by <-].
 Canonical fps_ringType :=
   Eval hnf in RingType {fps R} [ringMixin of {fps R} by <-].
+Canonical fps_ringInvLimType :=
+  Eval hnf in RingInvLimType {fps R} [ringInvLimMixin of {fps R} by <-].
 Canonical fps_lmodType :=
   Eval hnf in LmodType R {fps R} [lmodMixin of {fps R} by <-].
+Canonical fps_lmodInvLimType :=
+  Eval hnf in LmodInvLimType R {fps R} [lmodInvLimMixin of {fps R} by <-].
 Canonical fps_lalgType :=
   Eval hnf in LalgType R {fps R} [lalgMixin of {fps R} by <-].
+Canonical fps_lalgInvLimType :=
+  Eval hnf in LalgInvLimType R {fps R}.
 
 End Defs.
 
@@ -294,7 +302,7 @@ Fact fpsC_is_additive : additive fpsC.
 Proof. exact: (raddfB (ilind_additive _ compat_fpsC)). Qed.
 Canonical fpsC_additive := Eval hnf in Additive fpsC_is_additive.
 Fact fpsC_is_multiplicative : multiplicative fpsC.
-Proof. exact: InvLimitRing.ilind_is_multiplicative _ compat_fpsC. Qed.
+Proof. exact: ilind_is_multiplicative _ compat_fpsC. Qed.
 Canonical fpsC_rmorphism := AddRMorphism fpsC_is_multiplicative.
 
 Lemma fpsCK : cancel fpsC (coefs 0%N).
@@ -358,7 +366,7 @@ Proof. exact: (linearP (ilind_linear _ compat_poly)). Qed.
 Canonical fps_poly_additive := Eval hnf in Additive fps_poly_is_linear.
 Canonical fps_poly_linear := Eval hnf in Linear fps_poly_is_linear.
 Fact fps_poly_is_multiplicative : multiplicative fps_poly.
-Proof. exact: InvLimitRing.ilind_is_multiplicative _ compat_poly. Qed.
+Proof. exact: ilind_is_multiplicative _ compat_poly. Qed.
 Canonical fps_poly_rmorphism :=
   Eval hnf in AddRMorphism fps_poly_is_multiplicative.
 Canonical fps_poly_lrmorphism := [lrmorphism of fps_poly].
@@ -1431,7 +1439,7 @@ by rewrite proj_comp_fps proj_fpsC comp_tfpsC.
 Qed.
 
 Fact comp_fps_is_linear g : linear (comp_fps g).
-Proof. exact: InvLimitLinear.ilind_is_linear _ (compat_comp_fps g). Qed.
+Proof. exact: ilind_is_linear _ (compat_comp_fps g). Qed.
 Canonical comp_fps_additive g := Eval hnf in Additive (comp_fps_is_linear g).
 Canonical comp_fps_linear g := Eval hnf in Linear (comp_fps_is_linear g).
 
@@ -1487,7 +1495,7 @@ Implicit Types (f g h : {fps R}).
 Local Open Scope fps_scope.
 
 Fact comp_fps_is_multiplicative f : multiplicative (comp_fps f).
-Proof. exact: InvLimitRing.ilind_is_multiplicative _ (compat_comp_fps f). Qed.
+Proof. exact: ilind_is_multiplicative _ (compat_comp_fps f). Qed.
 Canonical comp_fps_rmorphism f :=
   Eval hnf in AddRMorphism (comp_fps_is_multiplicative f).
 Canonical comp_fps_lrmorphism f :=
