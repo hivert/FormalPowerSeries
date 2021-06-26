@@ -14,7 +14,7 @@
 (******************************************************************************)
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
-From mathcomp Require Import order.
+From mathcomp Require Import order finmap bigop.
 
 Require Import natbar directed.
 
@@ -1569,9 +1569,8 @@ Variable Ob : nat -> zmodType.
 Variable bonding : forall i j : nat, (i <= j)%O -> {additive Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
-(* TODO Generalize :
-Variable TLim : invLimType Sys.*)
-Implicit Type (x y : {invlim Sys}).
+Variable TLim : zmodInvLimType Sys.
+Implicit Type (x y : TLim).
 
 Definition valuat x : natbar :=
   if altP (x =P 0) is AltFalse Pf then Nat (ex_minn (il_neq0 Pf))
@@ -1651,7 +1650,7 @@ rewrite leEnatbar => le12.
 apply/le_valuatP => i Hi; rewrite raddfD /= v1min ?v2min ?addr0 //.
 exact: leq_trans Hi le12.
 Qed.
-Lemma valuat_sum I r P (F : I ->  {invlim Sys}) :
+Lemma valuat_sum I r P (F : I ->  TLim) :
   (\meet_(i <- r | P i) valuat (F i) <= valuat (\sum_(i <- r | P i) F i))%O.
 Proof.
 apply: (big_ind2 (fun x v => v <= valuat x)%O); rewrite ?valuat0 //=.
@@ -1681,7 +1680,20 @@ Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
 
 End Valuation.
 
-From mathcomp Require Import finmap bigop.
+Section ValuationRing.
+
+Variable Ob : nat -> ringType.
+Variable bonding : forall i j : nat, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
+Variable Sys : invsys bonding.
+
+Variable TLim : ringInvLimType Sys.
+Implicit Type (x y : TLim).
+
+Lemma valuat1 : valuat (1 : TLim) = Nat 0.
+Proof. by apply valuatNatE => [|i //]; rewrite rmorph1 oner_neq0. Qed.
+
+End ValuationRing.
+
 
 Section CommHugeOp.
 
@@ -1689,12 +1701,13 @@ Variables (disp : unit) (I : dirType disp).
 Variable Ob : I -> choiceType.
 Variable bonding : forall i j : I, (i <= j)%O -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
+Variable TLim : invLimType Sys.
 
 Variable (C : choiceType).
-Variables (idx : {invlim Sys}) (op : Monoid.com_law idx).
+Variables (idx : TLim) (op : Monoid.com_law idx).
 
-Implicit Type F : C -> {invlim Sys}.
-Implicit Types (x y z t : {invlim Sys}).
+Implicit Type F : C -> TLim.
+Implicit Types (x y z t : TLim).
 
 Definition invar i x := forall s, 'pi_i (op x s) = 'pi_i s.
 Definition is_ilopable F :=
@@ -1747,7 +1760,7 @@ rewrite big_cons /=; case: asboolP => [|]; last by rewrite IHs.
 by rewrite -Monoid.mulmA {1}/invar => ->.
 Qed.
 
-Definition HugeOp F : {invlim Sys} :=
+Definition HugeOp F : TLim :=
   if pselect (is_ilopable F) is left sm
   then ilthr (ilopand_istrhead sm)
   else idx.
@@ -1786,17 +1799,18 @@ Variables (disp : unit) (I : dirType disp).
 Variable Ob : I -> zmodType.
 Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
 Variable Sys : invsys bonding.
+Variable TLim : zmodInvLimType Sys.
 
 Variable (C : choiceType).
 
-Implicit Type F : C -> {invlim Sys}.
-Implicit Types (s x y z t : {invlim Sys}).
+Implicit Type F : C -> TLim.
+Implicit Types (s x y z t : TLim).
 
-Local Notation add_law := (GRing.add_comoid [zmodType of {invlim Sys}]).
+Local Notation add_law := (GRing.add_comoid [zmodType of TLim]).
 
 Definition is_summable F := is_ilopable add_law F.
 Definition summand F (sm : is_summable F) := ilopand sm.
-Definition HugeSum F : {invlim Sys} := HugeOp add_law F.
+Definition HugeSum F : TLim := HugeOp add_law F.
 
 Local Notation "\Sum_( c ) F" := (HugeSum (fun c => F)).
 
@@ -1845,17 +1859,18 @@ Variables (disp : unit) (I : dirType disp).
 Variable Ob : I -> comRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
+Variable TLim : comRingInvLimType Sys.
 
 Variable (C : choiceType).
 
-Implicit Type F : C -> {invlim Sys}.
-Implicit Types (s x y z t : {invlim Sys}).
+Implicit Type F : C -> TLim.
+Implicit Types (s x y z t : TLim).
 
-Local Notation mul_law := (GRing.mul_comoid [comRingType of {invlim Sys}]).
+Local Notation mul_law := (GRing.mul_comoid [comRingType of TLim]).
 
 Definition is_prodable F := is_ilopable mul_law F.
 Definition prodand F (sm : is_prodable F) := ilopand sm.
-Definition HugeProd F : {invlim Sys} := HugeOp mul_law F.
+Definition HugeProd F : TLim := HugeOp mul_law F.
 
 Local Notation "\Prod_( c ) F" := (HugeProd (fun c => F)) (at level 0).
 

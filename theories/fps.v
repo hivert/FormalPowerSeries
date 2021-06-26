@@ -639,12 +639,14 @@ Section Valuation.
 Variable R : ringType.
 Implicit Type s : {fps R}.
 
-(** Valuation of a fps *)
-Definition valuat s : natbar :=
-  if pselect (exists n, s``_n != 0) is left Pf
-  then Nat (ex_minn Pf) else Inf.
-Definition slead s : R :=
-  if valuat s is Nat n then s``_n else 0.
+Definition slead s : R := if valuat s is Nat n then s``_n else 0.
+
+Lemma coefs_proj0 s n : ('pi_n s = 0) <-> (forall i, (i <= n)%N -> s``_i = 0).
+Proof.
+split => [H0 i lt_in|H0].
+- by rewrite -(coeft_proj lt_in) H0 coeft0.
+- by apply/tfpsP => j le_ji; rewrite coeft0 coeft_proj // H0.
+Qed.
 
 Variant valuat_spec s : natbar -> Set :=
   | ValNat n of s``_n != 0 & (forall i, (i < n)%N -> s``_i = 0) :
@@ -653,12 +655,11 @@ Variant valuat_spec s : natbar -> Set :=
 
 Lemma valuatP s : valuat_spec s (valuat s).
 Proof.
-rewrite /valuat; case: pselect => [Pf|NPf].
-- case: ex_minnP => v Hv vmin; apply ValNat => [|i iv]; first exact: Hv.
-  by apply/contraTeq : iv; rewrite -leqNgt; exact: vmin.
-- apply ValInf; apply fpsP => n; rewrite coefs0.
-  apply/eqP; rewrite -(negbK (_ == 0)); apply/negP => Hn.
-  by apply NPf; exists n.
+case: (valuatP s) => [/= n Hn0 Hin| ->]; last exact: ValInf.
+apply ValNat => [|i iv]; last by rewrite coefs_projE Hin ?coeft0.
+move: Hn0; apply contra => /eqP Hn; apply/eqP.
+rewrite coefs_proj0 => i; rewrite leq_eqVlt => /orP [/eqP -> //|].
+by rewrite coefs_projE => /Hin ->; rewrite coeft0.
 Qed.
 
 Lemma coefs_le_valuat s n : (Nat n < valuat s)%O -> s``_n = 0.
@@ -670,10 +671,10 @@ Qed.
 Lemma valuatNatE s n :
   s``_n != 0 -> (forall i, (i < n)%N -> s``_i = 0) -> valuat s = Nat n.
 Proof.
-case: valuatP => [v Hv vmin /= |->]; last by rewrite coefs0 eqxx.
-move=> Hn /(_ v)/contra_neqN/(_ Hv); rewrite -leqNgt => nlev.
-congr Nat; apply anti_leq; rewrite {}nlev andbT.
-by move: vmin => /(_ n)/contra_neqN/(_ Hn); rewrite -leqNgt.
+move => Hn0 H0; apply: valuatNatE.
+- by move: Hn0; apply contra => /eqP; rewrite coefs_proj0 => ->.
+- move=> i lt_in; rewrite coefs_proj0 => j le_ji.
+  exact: (H0 j (leq_ltn_trans le_ji lt_in)).
 Qed.
 
 Variant valuatXn_spec s : natbar -> Type :=
@@ -708,12 +709,10 @@ case: valuatXnP => [v t Ht|]->{s}; apply (iffP idP) => //=.
 - by move=> _; exists 0; rewrite mulr0.
 Qed.
 
-Lemma valuat0 : valuat 0 = Inf.
-Proof. by case: valuatP => [v | //]; rewrite coefs0 eq_refl. Qed.
 Lemma slead0 : slead 0 = 0.
 Proof. by rewrite /slead valuat0. Qed.
 
-Lemma valuat_fpsC c : valuat c%:S = if c == 0 then Inf else Nat 0.
+Lemma valuat_fpsC c : valuat (c%:S : {fps R}) = if c == 0 then Inf else Nat 0.
 Proof.
 case: (altP (c =P 0)) => [->|Hc]/=; first by rewrite fpsC0 valuat0.
 by apply valuatNatE; rewrite // coefsC.
@@ -723,16 +722,11 @@ Proof.
 by rewrite /slead valuat_fpsC; case: eqP => [->|_]; rewrite ?coefsC.
 Qed.
 
-Lemma valuat1 : valuat 1 = Nat 0.
-Proof. by rewrite -fpsC1 valuat_fpsC oner_eq0. Qed.
 Lemma slead1 : slead 1 = 1.
 Proof. by rewrite /slead valuat1 coefs1. Qed.
 
 Lemma valuatInfE s : (s == 0 :> {fps R}) = (valuat s == Inf).
-Proof.
-apply/eqP/eqP => [-> |]; first exact: valuat0.
-by case: valuatP.
-Qed.
+Proof. by rewrite valuat0P. Qed.
 Lemma slead0E s : (s == 0 :> {fps R}) = (slead s == 0).
 Proof.
 rewrite /slead; case: valuatP => [n Hn _|->]; last by rewrite !eqxx.
@@ -740,12 +734,6 @@ rewrite (negbTE Hn); apply/contraNF: Hn => /eqP ->.
 by rewrite coefs0.
 Qed.
 
-
-Lemma valuatN s : valuat (- s) = valuat s.
-Proof.
-case: (valuatXnP s) => [v t Ht|]->{s}; last by rewrite oppr0 valuat0.
-by rewrite -mulrN valuatXnE // coefsN oppr_eq0.
-Qed.
 Lemma sleadN s : slead (- s) = - slead s.
 Proof.
 rewrite /slead valuatN; case: (valuat s); rewrite ?oppr0 // => n.
@@ -771,41 +759,16 @@ rewrite /slead valuatXM; case: (valuat s) => //= v.
 by rewrite coef_fpsXM add1n.
 Qed.
 
-Lemma valuatXn n : valuat (''X ^+ n) = Nat n.
+Lemma valuatXn n : valuat (''X ^+ n : {fps R}) = Nat n.
 Proof. by rewrite -(mulr1 (''X ^+ n)) valuatXnM valuat1 /= addn0. Qed.
-Lemma sleadXn n : slead (''X ^+ n) = 1.
+Lemma sleadXn n : slead (''X ^+ n  : {fps R}) = 1.
 Proof. by rewrite /slead valuatXn coef_fpsXn eqxx. Qed.
 
-Lemma valuatX : valuat ''X = Nat 1.
+Lemma valuatX : valuat (''X : {fps R}) = Nat 1.
 Proof. by rewrite -valuatXn expr1. Qed.
-Lemma sleadX : slead ''X = 1.
+Lemma sleadX : slead (''X : {fps R}) = 1.
 Proof. by rewrite /slead valuatX coef_fpsX eqxx. Qed.
 
-Lemma valuatD s1 s2 :
-  (valuat s1 `&` valuat s2 <= valuat (s1 + s2))%O.
-Proof.
-wlog v1lev2 : s1 s2 / (valuat s1 <= valuat s2)%O.
-  move=> Hlog; case (leP (valuat s1) (valuat s2)) => [|/ltW]/Hlog//.
-  by rewrite addrC meetC.
-rewrite (meet_idPl v1lev2); move: v1lev2.
-case: (valuatXnP s1) => [v t1 Ht1|]->{s1}.
-- move/valuatXn_leP=> [t2]->{s2}; apply/valuatXn_leP.
-  by exists (t1 + t2); rewrite mulrDr.
-- by rewrite le1x -valuatInfE => /eqP ->; rewrite addr0 valuat0.
-Qed.
-Lemma valuatB s1 s2 :
-  (valuat s1 `&` valuat s2 <= valuat (s1 - s2))%O.
-Proof. by have:= valuatD s1 (-s2); rewrite valuatN. Qed.
-
-Lemma valuatDr s1 s2 :
-  (valuat s1 < valuat s2)%O -> valuat (s1 + s2) = valuat s1.
-Proof.
-case: (valuatP s2) => [v2 _   v2min|-> _]; last by rewrite addr0.
-case: (valuatP s1) => [v1 Hv1 v1min|->]; last by rewrite ltIbar.
-rewrite ltEnatbar => v12.
-apply valuatNatE=> [|n nv1]; rewrite coefsD v2min ?addr0 // ?v1min //.
-exact: ltn_trans nv1 v12.
-Qed.
 Lemma sleadDr s1 s2 :
   (valuat s1 < valuat s2)%O -> slead (s1 + s2) = slead s1.
 Proof.
@@ -815,16 +778,10 @@ case: (valuatP s2) => [v2 _ v2min | -> _]; last by rewrite addr0.
 by rewrite coefsD ltEnatbar => /v2min ->; rewrite addr0.
 Qed.
 
-Lemma valuatBr s1 s2 :
-  (valuat s1 < valuat s2)%O -> valuat (s1 - s2) = valuat s1.
-Proof. by rewrite -(valuatN s2) => /valuatDr. Qed.
 Lemma sleadBr s1 s2 :
   (valuat s1 < valuat s2)%O -> slead (s1 - s2) = slead s1.
 Proof. by rewrite -(valuatN s2); apply sleadDr. Qed.
 
-Lemma valuatBl s1 s2 :
-  (valuat s2 < valuat s1)%O -> valuat (s1 - s2) = valuat s2.
-Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
 Lemma sleadBl s1 s2 :
   (valuat s2 < valuat s1)%O -> slead (s1 - s2) = - slead s2.
 Proof. by move/sleadBr => <-; rewrite -sleadN opprD addrC opprK. Qed.
@@ -838,8 +795,6 @@ rewrite /= mulrA (commr_fpsXn v2) mulrA -exprD addnC.
 by apply/valuatXn_leP; exists (t1 * t2); rewrite mulrA.
 Qed.
 End Valuation.
-Arguments valuat0 {R}.
-Arguments valuat1 {R}.
 Arguments slead  {R}.
 Arguments slead0 {R}.
 Arguments slead1 {R}.
@@ -864,7 +819,7 @@ Qed.
 Lemma valuat_prod (I : Type ) (s : seq I) (P : pred I) (F : I -> {fps R}) :
   valuat (\prod_(i <- s | P i) F i) =
   \big[addbar/Nat 0]_(i <- s | P i) valuat (F i).
-Proof. exact: (big_morph _ valuatM valuat1). Qed.
+Proof. exact: (big_morph _ valuatM (valuat1 _)). Qed.
 
 Lemma sleadM : {morph (@slead R) : s1 s2 / s1 * s2}.
 Proof.
