@@ -279,6 +279,7 @@ End InvLimitEqType.
 
 
 Open Scope ring_scope.
+Import GRing.
 Import GRing.Theory.
 
 
@@ -292,28 +293,25 @@ Import GRing.Theory.
 Module ZmodInvLim.
 Section ClassDef.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> zmodType.
 Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
-Record mixin_of (T : Type)
-       (base  : GRing.Zmodule.class_of T)
-       (baseT := GRing.Zmodule.Pack base)
-       (mixin : InvLim.mixin_of Sys T)
-       (ilT   := InvLim.Pack (InvLim.Class base mixin)) := Mixin {
-  _ : forall i, additive ('pi[ilT]_i : baseT -> Ob i)
+Record mixin_of (T : zmodType) (mixin : InvLim.mixin_of Sys T) := Mixin {
+  _ : forall i, additive (InvLim.invlim_proj mixin i : T -> Ob i)
 }.
+(* TODO EtaMixin *)
 
 Set Primitive Projections.
 Record class_of (T : Type) : Type := Class {
-  base  : GRing.Zmodule.class_of T;
-  mixin : InvLim.mixin_of Sys T;
-  compadd : mixin_of base mixin;
+  base  : Zmodule.class_of T;
+  mixin : InvLim.mixin_of Sys (Zmodule.Pack base);
+  compadd : mixin_of mixin;
 }.
 Unset Primitive Projections.
 Definition base2 M (c : class_of M) := InvLim.Class (base c) (mixin c).
-Local Coercion base : class_of >-> GRing.Zmodule.class_of.
+Local Coercion base : class_of >-> Zmodule.class_of.
 Local Coercion base2 : class_of >-> InvLim.class_of.
 Local Coercion mixin : class_of >-> InvLim.mixin_of.
 
@@ -324,21 +322,21 @@ Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c.
 
 Definition pack :=
-  fun bT b & phant_id (GRing.Zmodule.class bT) b =>
-  fun fT f & phant_id (InvLim.class (Sys := Sys) fT) f =>
-    fun m => Pack (@Class T b (InvLim.mixin f) m).
+  fun bT b & phant_id (Zmodule.class bT) b =>
+  fun fT f & phant_id (InvLim.mixin (InvLim.class (Sys := Sys) fT)) f =>
+  fun    m => Pack (@Class T b f m).
 
 Definition eqType := @Equality.Pack cT class.
 Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @GRing.Zmodule.Pack cT class.
+Definition zmodType := @Zmodule.Pack cT class.
 Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
 
-Definition zmod_invlimType := @GRing.Zmodule.Pack invlimType class.
+Definition zmod_invlimType := @Zmodule.Pack invlimType class.
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> GRing.Zmodule.class_of.
+Coercion base : class_of >-> Zmodule.class_of.
 Coercion base2 : class_of >-> InvLim.class_of.
 Coercion mixin : class_of >-> InvLim.mixin_of.
 Coercion compadd : class_of >-> mixin_of.
@@ -348,12 +346,14 @@ Coercion eqType : type >-> Equality.type.
 Canonical eqType.
 Coercion choiceType : type >-> Choice.type.
 Canonical choiceType.
-Coercion zmodType : type >-> GRing.Zmodule.type.
+Coercion zmodType : type >-> Zmodule.type.
 Canonical zmodType.
 Coercion invlimType : type >-> InvLim.type.
 Canonical invlimType.
 
-(* Canonical zmod_invlimType. *)
+(*
+Canonical zmod_invlimType.
+ *)
 
 Notation zmodInvLimType := type.
 Notation ZmodInvLimType T m := (@pack _ _ _ _ _ T _ _ id _ _ id m).
@@ -370,7 +370,7 @@ Export ZmodInvLim.Exports.
 
 Section ZmodInvLimTheory.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> zmodType.
 Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -379,7 +379,7 @@ Variable TLim : zmodInvLimType Sys.
 Implicit Type x y : TLim.
 
 Fact ilproj_is_additive i : additive ('pi_i : TLim -> Ob i).
-Proof. by case: TLim => T [b m []]. Qed.
+Proof. by case: TLim => T [b m [Hadd]]; rewrite /pi_phant. Qed.
 Canonical ilproj_additive i : {additive TLim -> Ob i} :=
   Additive (ilproj_is_additive i).
 
@@ -406,29 +406,25 @@ End ZmodInvLimTheory.
 Module RingInvLim.
 Section ClassDef.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> ringType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
-Record mixin_of (T : Type)
-       (base  : GRing.Ring.class_of T)
-       (baseT := GRing.Ring.Pack base)
-       (mixin : InvLim.mixin_of Sys T)
-       (ilT   := InvLim.Pack (InvLim.Class base mixin)) := Mixin {
-  _ : forall i, multiplicative ('pi[ilT]_i : baseT -> Ob i)
+Record mixin_of (T : ringType) (mixin : InvLim.mixin_of Sys T) := Mixin {
+  _ : forall i, multiplicative (InvLim.invlim_proj mixin i : T -> Ob i)
 }.
 
 Set Primitive Projections.
 Record class_of (T : Type) : Type := Class {
-  base  : GRing.Ring.class_of T;
-  mixin : InvLim.mixin_of Sys T;
-  compadd : ZmodInvLim.mixin_of base mixin;
-  compmul : mixin_of base mixin;
+  base  : Ring.class_of T;
+  mixin : InvLim.mixin_of Sys (Ring.Pack base);
+  compadd : ZmodInvLim.mixin_of mixin;
+  compmul : mixin_of mixin;
 }.
 Unset Primitive Projections.
 Definition base2 M (c : class_of M) := ZmodInvLim.Class (compadd c).
-Local Coercion base : class_of >-> GRing.Ring.class_of.
+Local Coercion base : class_of >-> Ring.class_of.
 Local Coercion base2 : class_of >-> ZmodInvLim.class_of.
 Local Coercion mixin : class_of >-> InvLim.mixin_of.
 
@@ -439,25 +435,25 @@ Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c.
 
 Definition pack :=
-  fun bT b & phant_id (GRing.Ring.class bT) b =>
+  fun bT b & phant_id (Ring.class bT) b =>
   fun rT r & phant_id (InvLim.mixin (InvLim.class (Sys := Sys) rT)) r =>
   fun zT z & phant_id (ZmodInvLim.compadd (ZmodInvLim.class (Sys := Sys) zT)) z =>
       fun m => Pack (@Class T b r z m).
 
 Definition eqType := @Equality.Pack cT class.
 Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @GRing.Zmodule.Pack cT class.
-Definition ringType := @GRing.Ring.Pack cT class.
+Definition zmodType := @Zmodule.Pack cT class.
+Definition ringType := @Ring.Pack cT class.
 Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
 Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
 
-Definition ring_invlimType := @GRing.Ring.Pack invlimType class.
-Definition ring_zmodInvlimType := @GRing.Ring.Pack zmodInvlimType class.
+Definition ring_invlimType := @Ring.Pack invlimType class.
+Definition ring_zmodInvlimType := @Ring.Pack zmodInvlimType class.
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> GRing.Ring.class_of.
+Coercion base : class_of >-> Ring.class_of.
 Coercion base2 : class_of >-> ZmodInvLim.class_of.
 Coercion mixin : class_of >-> InvLim.mixin_of.
 Coercion compadd : class_of >-> ZmodInvLim.mixin_of.
@@ -468,9 +464,9 @@ Coercion eqType : type >-> Equality.type.
 Canonical eqType.
 Coercion choiceType : type >-> Choice.type.
 Canonical choiceType.
-Coercion zmodType : type >-> GRing.Zmodule.type.
+Coercion zmodType : type >-> Zmodule.type.
 Canonical zmodType.
-Coercion ringType : type >-> GRing.Ring.type.
+Coercion ringType : type >-> Ring.type.
 Canonical ringType.
 Coercion invlimType : type >-> InvLim.type.
 Canonical invlimType.
@@ -499,7 +495,7 @@ Export RingInvLim.Exports.
 
 Section RingInvLimTheory.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> ringType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -508,7 +504,7 @@ Variable TLim : ringInvLimType Sys.
 Implicit Type x y : TLim.
 
 Fact ilproj_is_multiplicative i : multiplicative ('pi_i : TLim -> Ob i).
-Proof. by case: TLim => T [b m [madd []]]. Qed.
+Proof. by case: TLim => T [b m [madd [mmult]]]; rewrite /pi_phant /=. Qed.
 Canonical ilproj_rmorphism i : {rmorphism TLim -> Ob i} :=
   AddRMorphism (ilproj_is_multiplicative i).
 
@@ -532,7 +528,7 @@ End RingInvLimTheory.
 Module ComRingInvLim.
 Section ClassDef.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> comRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -540,13 +536,13 @@ Variable Sys : invsys bonding.
 Set Primitive Projections.
 Record class_of (T : Type) : Type := Class {
   base  : RingInvLim.class_of Sys T;
-  mixin : commutative (GRing.Ring.mul base)
+  mixin : commutative (Ring.mul base)
 }.
 Unset Primitive Projections.
 
-Definition base2 M (c : class_of M) := GRing.ComRing.Class (@mixin M c).
+Definition base2 M (c : class_of M) := ComRing.Class (@mixin M c).
 Local Coercion base : class_of >-> RingInvLim.class_of.
-Local Coercion base2 : class_of >-> GRing.ComRing.class_of.
+Local Coercion base2 : class_of >-> ComRing.class_of.
 
 Structure type := Pack {sort; _ : class_of sort}.
 Local Coercion sort : type >-> Sortclass.
@@ -556,27 +552,27 @@ Definition clone c of phant_id class c := @Pack T c.
 
 Definition pack :=
   fun bT b & phant_id (RingInvLim.class (Sys := Sys) bT) b =>
-  fun rT r & phant_id (GRing.ComRing.mixin (GRing.ComRing.class rT)) r =>
+  fun rT r & phant_id (ComRing.mixin (ComRing.class rT)) r =>
     Pack (@Class T b r).
 
 Definition eqType := @Equality.Pack cT class.
 Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @GRing.Zmodule.Pack cT class.
-Definition ringType := @GRing.Ring.Pack cT class.
+Definition zmodType := @Zmodule.Pack cT class.
+Definition ringType := @Ring.Pack cT class.
 Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
 Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
 Definition ringInvlimType := @RingInvLim.Pack _ _ _ _ _ cT class.
-Definition comRingType := @GRing.ComRing.Pack cT class.
+Definition comRingType := @ComRing.Pack cT class.
 
-Definition comring_invlimType := @GRing.ComRing.Pack invlimType class.
-Definition comring_zmodInvlimType := @GRing.ComRing.Pack zmodInvlimType class.
-Definition comRing_ringInvlimType := @GRing.ComRing.Pack ringInvlimType class.
+Definition comring_invlimType := @ComRing.Pack invlimType class.
+Definition comring_zmodInvlimType := @ComRing.Pack zmodInvlimType class.
+Definition comRing_ringInvlimType := @ComRing.Pack ringInvlimType class.
 
 End ClassDef.
 
 Module Exports.
 Coercion base : class_of >->  RingInvLim.class_of.
-Coercion base2 : class_of >-> GRing.ComRing.class_of.
+Coercion base2 : class_of >-> ComRing.class_of.
 Coercion mixin : class_of >-> commutative.
 Coercion sort : type >-> Sortclass.
 Bind Scope ring_scope with sort.
@@ -584,11 +580,11 @@ Coercion eqType : type >-> Equality.type.
 Canonical eqType.
 Coercion choiceType : type >-> Choice.type.
 Canonical choiceType.
-Coercion zmodType : type >-> GRing.Zmodule.type.
+Coercion zmodType : type >-> Zmodule.type.
 Canonical zmodType.
-Coercion ringType : type >-> GRing.Ring.type.
+Coercion ringType : type >-> Ring.type.
 Canonical ringType.
-Coercion comRingType : type >-> GRing.ComRing.type.
+Coercion comRingType : type >-> ComRing.type.
 Canonical comRingType.
 
 Coercion invlimType : type >-> InvLim.type.
@@ -623,29 +619,26 @@ Section ClassDef.
 
 Variable R : ringType.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> lmodType R.
 Variable bonding : forall i j, (i <= j)%O -> {linear Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
-Record mixin_of (T : Type)
-       (base  : GRing.Lmodule.class_of R T)
-       (baseT := GRing.Lmodule.Pack (Phant R) base)
-       (mixin : InvLim.mixin_of Sys T)
-       (ilT   := InvLim.Pack (InvLim.Class base mixin)) := Mixin {
-  _ : forall i, linear ('pi[ilT]_i : baseT -> Ob i)
+Record mixin_of (T : lmodType R) (mixin : InvLim.mixin_of Sys T) := Mixin {
+  _ : forall i, linear (InvLim.invlim_proj mixin i : T -> Ob i)
 }.
 
 Set Primitive Projections.
 Record class_of (T : Type) : Type := Class {
-  base  : GRing.Lmodule.class_of R T;
-  mixin : InvLim.mixin_of Sys T;
-  compadd : ZmodInvLim.mixin_of base mixin;
-  compscal : mixin_of base mixin;
+  base  : Lmodule.class_of R T;
+  mixin : InvLim.mixin_of Sys (Lmodule.Pack (Phant R) base);
+  compadd : ZmodInvLim.mixin_of mixin;
+  compscal : mixin_of mixin;
 }.
 Unset Primitive Projections.
+
 Definition base2 M (c : class_of M) := ZmodInvLim.Class (compadd c).
-Local Coercion base : class_of >-> GRing.Lmodule.class_of.
+Local Coercion base : class_of >-> Lmodule.class_of.
 Local Coercion base2 : class_of >-> ZmodInvLim.class_of.
 Local Coercion mixin : class_of >-> InvLim.mixin_of.
 
@@ -656,29 +649,29 @@ Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c.
 
 Definition pack :=
-  fun bT b & phant_id (GRing.Lmodule.class (phR := Phant R) bT) b =>
+  fun bT b & phant_id (Lmodule.class (phR := Phant R) bT) b =>
   fun rT r & phant_id (InvLim.mixin (InvLim.class (Sys := Sys) rT)) r =>
   fun zT z & phant_id (ZmodInvLim.compadd (ZmodInvLim.class (Sys := Sys) zT)) z =>
       fun m => Pack (@Class T b r z m).
 
 Definition eqType := @Equality.Pack cT class.
 Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @GRing.Zmodule.Pack cT class.
-Definition lmodType := @GRing.Lmodule.Pack R (Phant R) cT class.
+Definition zmodType := @Zmodule.Pack cT class.
+Definition lmodType := @Lmodule.Pack R (Phant R) cT class.
 
 Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
 Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
 
 Definition lmod_invlimType :=
-  @GRing.Lmodule.Pack R (Phant R) invlimType class.
+  @Lmodule.Pack R (Phant R) invlimType class.
 Definition lmod_zmodInvlimType :=
-  @GRing.Lmodule.Pack R (Phant R) zmodInvlimType class.
+  @Lmodule.Pack R (Phant R) zmodInvlimType class.
 (* TODO more join *)
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> GRing.Lmodule.class_of.
+Coercion base : class_of >-> Lmodule.class_of.
 Coercion base2 : class_of >-> ZmodInvLim.class_of.
 Coercion mixin : class_of >-> InvLim.mixin_of.
 Coercion compadd : class_of >-> ZmodInvLim.mixin_of.
@@ -689,9 +682,9 @@ Coercion eqType : type >-> Equality.type.
 Canonical eqType.
 Coercion choiceType : type >-> Choice.type.
 Canonical choiceType.
-Coercion zmodType : type >-> GRing.Zmodule.type.
+Coercion zmodType : type >-> Zmodule.type.
 Canonical zmodType.
-Coercion lmodType : type >-> GRing.Lmodule.type.
+Coercion lmodType : type >-> Lmodule.type.
 Canonical lmodType.
 
 Coercion invlimType : type >-> InvLim.type.
@@ -715,7 +708,7 @@ Export LmodInvLim.Exports.
 Section LmodInvLimTheory.
 
 Variable (R : ringType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> lmodType R.
 Variable bonding : forall i j, (i <= j)%O -> {linear Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -724,7 +717,7 @@ Variable TLim : lmodInvLimType Sys.
 Implicit Type x y : TLim.
 
 Fact ilproj_is_linear i : linear ('pi_i : TLim -> Ob i).
-Proof. by case: TLim => T [b m c []]. Qed.
+Proof. by case: TLim => T [b m c [lin]]; rewrite /pi_phant. Qed.
 Canonical ilproj_linear i : {linear TLim -> Ob i} :=
   AddLinear (ilproj_is_linear i).
 
@@ -751,18 +744,18 @@ Module LalgInvLim.
 Section ClassDef.
 
 Variables (R : ringType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> lalgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
 Set Primitive Projections.
 Record class_of (T : Type) : Type := Class {
-  base  : GRing.Lalgebra.class_of R T;
-  mixin : InvLim.mixin_of Sys T;
-  compadd : ZmodInvLim.mixin_of base mixin;
-  compscal : LmodInvLim.mixin_of base mixin;
-  compmul : RingInvLim.mixin_of base mixin;
+  base  : Lalgebra.class_of R T;
+  mixin : InvLim.mixin_of Sys (Lalgebra.Pack (Phant R) base);
+  compadd : ZmodInvLim.mixin_of mixin;
+  compscal : LmodInvLim.mixin_of mixin;
+  compmul : RingInvLim.mixin_of mixin;
 }.
 Unset Primitive Projections.
 
@@ -770,7 +763,7 @@ Definition base2 M (c : class_of M) := RingInvLim.Class (compadd c) (compmul c).
 Definition base3 M (c : class_of M) :=
   LmodInvLim.Class (base := base c) (compadd c) (compscal c).
 
-Local Coercion base : class_of >-> GRing.Lalgebra.class_of.
+Local Coercion base : class_of >-> Lalgebra.class_of.
 Local Coercion base2 : class_of >-> RingInvLim.class_of.
 Local Coercion base3 : class_of >-> LmodInvLim.class_of.
 Local Coercion mixin : class_of >-> InvLim.mixin_of.
@@ -782,7 +775,7 @@ Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack T c.
 
 Definition pack :=
-  fun bT b & phant_id (GRing.Lalgebra.class (phR := Phant R) bT) b =>
+  fun bT b & phant_id (Lalgebra.class (phR := Phant R) bT) b =>
   fun ilT il & phant_id (InvLim.mixin (InvLim.class (Sys := Sys) ilT)) il =>
   fun zT z & phant_id (ZmodInvLim.compadd (ZmodInvLim.class (Sys := Sys) zT)) z =>
   fun lT l & phant_id (LmodInvLim.compscal (LmodInvLim.class (Sys := Sys) lT)) l =>
@@ -791,23 +784,23 @@ Definition pack :=
 
 Definition eqType := @Equality.Pack cT class.
 Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @GRing.Zmodule.Pack cT class.
-Definition ringType := @GRing.Ring.Pack cT class.
-Definition lmodType := @GRing.Lmodule.Pack R (Phant R) cT class.
-Definition lalgType := @GRing.Lalgebra.Pack R (Phant R) cT class.
+Definition zmodType := @Zmodule.Pack cT class.
+Definition ringType := @Ring.Pack cT class.
+Definition lmodType := @Lmodule.Pack R (Phant R) cT class.
+Definition lalgType := @Lalgebra.Pack R (Phant R) cT class.
 
 Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
 Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
 Definition ringInvlimType := @RingInvLim.Pack _ _ _ _ _ cT class.
 Definition lmodInvlimType := @LmodInvLim.Pack R _ _ _ _ _ cT class.
 
-Definition lalg_invlimType := @GRing.Lalgebra.Pack R (Phant R) invlimType class.
+Definition lalg_invlimType := @Lalgebra.Pack R (Phant R) invlimType class.
 (* TODO more join *)
 
 End ClassDef.
 
 Module Exports.
-Coercion base : class_of >-> GRing.Lalgebra.class_of.
+Coercion base : class_of >-> Lalgebra.class_of.
 Coercion base2 : class_of >-> RingInvLim.class_of.
 Coercion base3 : class_of >-> LmodInvLim.class_of.
 Coercion mixin : class_of >-> InvLim.mixin_of.
@@ -820,13 +813,13 @@ Coercion eqType : type >-> Equality.type.
 Canonical eqType.
 Coercion choiceType : type >-> Choice.type.
 Canonical choiceType.
-Coercion zmodType : type >-> GRing.Zmodule.type.
+Coercion zmodType : type >-> Zmodule.type.
 Canonical zmodType.
-Coercion ringType : type >-> GRing.Ring.type.
+Coercion ringType : type >-> Ring.type.
 Canonical ringType.
-Coercion lmodType : type >-> GRing.Lmodule.type.
+Coercion lmodType : type >-> Lmodule.type.
 Canonical lmodType.
-Coercion lalgType : type >-> GRing.Lalgebra.type.
+Coercion lalgType : type >-> Lalgebra.type.
 Canonical lalgType.
 
 Coercion invlimType : type >-> InvLim.type.
@@ -853,7 +846,7 @@ Export LalgInvLim.Exports.
 Section LAlgInvLimTheory.
 
 Variable (R : ringType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> lalgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -887,7 +880,7 @@ End LAlgInvLimTheory.
 Module InvLimitZmod.
 Section InvLimitZmod.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> zmodType.
 Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -920,7 +913,7 @@ Local Canonical invlim_zmodType :=
   Eval hnf in ZmodType TLim (invlim_zmodMixin (Phant TLim)).
 
 Program Definition invlim_zmodInvLimMixin of (phant TLim) :=
-  @ZmodInvLimMixin _ _ _ _ _ TLim (GRing.Zmodule.class _) (InvLim.class _) _.
+  ZmodInvLimMixin (mixin := InvLim.class TLim) _.
 Next Obligation.
 move=> /= x y /=.  (* Coq needs help tofind where to rewrite ilthrP *)
 by rewrite [LHS]ilthrP [X in _ + X]ilthrP.
@@ -942,7 +935,7 @@ Notation "[ 'zmodInvLimMixin' 'of' U 'by' <- ]" :=
 Module InvLimitRing.
 Section InvLimitRing.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> ringType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -978,7 +971,7 @@ Local Canonical invlim_ringType :=
   Eval hnf in RingType TLim (invlim_ringMixin (Phant TLim)).
 
 Program Definition invlim_ringInvLimMixin of (phant TLim) :=
-  @RingInvLimMixin _ _ _ _ _ TLim (GRing.Ring.class _) (InvLim.class _) _.
+  RingInvLimMixin (mixin := InvLim.class TLim) _.
 Next Obligation.
 by split => /= [x y|]; rewrite [LHS]ilthrP.
 Qed.
@@ -999,7 +992,7 @@ Notation "[ 'ringInvLimMixin' 'of' U 'by' <- ]" :=
 Module InvLimitComRing.
 Section InvLimitComRing.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> comRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1026,7 +1019,7 @@ Notation "[ 'comRingMixin' 'of' U 'by' <- ]" :=
 Module InvLimitUnitRing.
 Section InvLimitUnitRing.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> unitRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1034,15 +1027,15 @@ Variable Sys : invsys bonding.
 Variable TLim : ringInvLimType Sys.
 Implicit Type x y : TLim.
 
-Definition ilunit x := `[forall i, 'pi_i x \is a GRing.unit].
+Definition ilunit x := `[forall i, 'pi_i x \is a unit].
 
 Fact inv_isunitP x :
-  (forall i, 'pi_i x \is a GRing.unit) -> isthread Sys (fun i => ('pi_i x)^-1).
+  (forall i, 'pi_i x \is a unit) -> isthread Sys (fun i => ('pi_i x)^-1).
 Proof.
 by move=> Hunit i j ilej; rewrite /= rmorphV ?(ilprojE x) // Hunit.
 Qed.
 Definition ilinv x : TLim :=
-  if pselect (forall i, 'pi_i x \is a GRing.unit) is left Pf
+  if pselect (forall i, 'pi_i x \is a unit) is left Pf
   then ilthr (inv_isunitP Pf) else x.
 
 
@@ -1074,7 +1067,7 @@ Local Canonical TLim_unitRingType :=
   Eval hnf in UnitRingType TLim (invlim_unitRingMixin (Phant TLim)).
 
 Lemma ilunitP x :
-  reflect (forall i, 'pi_i x \is a GRing.unit) (x \is a GRing.unit).
+  reflect (forall i, 'pi_i x \is a unit) (x \is a unit).
 Proof. exact: forallbP. Qed.
 
 End InvLimitUnitRing.
@@ -1113,7 +1106,7 @@ End InvLimitComUnitRing.
 Module InvLimitIDomain.
 Section InvLimitIDomain.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> idomainType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1150,7 +1143,7 @@ Module InvLimitLmod.
 Section InvLimitLmod.
 
 Variables (R : ringType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> lmodType R.
 Variable bonding : forall i j, (i <= j)%O -> {linear Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1180,9 +1173,9 @@ Local Canonical invlim_lmodType :=
   Eval hnf in LmodType R TLim (invlim_lmodMixin (Phant TLim)).
 
 Program Definition invlim_lmodInvLimMixin of (phant TLim) :=
-  @LmodInvLimMixin R _ _ _ _ _ TLim (GRing.Lmodule.class _) (InvLim.class _) _.
+  LmodInvLimMixin (mixin := InvLim.class TLim) _.
 Next Obligation.
-by move=> /= r u v; rewrite raddfD /= ilthrP.
+by move=> /= r u v /=; rewrite -!/(pi_phant (Phant TLim) i) raddfD /= ilthrP.
 Qed.
 Local Canonical invlim_lmodInvLimType :=
   Eval hnf in LmodInvLimType R TLim (invlim_lmodInvLimMixin (Phant TLim)).
@@ -1201,7 +1194,7 @@ Notation "[ 'lmodInvLimMixin' 'of' U 'by' <- ]" :=
 Module InvLimitLalg.
 Section InvLimitLalg.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variables (R : ringType).
 Variable Ob : I -> lalgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Ob j -> Ob i}.
@@ -1235,7 +1228,7 @@ Notation "[ 'lalgMixin' 'of' U 'by' <- ]" :=
 Module InvLimitAlg.
 Section InvLimitAlg.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variables (R : comRingType).
 Variable Ob : I -> algType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Ob j -> Ob i}.
@@ -1279,7 +1272,7 @@ End InvLimitUnitAlg.
 Module InvLimitField.
 Section InvLimitField.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> fieldType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1293,7 +1286,7 @@ Local Canonical TLim_idomainType :=
   Eval hnf in IdomainType TLim [idomainMixin of TLim by <-].
 
 Fact invlim_fieldMixin of phant TLim :
-  GRing.Field.mixin_of [unitRingType of TLim].
+  Field.mixin_of [unitRingType of TLim].
 Proof.
 move=> x /il_neq0 [i Hi].
 apply/forallbP => j; rewrite unitfE.
@@ -1323,7 +1316,7 @@ Close Scope ring_scope.
 (***************************************************************************)
 Section Implem.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> Type.
 Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
@@ -1357,7 +1350,7 @@ Notation "{ 'invlim' S }" := (invlim_of (Phantom _ S)).
 
 Section InverseLimitTheory.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> Type.
 Variable bonding : forall i j, i <= j -> Ob j -> Ob i.
 
@@ -1418,7 +1411,7 @@ End InverseLimitTheory.
 
 Section InterSpec.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> choiceType.
 Variable bonding : forall i j, (i <= j)%O -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
@@ -1436,7 +1429,7 @@ End InterSpec.
 Open Scope ring_scope.
 Section Canonicals.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 
 Section Zmodule.
 Variable Ob : I -> zmodType.
@@ -1544,7 +1537,7 @@ End Canonicals.
 
 Section TestAlg.
 Variable (R : comRingType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> algType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1552,7 +1545,7 @@ Let test := [algType R of {invlim Sys}].
 End TestAlg.
 
 Section TestField.
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> fieldType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1697,7 +1690,7 @@ End ValuationRing.
 
 Section CommHugeOp.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> choiceType.
 Variable bonding : forall i j : I, (i <= j)%O -> Ob j -> Ob i.
 Variable Sys : invsys bonding.
@@ -1717,7 +1710,7 @@ Lemma ilopand_spec F :
   forall i, { f : {fset C} | f =i predC (fun c => `[< invar i (F c)>]) }.
 Proof.
 move=> H i; move/asboolP/(_ i): H => /cid [s Hs].
-have key : unit by [].
+have key : Datatypes.unit by [].
 exists (seq_fset key [seq c <- s | ~~ `[< invar i (F c)>]]) => c.
 rewrite seq_fsetE !inE mem_filter.
 by case: (boolP `[< _>]) => //=; apply contraR => /Hs/asboolT.
@@ -1795,7 +1788,7 @@ End CommHugeOp.
 
 Section Summable.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> zmodType.
 Variable bonding : forall i j, (i <= j)%O -> {additive Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1806,7 +1799,7 @@ Variable (C : choiceType).
 Implicit Type F : C -> TLim.
 Implicit Types (s x y z t : TLim).
 
-Local Notation add_law := (GRing.add_comoid [zmodType of TLim]).
+Local Notation add_law := (add_comoid [zmodType of TLim]).
 
 Definition is_summable F := is_ilopable add_law F.
 Definition summand F (sm : is_summable F) := ilopand sm.
@@ -1855,7 +1848,7 @@ End Summable.
 
 Section Prodable.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Ob : I -> comRingType.
 Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
@@ -1866,7 +1859,7 @@ Variable (C : choiceType).
 Implicit Type F : C -> TLim.
 Implicit Types (s x y z t : TLim).
 
-Local Notation mul_law := (GRing.mul_comoid [comRingType of TLim]).
+Local Notation mul_law := (mul_comoid [comRingType of TLim]).
 
 Definition is_prodable F := is_ilopable mul_law F.
 Definition prodand F (sm : is_prodable F) := ilopand sm.
