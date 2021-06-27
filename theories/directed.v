@@ -109,6 +109,7 @@ Canonical lattice_dirType := DirType T lattice_dirMixin.
 End Generic.
 
 Canonical nat_dirType := DirType nat (@lattice_dirMixin _ _).
+Canonical natdvd_dirType := DirType natdvd (@lattice_dirMixin _ _).
 
 
 Section UpSets.

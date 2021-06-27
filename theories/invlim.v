@@ -176,6 +176,8 @@ End Exports.
 End InvLim.
 Export InvLim.Exports.
 
+Arguments proj_compat {disp I Ob bonding} [Sys].
+
 Notation InvLimType T m := (@InvLim.pack _ _ _ _ _ T m _ _ id).
 Notation "[ 'invLimType' 'of' T 'for' cT ]" :=
   (@InvLim.clone _ _ _ _ _ T cT _ idfun)
@@ -204,15 +206,12 @@ Proof.
 move=> Heq.
 pose fx : forall i : I, unit -> Ob i := fun i tt => 'pi_i x.
 have compf : cone Sys fx.
-  rewrite /fx => i j le_ij tt /=.
-  by rewrite -/((bonding le_ij \o 'pi_j) x) proj_compat.
+  by rewrite /fx => i j le_ij tt /=; rewrite (coneE (proj_compat ilT)).
 pose ind z : unit -> ilT := fun tt => z.
-have Huniqy : forall i, 'pi_i \o ind y =1 fx i.
-  by move=> i tt /=; rewrite /ind /fx Heq.
-have Huniqx : forall i, 'pi_i \o ind x =1 fx i.
-  by move=> i tt /=; rewrite /ind /fx Heq.
+have Huniqy i : 'pi_i \o ind y =1 fx i by move=> tt /=; rewrite /ind /fx Heq.
+have Huniqx i : 'pi_i \o ind x =1 fx i by move=> tt /=; rewrite /ind /fx Heq.
 move: (ind_uniq compf Huniqx tt) (ind_uniq compf Huniqy tt).
-by rewrite /ind /ind_phant => -> ->.
+by rewrite /ind => -> ->.
 Qed.
 
 Lemma from_thread_spec (thr : forall i : I, Ob i) :
@@ -221,8 +220,7 @@ Proof.
 rewrite /isthread => Hhtr.
 pose f : forall i : I, unit -> Ob i := fun i tt => thr i.
 have compf : cone Sys f by rewrite /f => i j le_ij tt /=.
-exists (\ind compf tt) => i.
-by rewrite -/(('pi_i \o \ind compf) tt) ind_commute.
+by exists (\ind compf tt) => i; rewrite piindE.
 Qed.
 Definition ilthr thr (Hthr : isthread Sys thr) :=
   let: exist res _ := from_thread_spec Hthr in res.
@@ -233,16 +231,16 @@ Proof. by rewrite /ilthr; case: from_thread_spec. Qed.
 
 Lemma ilprojE (x : ilT) :
   forall i j, forall (Hij : i <= j), bonding Hij ('pi_j x) = 'pi_i x.
-Proof. by move=> i j Hij; have /= -> := (proj_compat Hij x). Qed.
+Proof. by move=> i j Hij; rewrite (coneE (proj_compat ilT)). Qed.
 
-Lemma ilprojP : cone Sys (pi_phant (ilT := ilT) (Phant _)).
+Lemma ilprojP : cone Sys (pi_phant (Phant ilT)).
 Proof. move=> i j Hij x /=; exact: ilprojE. Qed.
 
 Lemma invlim_exE (x y : ilT) :
   (forall i, exists2 i0, i0 >= i & 'pi_i0 x = 'pi_i0 y) -> x = y.
 Proof.
 move=> Heq; apply invlimE => i.
-have:= Heq i => [][i0 le_ii0] /(congr1 (bonding le_ii0)).
+move: Heq => /( _ i) [i0 le_ii0] /(congr1 (bonding le_ii0)).
 by rewrite !ilprojE.
 Qed.
 
@@ -380,8 +378,7 @@ Implicit Type x y : TLim.
 
 Fact ilproj_is_additive i : additive ('pi_i : TLim -> Ob i).
 Proof. by case: TLim => T [b m [Hadd]]; rewrite /pi_phant. Qed.
-Canonical ilproj_additive i : {additive TLim -> Ob i} :=
-  Additive (ilproj_is_additive i).
+Canonical ilproj_additive i :=  Additive (ilproj_is_additive i).
 
 Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
 Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
@@ -396,8 +393,7 @@ Fact ilind_is_additive : additive (\ind Hcone : T -> TLim).
 Proof.
 by move=> t u; apply invlimE=> i; rewrite raddfB /= !piindE raddfB.
 Qed.
-Canonical ilind_additive : {additive T -> TLim} :=
-  Additive ilind_is_additive.
+Canonical ilind_additive := Additive ilind_is_additive.
 
 End UniversalProperty.
 End ZmodInvLimTheory.
@@ -501,12 +497,10 @@ Variable bonding : forall i j, (i <= j)%O -> {rmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : ringInvLimType Sys.
-Implicit Type x y : TLim.
 
 Fact ilproj_is_multiplicative i : multiplicative ('pi_i : TLim -> Ob i).
 Proof. by case: TLim => T [b m [madd [mmult]]]; rewrite /pi_phant /=. Qed.
-Canonical ilproj_rmorphism i : {rmorphism TLim -> Ob i} :=
-  AddRMorphism (ilproj_is_multiplicative i).
+Canonical ilproj_rmorphism i := AddRMorphism (ilproj_is_multiplicative i).
 
 Section UniversalProperty.
 
@@ -518,8 +512,7 @@ Proof.
 by split => [/= t u|]; apply invlimE=> i;
   rewrite !piindE ?rmorph1 ?rmorphM //= !piindE.
 Qed.
-Canonical ilind_rmorphism : {rmorphism T -> TLim} :=
-  AddRMorphism ilind_is_multiplicative.
+Canonical ilind_rmorphism := AddRMorphism ilind_is_multiplicative.
 
 End UniversalProperty.
 End RingInvLimTheory.
@@ -559,14 +552,14 @@ Definition eqType := @Equality.Pack cT class.
 Definition choiceType := @Choice.Pack cT class.
 Definition zmodType := @Zmodule.Pack cT class.
 Definition ringType := @Ring.Pack cT class.
+Definition comRingType := @ComRing.Pack cT class.
 Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
 Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
 Definition ringInvlimType := @RingInvLim.Pack _ _ _ _ _ cT class.
-Definition comRingType := @ComRing.Pack cT class.
 
 Definition comring_invlimType := @ComRing.Pack invlimType class.
 Definition comring_zmodInvlimType := @ComRing.Pack zmodInvlimType class.
-Definition comRing_ringInvlimType := @ComRing.Pack ringInvlimType class.
+Definition comring_ringInvlimType := @ComRing.Pack ringInvlimType class.
 
 End ClassDef.
 
@@ -597,7 +590,7 @@ Canonical ringInvlimType.
 (*
 Canonical comring_invlimType.
 Canonical comring_zmodInvlimType.
-Canonical comRing_ringInvlimType.
+Canonical comring_ringInvlimType.
  *)
 
 Notation comRingInvLimType := type.
@@ -714,13 +707,10 @@ Variable bonding : forall i j, (i <= j)%O -> {linear Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : lmodInvLimType Sys.
-Implicit Type x y : TLim.
 
 Fact ilproj_is_linear i : linear ('pi_i : TLim -> Ob i).
 Proof. by case: TLim => T [b m c [lin]]; rewrite /pi_phant. Qed.
-Canonical ilproj_linear i : {linear TLim -> Ob i} :=
-  AddLinear (ilproj_is_linear i).
-
+Canonical ilproj_linear i := AddLinear (ilproj_is_linear i).
 
 (** The universal induced map is a Z-module morphism *)
 Section UniversalProperty.
@@ -730,11 +720,10 @@ Hypothesis Hcone : cone Sys f.
 
 Fact ilind_is_linear : linear (\ind Hcone : T -> TLim).
 Proof.
-move=> t u v; apply invlimE=> i.
+move=> t u v; apply invlimE => i.
 by rewrite !raddfD /= !piindE !linearZ /= piindE.
 Qed.
-Canonical ilind_linear : {linear T -> TLim} :=
-  AddLinear ilind_is_linear.
+Canonical ilind_linear := AddLinear ilind_is_linear.
 
 End UniversalProperty.
 End LmodInvLimTheory.
@@ -852,17 +841,13 @@ Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Ob j -> Ob i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : lalgInvLimType Sys.
-Implicit Type x y : TLim.
-
-Canonical ilproj_lrmorphism i : {lrmorphism TLim -> Ob i} :=
-  AddLRMorphism (ilproj_is_linear (TLim := TLim) i).
+Canonical ilproj_lrmorphism i := [lrmorphism of 'pi[TLim]_i].
 
 Section UniversalProperty.
 
 Variable (T : lalgType R) (f : forall i, {lrmorphism T -> Ob i}).
 Hypothesis Hcone : cone Sys f.
-Canonical ilind_lrmorphism : {lrmorphism T -> TLim} :=
-  AddLRMorphism (ilind_is_linear TLim Hcone).
+Canonical ilind_lrmorphism := [lrmorphism of \ind[TLim] Hcone].
 
 End UniversalProperty.
 End LAlgInvLimTheory.

@@ -93,7 +93,7 @@ have:= expgt1 n; case: (p ^ _)%N => // k _.
 by rewrite subSS subn0 ltnS.
 Qed.
 
-Local Lemma expdiv n i j : (i <= j)%O -> (n ^ i.+1 %| n ^ j.+1)%N.
+Lemma expdiv n i j : (i <= j)%O -> (n ^ i.+1 %| n ^ j.+1)%N.
 Proof.
 rewrite leEnat -ltnS => Hij;
 by rewrite -(subnK Hij) expnD dvdn_mull.
@@ -156,20 +156,19 @@ apply/forallbP/idP => [/(_ 0%N) | /= Hx i].
   move: ('pi_i x); rewrite {x} expn1 -(pdiv_id p_pr) => /= m.
   rewrite -{2}(natr_Zp m) unitZpE ?expgt1 ?pdiv_id //.
   rewrite /inZp /= -(natr_Zp (Ordinal _)) /= -unitfE unitFpE //.
-  rewrite pdiv_id // in m |- *.
-  rewrite (@Zp_cast p) ?prime_gt1 // coprime_modr.
-  exact: coprimeXl.
+  rewrite pdiv_id ?(@Zp_cast p) ?prime_gt1 // in m |- *.
+  by rewrite coprime_modr; apply: coprimeXl.
 Qed.
 
 Fact padic_mul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
 Proof.
 case: (altP (x =P 0)) => //= /il_neq0 [/= i Hneq0] Hxy.
 apply/eqP/invlimE=> /= j.
-move: Hxy => /(congr1 'pi_(i+j)%N); rewrite raddf0 rmorphM /=.
+move: Hxy => /(congr1 'pi_(i+j)%N); rewrite !raddf0 rmorphM /=.
 move: Hneq0.
-have:= leq_addr i j; rewrite -leEnat => Hij; rewrite -(ilprojE y Hij).
+have:= leq_addl i j; rewrite -leEnat => Hij; rewrite -(ilprojE y Hij).
 have:= leq_addr j i; rewrite -leEnat => Hji; rewrite -(ilprojE x Hji).
-rewrite /padic_bond /Zmn {Hij Hji} [(j + i)%N]addnC.
+rewrite /padic_bond /Zmn {Hij Hji}.
 move: ('pi_(i + j)%N x) ('pi_(i + j)%N y) => {x y} [x Hx] [y Hy].
 rewrite /inZp /= -(natr_Zp (Ordinal _)) /=.
 rewrite truncexp // (Zp_nat_mod (expgt1 p_pr i)) => xmod.
@@ -181,12 +180,8 @@ apply val_inj; rewrite /= {1}truncexp // => {Hx Hy}.
 have xn0 : (0 < x)%N.
   by apply/contraR: xmod; rewrite -leqNgt leqn0 => /eqP ->; rewrite mod0n.
 case: (ltnP 0%N y)=> [yn0|]; first last.
-  rewrite leqn0 => /eqP ->; rewrite mod0n.
-  (** TODO: rewrite raddd0. should be sufficient *)
-  by rewrite (raddf0 (ilproj_additive [zmodInvLimType of padic_int p_pr] j)).
+  by rewrite leqn0 => /eqP ->; rewrite mod0n.
 have xyn0 : (0 < x * y)%N by rewrite muln_gt0 xn0 yn0.
-(** TODO: rewrite raddd0. should be sufficient *)
-rewrite (raddf0 (ilproj_additive [zmodInvLimType of padic_int p_pr] j)).
 apply/eqP; rewrite -/(dvdn _ _) pfactor_dvdn //.
 move: xymod; rewrite -/(dvdn _ _) pfactor_dvdn // lognM //.
 move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
