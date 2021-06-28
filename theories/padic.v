@@ -205,12 +205,12 @@ rewrite !inordK truncexp // ?expN1lt //.
 rewrite modB; try exact: expgt0; try exact: expdiv.
 by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
 Qed.
-Definition ZpN1 : padic_int p_pr := MkInvLim padicN1_thread.
+Definition ZpN1 : padic_int p_pr := ilthr padicN1_thread.
 
 Lemma ZpN1E : ZpN1 = -1.
 Proof.
-apply/invlimE => /= n; rewrite rmorphN rmorph1; apply val_inj => /=.
-rewrite inordK ?truncexp // ?expN1lt //.
+apply/invlimE => /= n; rewrite rmorphN rmorph1 ilthrP.
+apply val_inj; rewrite /= inordK ?truncexp // ?expN1lt //.
 by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
 Qed.
 

@@ -75,8 +75,11 @@ Lemma coneE Sys T (mors : forall i, T -> Ob i) : cone Sys mors ->
   forall i j (Hij : i <= j) x, bonding Hij (mors j x) = mors i x.
 Proof. by rewrite /cone => H i j le_ij x; rewrite -(H i j le_ij). Qed.
 
-End InverseSystem.
+Lemma cone_thr Sys T (mors : forall i, T -> Ob i) :
+  cone Sys mors -> forall t : T, isthread Sys (mors ^~ t).
+Proof. by rewrite /cone => Hf t i j Hij; apply: Hf. Qed.
 
+End InverseSystem.
 
 
 (***************************************************************************)
@@ -1334,12 +1337,6 @@ Canonical invlim_choiceType := ChoiceType invlim gen_choiceMixin.
 Canonical invlimp_choiceType := ChoiceType {invlim Sys} gen_choiceMixin.
 Canonical invlimp_subType := [subType for invlimthr].
 
-Definition MkInvLim thr (thrP : isthread Sys thr) : {invlim _ } :=
-  InvLim (asboolT thrP).
-Lemma MkInvLimE thr (thrP : isthread Sys thr) :
-  val (MkInvLim thrP) = thr.
-Proof. by []. Qed.
-
 End Implem.
 Notation "{ 'invlim' S }" := (invlim_of (Phantom _ S)).
 
@@ -1361,9 +1358,6 @@ Lemma ilproj_implE x :
       bonding Hij (ilproj_impl j x) = ilproj_impl i x.
 Proof. by case: x => [thr /asboolP] /=. Qed.
 
-Lemma ilproj_implP : cone Sys ilproj_impl.
-Proof. by move=> i j Hij [thr /asboolP] /=. Qed.
-
 Local Notation "''pi_' i" := (ilproj_impl i).
 
 Lemma invlimP x y : (forall i, 'pi_i x = 'pi_i y) -> x = y.
@@ -1379,19 +1373,9 @@ Section UniversalProperty.
 Variable (T : Type) (f : forall i, T -> Ob i).
 Hypothesis Hcone : cone Sys f.
 
-Fact ilind_spec :
-  { ilind : T -> invlim Sys | forall i, 'pi_i \o ilind = f i }.
-Proof.
-move: Hcone; rewrite /cone => Hf; pose fil t i := f i t.
-have Hfil t : isthread Sys (fil t) by rewrite /fil=> i j Hij; apply Hf.
-by exists (fun t => MkInvLim (Hfil t)).
-Qed.
-Definition ilind_impl := let: exist f _ := ilind_spec in f.
+Definition ilind_impl t := InvLim (asboolT (cone_thr Hcone t)).
 Lemma ilind_implP i t : 'pi_i (ilind_impl t) = f i t.
-Proof.
-rewrite /ilind_impl; move: t; case: ilind_spec => un Hun t.
-by rewrite -Hun.
-Qed.
+Proof. by []. Qed.
 
 Lemma ilind_implE (un : T -> invlim Sys) :
   (forall i, 'pi_i \o un =1 f i) -> un =1 ilind_impl.
@@ -1416,7 +1400,6 @@ Program Definition invlim_Mixin :=
   @InvLimMixin disp I Ob bonding Sys {invlim Sys}
                (ilproj_impl (Sys := Sys)) (ilind_impl (Sys := Sys)) _ _ _.
 Next Obligation. by move=> i j Hij x; apply: ilproj_implE. Qed.
-Next Obligation. by move=> x /=; rewrite ilind_implP. Qed.
 Next Obligation. by move=> x; apply: (ilind_implE Hcone). Qed.
 Canonical invlim_invlimType := InvLimType {invlim Sys} invlim_Mixin.
 
