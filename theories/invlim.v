@@ -12,16 +12,17 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
-From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp Require Import all_ssreflect ssralg.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order finmap bigop.
 
 Require Import natbar directed.
 
 
+Import GRing.
+Import GRing.Theory.
 Import Order.Syntax.
 Import Order.Theory.
-Open Scope order_scope.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -45,7 +46,7 @@ Reserved Notation "\Sum_( i ) F"
 (***************************************************************************)
 Section InverseSystem.
 
-Variables (disp : unit) (I : porderType disp).
+Variables (disp : Datatypes.unit) (I : porderType disp).
 
 (** Objects and bonding morphisms of the inverse system at left outside    *)
 (** the record below to allows the addition of more algebraic structure    *)
@@ -90,7 +91,7 @@ Module InvLim.
 
 Section ClassDefs.
 
-Variables (disp : unit) (I : porderType disp).
+Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 Variable Sys : invsys bonding.
@@ -142,7 +143,7 @@ Notation InvLimMixin := Mixin.
 
 Section InternalTheory.
 
-Variables (disp : unit) (I : porderType disp).
+Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 Variable Sys : invsys bonding.
@@ -205,7 +206,7 @@ Notation "''ind[' T ']'" := (ind_phant (Phant T)) (only parsing).
 
 Section Theory.
 
-Variables (disp : unit) (I : porderType disp).
+Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 Variable Sys : invsys bonding.
@@ -214,10 +215,10 @@ Variable ilT : invLimType Sys.
 Lemma invlimE (x y : ilT) : (forall i, 'pi_i x = 'pi_i y) -> x = y.
 Proof.
 move=> Heq.
-pose fx : forall i : I, unit -> Obj i := fun i tt => 'pi_i x.
+pose fx : forall i : I, Datatypes.unit -> Obj i := fun i tt => 'pi_i x.
 have compf : cone Sys fx.
   by rewrite /fx => i j le_ij tt /=; rewrite ilprojE.
-pose ind z : unit -> ilT := fun tt => z.
+pose ind z : Datatypes.unit -> ilT := fun tt => z.
 have Huniqy i : 'pi_i \o ind y =1 fx i by move=> tt /=; rewrite /ind /fx Heq.
 have Huniqx i : 'pi_i \o ind x =1 fx i by move=> tt /=; rewrite /ind /fx Heq.
 move: (ind_uniq compf Huniqx tt) (ind_uniq compf Huniqy tt).
@@ -228,15 +229,14 @@ Lemma from_thread_spec (thr : forall i : I, Obj i) :
   isthread Sys thr -> { t : ilT | forall i, 'pi_i t = thr i }.
 Proof.
 rewrite /isthread => Hhtr.
-pose f : forall i : I, unit -> Obj i := fun i tt => thr i.
+pose f : forall i : I, Datatypes.unit -> Obj i := fun i tt => thr i.
 have compf : cone Sys f by rewrite /f => i j le_ij tt /=.
 by exists ('ind compf tt) => i; rewrite piindE.
 Qed.
 Definition ilthr thr (Hthr : isthread Sys thr) :=
   let: exist res _ := from_thread_spec Hthr in res.
 
-Lemma ilthrP thr (Hthr : isthread Sys thr) :
-  forall i, 'pi_i (ilthr Hthr) = thr i.
+Lemma ilthrP thr (Hthr : isthread Sys thr) i : 'pi_i (ilthr Hthr) = thr i.
 Proof. by rewrite /ilthr; case: from_thread_spec. Qed.
 
 Lemma invlim_exE (x y : ilT) :
@@ -253,7 +253,7 @@ Arguments ilthr {disp I Obj bonding Sys ilT thr}.
 
 Section InvLimitDirected.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 Variable Sys : invsys bonding.
@@ -272,9 +272,9 @@ Arguments invlim_geE {disp I Obj bonding Sys ilT}.
 
 Section InvLimitEqType.
 
-Variables (disp : unit) (I : porderType disp).
+Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> eqType.
-Variable bonding : forall i j, (i <= j)%O -> Obj j -> Obj i.
+Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 
 Variable Sys : invsys bonding.
 Variable T : invLimType Sys.
@@ -290,9 +290,6 @@ Qed.
 End InvLimitEqType.
 
 
-Open Scope ring_scope.
-Import GRing.
-Import GRing.Theory.
 
 
 (****************************************************************************)
@@ -301,13 +298,14 @@ Import GRing.Theory.
 (** We don't deal with multiplicative groups as they are all assumed finite *)
 (** in mathcomp.                                                            *)
 (****************************************************************************)
+Open Scope ring_scope.
 
 Module ZmodInvLim.
 Section ClassDef.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> zmodType.
-Variable bonding : forall i j, (i <= j)%O -> {additive Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Record mixin_of (T : zmodType) (mixin : InvLim.mixin_of Sys T) := Mixin {
@@ -384,7 +382,7 @@ Section ZmodInvLimTheory.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> zmodType.
-Variable bonding : forall i j, (i <= j)%O -> {additive Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : zmodInvLimType Sys.
@@ -393,9 +391,6 @@ Implicit Type x y : TLim.
 Fact ilproj_is_additive i : additive ('pi_i : TLim -> Obj i).
 Proof. by case: TLim => T [b m [Hadd]]; rewrite /pi_phant. Qed.
 Canonical ilproj_additive i :=  Additive (ilproj_is_additive i).
-
-Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
-Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
 
 (** The universal induced map is a Z-module morphism *)
 Section UniversalProperty.
@@ -410,6 +405,10 @@ Qed.
 Canonical ilind_additive := Additive ilind_is_additive.
 
 End UniversalProperty.
+
+Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
+Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
+
 End ZmodInvLimTheory.
 
 
@@ -418,7 +417,7 @@ Section ClassDef.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> ringType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Record mixin_of (T : ringType) (mixin : InvLim.mixin_of Sys T) := Mixin {
@@ -507,10 +506,11 @@ Section RingInvLimTheory.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> ringType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : ringInvLimType Sys.
+Implicit Type x y : TLim.
 
 Fact ilproj_is_multiplicative i : multiplicative ('pi_i : TLim -> Obj i).
 Proof. by case: TLim => T [b m [madd [mmult]]]; rewrite /pi_phant /=. Qed.
@@ -529,6 +529,10 @@ Qed.
 Canonical ilind_rmorphism := AddRMorphism ilind_is_multiplicative.
 
 End UniversalProperty.
+
+Lemma il_neq1 x : x != 1 -> exists i, 'pi_i x != 1.
+Proof. by move/invlimPn=> [i]; rewrite rmorph1 => Hi; exists i. Qed.
+
 End RingInvLimTheory.
 
 
@@ -537,7 +541,7 @@ Section ClassDef.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> comRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Set Primitive Projections.
@@ -628,7 +632,7 @@ Variable R : ringType.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> lmodType R.
-Variable bonding : forall i j, (i <= j)%O -> {linear Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {linear Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Record mixin_of (T : lmodType R) (mixin : InvLim.mixin_of Sys T) := Mixin {
@@ -717,7 +721,7 @@ Section LmodInvLimTheory.
 Variable (R : ringType).
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> lmodType R.
-Variable bonding : forall i j, (i <= j)%O -> {linear Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {linear Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : lmodInvLimType Sys.
@@ -749,7 +753,7 @@ Section ClassDef.
 Variables (R : ringType).
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> lalgType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Set Primitive Projections.
@@ -851,7 +855,7 @@ Section LAlgInvLimTheory.
 Variable (R : ringType).
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> lalgType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : lalgInvLimType Sys.
@@ -867,8 +871,6 @@ End UniversalProperty.
 End LAlgInvLimTheory.
 
 
-
-
 (****************************************************************************)
 (** Canonical structures for inverse limits in various algebraic categories *)
 (**                                                                         *)
@@ -881,7 +883,7 @@ Section InvLimitZmod.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> zmodType.
-Variable bonding : forall i j, (i <= j)%O -> {additive Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : invLimType Sys.
@@ -936,7 +938,7 @@ Section InvLimitRing.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> ringType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : invLimType Sys.
@@ -993,7 +995,7 @@ Section InvLimitComRing.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> comRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : ringInvLimType Sys.
@@ -1020,7 +1022,7 @@ Section InvLimitUnitRing.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> unitRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : ringInvLimType Sys.
@@ -1083,7 +1085,7 @@ Section InvLimitComUnitRing.
 
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> comUnitRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : invLimType Sys.
@@ -1107,7 +1109,7 @@ Section InvLimitIDomain.
 
 Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Obj : I -> idomainType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : ringInvLimType Sys.
@@ -1144,7 +1146,7 @@ Section InvLimitLmod.
 Variables (R : ringType).
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> lmodType R.
-Variable bonding : forall i j, (i <= j)%O -> {linear Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {linear Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : zmodInvLimType Sys.
@@ -1196,7 +1198,7 @@ Section InvLimitLalg.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variables (R : ringType).
 Variable Obj : I -> lalgType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : ringInvLimType Sys.
@@ -1230,7 +1232,7 @@ Section InvLimitAlg.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variables (R : comRingType).
 Variable Obj : I -> algType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : lalgInvLimType Sys.
@@ -1257,7 +1259,7 @@ Section InvLimitUnitAlg.
 Variables (disp : unit) (I : porderType disp).
 Variables (R : comUnitRingType).
 Variable Obj : I -> unitAlgType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : invLimType Sys.
@@ -1273,7 +1275,7 @@ Section InvLimitField.
 
 Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Obj : I -> fieldType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : comRingInvLimType Sys.
@@ -1393,7 +1395,7 @@ Section InterSpec.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> choiceType.
-Variable bonding : forall i j, (i <= j)%O -> Obj j -> Obj i.
+Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 Variable Sys : invsys bonding.
 
 Program Definition invlim_Mixin :=
@@ -1410,7 +1412,7 @@ Open Scope ring_scope.
 Section Zmodule.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> zmodType.
-Variable bonding : forall i j, (i <= j)%O -> {additive Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_zmodType :=
   Eval hnf in ZmodType {invlim Sys} [zmodMixin of {invlim Sys} by <-].
@@ -1421,7 +1423,7 @@ End Zmodule.
 Section Ring.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> ringType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_ringType :=
   Eval hnf in RingType {invlim Sys} [ringMixin of {invlim Sys} by <-].
@@ -1432,7 +1434,7 @@ End Ring.
 Section ComRing.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> comRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_comRingType :=
   Eval hnf in ComRingType {invlim Sys} [comRingMixin of {invlim Sys} by <-].
@@ -1443,7 +1445,7 @@ End ComRing.
 Section UnitRing.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> unitRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_unitRingType :=
   Eval hnf in UnitRingType {invlim Sys} [unitRingMixin of {invlim Sys} by <-].
@@ -1452,7 +1454,7 @@ End UnitRing.
 Section ComUnitRing.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> comUnitRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_comUnitRingType := [comUnitRingType of {invlim Sys}].
 End ComUnitRing.
@@ -1461,7 +1463,7 @@ Section Linear.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variables (R : ringType).
 Variable Obj : I -> lmodType R.
-Variable bonding : forall i j, (i <= j)%O -> {linear Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {linear Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_lmodType :=
   Eval hnf in LmodType R {invlim Sys} [lmodMixin of {invlim Sys} by <-].
@@ -1473,7 +1475,7 @@ Section Lalg.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variables (R : ringType).
 Variable Obj : I -> lalgType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_lalgType :=
   Eval hnf in LalgType R {invlim Sys} [lalgMixin of {invlim Sys} by <-].
@@ -1485,7 +1487,7 @@ Section Alg.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variables (R : comRingType).
 Variable Obj : I -> algType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_algType :=
   Eval hnf in AlgType R {invlim Sys} [algMixin of {invlim Sys} by <-].
@@ -1495,7 +1497,7 @@ Section UnitAlg.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variables (R : comRingType).
 Variable Obj : I -> unitAlgType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_unitAlgType := [unitAlgType R of {invlim Sys}].
 End UnitAlg.
@@ -1503,7 +1505,7 @@ End UnitAlg.
 Section IDomain.
 Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Obj : I -> idomainType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Canonical invlim_idomainType :=
   Eval hnf in IdomainType {invlim Sys} [idomainMixin of {invlim Sys} by <-].
@@ -1512,7 +1514,7 @@ End IDomain.
 Section Field.
 Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Obj : I -> fieldType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Canonical invlim_fieldType :=
@@ -1524,7 +1526,7 @@ Section TestAlg.
 Variable (R : comRingType).
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> algType R.
-Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Let test := [algType R of {invlim Sys}].
 End TestAlg.
@@ -1532,7 +1534,7 @@ End TestAlg.
 Section TestField.
 Variables (disp : Datatypes.unit) (I : dirType disp).
 Variable Obj : I -> fieldType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Let test := [fieldType of {invlim Sys}].
 End TestField.
@@ -1544,7 +1546,7 @@ End TestField.
 Section Valuation.
 
 Variable Obj : nat -> zmodType.
-Variable bonding : forall i j : nat, (i <= j)%O -> {additive Obj j -> Obj i}.
+Variable bonding : forall i j : nat, (i <= j)%N -> {additive Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : zmodInvLimType Sys.
@@ -1566,7 +1568,7 @@ case: ex_minnP => v Hv vmin; apply ValNat => [|i iv]; first exact: Hv.
 by apply/contraTeq: iv; rewrite -leqNgt; apply vmin.
 Qed.
 
-Lemma lt_valuatP x n : reflect ('pi_n x = 0) (Nat n < valuat x)%O.
+Lemma lt_valuatP x n : reflect ('pi_n x = 0) (Nat n < valuat x).
 Proof.
 apply (iffP idP); case: valuatP => [v Hv vmin /= |->].
 - by rewrite ltEnatbar; apply vmin.
@@ -1578,7 +1580,7 @@ apply (iffP idP); case: valuatP => [v Hv vmin /= |->].
 Qed.
 
 Lemma le_valuatP x n :
-  reflect (forall i, (i < n)%N -> 'pi_i x = 0) (Nat n <= valuat x)%O.
+  reflect (forall i, (i < n)%N -> 'pi_i x = 0) (Nat n <= valuat x).
 Proof.
 apply (iffP idP).
 - case: valuatP => [v Hv vmin /= |-> _ i _].
@@ -1589,7 +1591,7 @@ apply (iffP idP).
   by case: (valuat x)=> // v; rewrite ltEnatbar leEnatbar.
 Qed.
 
-Lemma proj_gt_valuat x n : (Nat n >= valuat x)%O = ('pi_n x != 0).
+Lemma proj_gt_valuat x n : (Nat n >= valuat x) = ('pi_n x != 0).
 Proof. by apply negb_inj; rewrite negbK -ltNge; apply/lt_valuatP/eqP. Qed.
 
 Lemma valuatNatE x n :
@@ -1616,12 +1618,12 @@ by move=> i /vnmiN; rewrite raddfN /= => ->; rewrite oppr0.
 Qed.
 
 Lemma valuatD x1 x2 :
-  (valuat x1 `&` valuat x2 <= valuat (x1 + x2))%O.
+  Order.min (valuat x1) (valuat x2) <= valuat (x1 + x2).
 Proof.
-wlog v1lev2 : x1 x2 / (valuat x1 <= valuat x2)%O.
+wlog v1lev2 : x1 x2 / valuat x1 <= valuat x2.
   move=> Hlog; case (leP (valuat x1) (valuat x2)) => [|/ltW]/Hlog //.
-  by rewrite addrC meetC.
-rewrite (meet_idPl v1lev2); move: v1lev2.
+  by rewrite addrC minC.
+rewrite (min_idPl v1lev2); move: v1lev2.
 case: (valuatP x1)=> [v1 Hv1 v1min|->]; last by rewrite add0r.
 case: (valuatP x2)=> [v2 Hv2 v2min|->]; last by rewrite addr0 (valuatNatE Hv1).
 rewrite leEnatbar => le12.
@@ -1629,18 +1631,18 @@ apply/le_valuatP => i Hi; rewrite raddfD /= v1min ?v2min ?addr0 //.
 exact: leq_trans Hi le12.
 Qed.
 Lemma valuat_sum I r P (F : I ->  TLim) :
-  (\meet_(i <- r | P i) valuat (F i) <= valuat (\sum_(i <- r | P i) F i))%O.
+  \meet_(i <- r | P i) valuat (F i) <= valuat (\sum_(i <- r | P i) F i).
 Proof.
-apply: (big_ind2 (fun x v => v <= valuat x)%O); rewrite ?valuat0 //=.
+apply: (big_ind2 (fun x v => v <= valuat x)); rewrite ?valuat0 //=.
 by move=> x1 v1 x2 v2 H1 H2; apply: (le_trans (leI2 _ _) (valuatD x1 x2)).
 Qed.
 
 Lemma valuatB s1 s2 :
-  (valuat s1 `&` valuat s2 <= valuat (s1 - s2))%O.
+  Order.min (valuat s1) (valuat s2) <= valuat (s1 - s2).
 Proof. by have:= valuatD s1 (-s2); rewrite valuatN. Qed.
 
 Lemma valuatDr s1 s2 :
-  (valuat s1 < valuat s2)%O -> valuat (s1 + s2) = valuat s1.
+  valuat s1 < valuat s2 -> valuat (s1 + s2) = valuat s1.
 Proof.
 case: (valuatP s2) => [v2 _   v2min|-> _]; last by rewrite addr0.
 case: (valuatP s1) => [v1 Hv1 v1min|->]; last by rewrite ltIbar.
@@ -1650,18 +1652,58 @@ exact: ltn_trans nv1 v12.
 Qed.
 
 Lemma valuatBr s1 s2 :
-  (valuat s1 < valuat s2)%O -> valuat (s1 - s2) = valuat s1.
+  valuat s1 < valuat s2 -> valuat (s1 - s2) = valuat s1.
 Proof. by rewrite -(valuatN s2) => /valuatDr. Qed.
 Lemma valuatBl s1 s2 :
-  (valuat s2 < valuat s1)%O -> valuat (s1 - s2) = valuat s2.
+  valuat s2 < valuat s1 -> valuat (s1 - s2) = valuat s2.
 Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
 
 End Valuation.
 
+
+Section ValuationLmodRing.
+
+Variable R : ringType.
+Variable Obj : nat -> lmodType R.
+Variable bonding : forall i j : nat, (i <= j)%N -> {linear Obj j -> Obj i}.
+Variable Sys : invsys bonding.
+
+Variable TLim : lmodInvLimType Sys.
+Implicit Types (r : R) (x y : TLim).
+
+Lemma valuat_scale r x : valuat x <= valuat (r *: x).
+Proof.
+case: (valuatP x)=> [v Hv vmin|->]; last by rewrite scaler0 valuat0.
+apply/le_valuatP => i {}/vmin pix0.
+by rewrite linearZ /= pix0 scaler0.
+Qed.
+
+End ValuationLmodRing.
+
+
+Section ValuationLmodUnitRing.
+
+Variable R : unitRingType.
+Variable Obj : nat -> lmodType R.
+Variable bonding : forall i j : nat, (i <= j)%N -> {linear Obj j -> Obj i}.
+Variable Sys : invsys bonding.
+
+Variable TLim : lmodInvLimType Sys.
+Implicit Types (r : R) (x y : TLim).
+
+Lemma valuat_scale_unit r x :
+  r \is a GRing.unit -> valuat (r *: x) = valuat x.
+Proof.
+move=> runit; apply le_anti; rewrite valuat_scale /=.
+by rewrite -{2}(scale1r x) -(mulVr runit) -scalerA valuat_scale.
+Qed.
+
+End ValuationLmodUnitRing.
+
 Section ValuationRing.
 
 Variable Obj : nat -> ringType.
-Variable bonding : forall i j : nat, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j : nat, (i <= j)%N -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : ringInvLimType Sys.
@@ -1670,6 +1712,27 @@ Implicit Type (x y : TLim).
 Lemma valuat1 : valuat (1 : TLim) = Nat 0.
 Proof. by apply valuatNatE => [|i //]; rewrite rmorph1 oner_neq0. Qed.
 
+Lemma valuatMl x1 x2 : valuat x1 <= valuat (x1 * x2).
+Proof.
+case: (valuatP x1)=> [v1 Hv1 v1min|->]; last by rewrite mul0r valuat0 lebarI.
+by apply/le_valuatP => i /v1min; rewrite rmorphM /= => ->; rewrite mul0r.
+Qed.
+Lemma valuatMr x1 x2 : valuat x2 <= valuat (x1 * x2).
+Proof.
+case: (valuatP x2)=> [v2 Hv2 v2min|->]; last by rewrite mulr0 valuat0 lebarI.
+by apply/le_valuatP => i /v2min; rewrite rmorphM /= => ->; rewrite mulr0.
+Qed.
+
+Lemma valuatM x1 x2 : Order.max (valuat x1) (valuat x2) <= valuat (x1 * x2).
+Proof. by rewrite leUx valuatMl valuatMr. Qed.
+
+Lemma valuat_prod I r P (F : I ->  TLim) :
+  \join_(i <- r | P i) valuat (F i) <= valuat (\prod_(i <- r | P i) F i).
+Proof.
+apply: (big_ind2 (fun x v => v <= valuat x)); rewrite ?valuat1 //=.
+by move=> x1 v1 x2 v2 H1 H2; apply: (le_trans (leU2 _ _) (valuatM x1 x2)).
+Qed.
+
 End ValuationRing.
 
 
@@ -1677,7 +1740,7 @@ Section CommHugeOp.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> choiceType.
-Variable bonding : forall i j : I, (i <= j)%O -> Obj j -> Obj i.
+Variable bonding : forall i j : I, i <= j -> Obj j -> Obj i.
 Variable Sys : invsys bonding.
 Variable TLim : invLimType Sys.
 
@@ -1712,7 +1775,7 @@ rewrite /ilopand; apply (iffP negP); case: ilopand_spec => f Hf.
 Qed.
 
 Lemma ilopand_subset F (sm : is_ilopable F) i j :
-  (i <= j)%O -> (ilopand sm i `<=` ilopand sm j)%fset.
+  i <= j -> (ilopand sm i `<=` ilopand sm j)%fset.
 Proof.
 move=> ilej.
 apply/fsubsetP => c; apply/contraLR => /ilopandP Hinv.
@@ -1775,7 +1838,7 @@ Section Summable.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> zmodType.
-Variable bonding : forall i j, (i <= j)%O -> {additive Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Variable TLim : zmodInvLimType Sys.
 
@@ -1815,7 +1878,7 @@ Lemma summandP F (sm : is_summable F) i c :
 Proof. by apply (iffP (ilopandP _ _ _)); rewrite invar_addE. Qed.
 
 Lemma summand_subset F (sm : is_summable F) i j :
-  (i <= j)%O -> (summand sm i `<=` summand sm j)%fset.
+  i <= j -> (summand sm i `<=` summand sm j)%fset.
 Proof. exact: ilopand_subset. Qed.
 
 Lemma projHugeSum F i (S : {fset C}) :
@@ -1835,7 +1898,7 @@ Section Prodable.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> comRingType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj j -> Obj i}.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 Variable TLim : comRingInvLimType Sys.
 
@@ -1876,7 +1939,7 @@ Lemma prodandP F (sm : is_prodable F) i c :
 Proof. by apply (iffP (ilopandP _ _ _)); rewrite invar_mulE. Qed.
 
 Lemma prodand_subset F (sm : is_prodable F) i j :
-  (i <= j)%O -> (prodand sm i `<=` prodand sm j)%fset.
+  i <= j -> (prodand sm i `<=` prodand sm j)%fset.
 Proof. exact: ilopand_subset. Qed.
 
 Lemma projHugeProd F i (S : {fset C}) :
