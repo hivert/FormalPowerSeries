@@ -13,14 +13,11 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
-From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
-From mathcomp Require Import fintype div tuple finfun bigop finset fingroup.
-From mathcomp Require Import perm ssralg poly polydiv mxpoly binomial bigop.
-From mathcomp Require Import finalg zmodp matrix mxalgebra polyXY ring_quotient.
-From mathcomp Require Import rat ssrnum.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
+From mathcomp Require Import fintype div bigop ssralg binomial rat ssrnum.
 
 Require tfps.
-Require Import fps.
+Require Import auxresults fps.
 
 
 Set Implicit Arguments.
@@ -234,7 +231,7 @@ have FalgN : ''X * FC ^+ 2 = FC - 1.
   by apply/eqP; rewrite eq_sym subr_eq addrC -FC_algebraic_eq.
 have -> : ''X * FC^`()%fps = (FC - 1)/(1 - ''X *+ 2 * FC).
   rewrite -[LHS]divr1; apply/eqP.
-  rewrite (auxresults.eq_divr (''X * _)) ?unitr1 // ?X2Fu // mulr1.
+  rewrite (eq_divr (''X * _)) ?unitr1 // ?X2Fu // mulr1.
   have /= := congr1 ((fun s => ''X * s) \o (@deriv_fps _)) FC_algebraic_eq.
   rewrite derivD_fps deriv_fps1 add0r.
   rewrite derivM_fps /= deriv_fpsX mul1r derivX_fps /= expr1.
@@ -242,7 +239,7 @@ have -> : ''X * FC^`()%fps = (FC - 1)/(1 - ''X *+ 2 * FC).
   rewrite mulrBr mulr1 -!mulrA; apply/eqP; congr (_ - ''X * _).
   by rewrite !(mulrnAr, mulrnAl) mulrC mulrA.
 rewrite mulrA -[X in X + _](mulrK X2Fu) -mulrDl -[RHS]divr1.
-apply/eqP; rewrite auxresults.eq_divr ?unitr1 // mulr1 mul1r.
+apply/eqP; rewrite eq_divr ?unitr1 // mulr1 mul1r.
 rewrite -mulrA [FC * _]mulrC [(1 - _ * FC) * FC]mulrBl -mulrA -expr2.
 rewrite mul1r mulrnAl FalgN.
 rewrite !mulrnBl opprB addrA (mulr2n FC) (opprD FC) addrA.

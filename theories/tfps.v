@@ -59,6 +59,7 @@ Reserved Notation "f *h g" (at level 2).
 Reserved Notation "x ^^ n" (at level 29, left associativity).
 Reserved Notation "f \oT g" (at level 50).
 Reserved Notation "\sqrt f" (at level 10).
+Reserved Notation "\int f" (at level 10).
 
 
 Section MoreBigop.
@@ -364,7 +365,7 @@ End CoefTFPS.
 Local Open Scope tfps_scope.
 
 Notation "[ 'tfps' s <= n => F ]" :=
-  (tfps_of_fun n (fun s => F)) : tfps_scope.
+  (tfps_of_fun n (fun s => F)) (only parsing) : tfps_scope.
 Notation "[ 'tfps' s => F ]" := [tfps s <= _ => F] : tfps_scope.
 Notation "c %:S" := (tfpsC _ c) : tfps_scope.
 Notation "\X" := (trXn _ 'X) : tfps_scope.
@@ -1899,7 +1900,7 @@ Variables (R : unitRingType) (n : nat).
 Definition prim (p : {poly R}) :=
   \poly_(i < (size p).+1) (p`_i.-1 *+ (i != 0%N) / (i%:R)).
 
-Local Notation "\int p" := (prim p) (at level 2).
+Local Notation "\int p" := (prim p).
 
 Lemma coef_prim (p : {poly R}) (i : nat) :
   (\int p)`_i = if i == 0%N then 0 else p`_i.-1 / (i%:R).
@@ -1965,7 +1966,7 @@ Canonical prim_additive := Eval hnf in Additive prim_is_linear.
 Canonical prim_linear := Eval hnf in Linear prim_is_linear.
 
 (* tests *)
-Fact prim0 : prim 0 = 0.
+Fact prim0 : \int 0 = 0.
 Proof. exact: linear0. Qed.
 
 Fact primD : {morph prim : p q / p + q}.
@@ -1980,14 +1981,14 @@ Proof. exact: linearB. Qed.
 
 Implicit Types (f g : {tfps R n}).
 
-Lemma size_prim_leq f : size (prim (tfps f)) <= n.+2.
+Lemma size_prim_leq f : size (\int (tfps f)) <= n.+2.
 Proof.
 apply: (leq_trans (size_poly _ _) _); rewrite ltnS.
 exact: size_tfps.
 Qed.
 Definition prim_tfps f := Tfps_of (size_prim_leq f).
 
-Lemma coef_prim_tfps f i : (prim_tfps f)`_i = (prim (tfps f))`_i.
+Lemma coef_prim_tfps f i : (prim_tfps f)`_i = (\int (tfps f))`_i.
 Proof. by []. Qed.
 
 Fact prim_tfps_is_linear : linear prim_tfps.
@@ -1998,10 +1999,8 @@ case: i lt_in1 => [|i]/=; first by rewrite mulr0 addr0.
 rewrite ltnS => lt_in.
 by rewrite coefD coefZ mulrDl mulrA.
 Qed.
-Canonical prim_tfps_additive :=
-  Eval hnf in Additive prim_tfps_is_linear.
-Canonical prim_tfps_linear :=
-  Eval hnf in Linear prim_tfps_is_linear.
+Canonical prim_tfps_additive :=  Eval hnf in Additive prim_tfps_is_linear.
+Canonical prim_tfps_linear := Eval hnf in Linear prim_tfps_is_linear.
 
 (* tests *)
 Example prim_tfps0 : prim_tfps 0 = 0.
@@ -2014,6 +2013,8 @@ Lemma coef0_prim_tfps f : (prim_tfps f)`_0 = 0.
 Proof. by rewrite coef_poly eqxx mulr0n invr0 mulr0. Qed.
 
 End Primitive.
+
+Notation "\int f" := (prim_tfps f) : tfps_scope.
 
 
 Section MoreCompPoly.
@@ -3324,7 +3325,11 @@ Definition deriv_tfps_eq0     := TFPSUnitRing.deriv_tfps_eq0     nuf.
 Definition deriv_tfps_ex_eq   := TFPSUnitRing.deriv_tfps_ex_eq   nuf.
 Definition deriv_tfps_eq      := TFPSUnitRing.deriv_tfps_eq      nuf.
 Definition deriv_exp          := TFPSUnitRing.deriv_exp          nuf.
+Definition deriv_expt         := TFPSUnitRing.deriv_expt         nuf.
+Definition deriv_expE         := TFPSUnitRing.deriv_expE         nuf.
+Definition deriv_exptE        := TFPSUnitRing.deriv_exptE        nuf.
 Definition deriv_log          := TFPSUnitRing.deriv_log          nuf.
+Definition deriv_logt         := TFPSUnitRing.deriv_logt         nuf.
 Definition expK               := TFPSUnitRing.expK               nuf.
 Definition exp_inj            := TFPSUnitRing.exp_inj            nuf.
 Definition logK               := TFPSUnitRing.logK               nuf.
@@ -3351,9 +3356,7 @@ Definition coef_expr1X        := TFPSUnitRing.coef_expr1X        nuf.
 Definition sqrtE              := TFPSUnitRing.sqrtE              nuf.
 
 End TFPSField.
-
 End TFPSField.
-
 Export TFPSField.
 
 

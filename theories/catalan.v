@@ -13,13 +13,10 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
-From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq choice.
-From mathcomp Require Import fintype div tuple finfun bigop finset fingroup.
-From mathcomp Require Import perm ssralg poly polydiv mxpoly binomial bigop.
-From mathcomp Require Import finalg zmodp matrix mxalgebra polyXY ring_quotient.
-From mathcomp Require Import rat ssrnum.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
+From mathcomp Require Import fintype div bigop ssralg poly binomial rat ssrnum.
 
-Require Import tfps.
+Require Import tfps auxresults.
 
 
 Set Implicit Arguments.
@@ -196,7 +193,7 @@ Theorem CatM_Lagrange i : (i.+1 * (C i))%N = 'C(i.*2, i).
 Proof.
 case: i => [|i]; first by rewrite C0 mul1n bin0.
 apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
-have:= (congr1 (fun s : {tfps Rat i.+1} => s`_i.+1) (FC_fixpoint_eq i)).
+have:= congr1 (fun s : {tfps Rat i.+1} => s`_i.+1) (FC_fixpoint_eq i).
 rewrite coef_tfps coeftD coef_tfps_of_fun ltnSn.
 rewrite coeftN coeft1 subr0 /= => ->.
 rewrite -/(_`_i.+1) (coeft_lagrfix (nat_unit_field _)) ?one_plusX_2_unit //.
@@ -240,19 +237,19 @@ have FalgN : \X * F ^+ 2 = F - 1.
   by apply/eqP; rewrite eq_sym subr_eq addrC -Falg.
 have -> : tmulX F^`() = (F - 1)/(1 - \X *+ 2 * F).
   rewrite -[LHS]divr1; apply/eqP.
-  rewrite (auxresults.eq_divr (tmulX _)) ?unitr1 // ?X2Fu // mulr1.
-  have /= := congr1 ((@tmulX _ _) \o (@deriv_tfps _ _)) Falg.
+  rewrite (eq_divr (tmulX _)) ?unitr1 // ?X2Fu // mulr1.
+  have /= /eqP := congr1 ((@tmulX _ _) \o (@deriv_tfps _ _)) Falg.
   rewrite derivD_tfps deriv_tfps1 add0r.
   rewrite derivM_tfps /= deriv_tfpsX mul1r derivX_tfps /= expr1.
   rewrite raddfD /= -trXnt_tmulX // (tmulXE (F ^+ 2)).
   rewrite trXntM // trXnt_trXnt // trXnt_id trXnt_tfpsX.
   rewrite FalgN [X in _ + tmulX X]mulrC -tmulXM.
   rewrite raddfMn /= [X in (tmulX X) *+ 2]mulrC -tmulXM.
-  move/eqP; rewrite -(subr_eq _ _ (_ _ * \X)) => /eqP <-.
-  rewrite eq_sym -mulrnAr -mulrA -{1}(mulr1 (tmulX _)) -mulrBr.
+  rewrite -(subr_eq _ _ (_ _ * \X)).
+  rewrite -mulrnAr -mulrA -{1}(mulr1 (tmulX _)) -mulrBr.
   by rewrite [_ * \X]mulrC mulrnAl mulrnAr.
 rewrite mulrA -[X in X + _](mulrK X2Fu) -mulrDl -[RHS]divr1.
-apply/eqP; rewrite auxresults.eq_divr ?unitr1 // mulr1 mul1r.
+apply/eqP; rewrite eq_divr ?unitr1 // mulr1 mul1r.
 rewrite -mulrA [F * _]mulrC [(1 - _ * F) * F]mulrBl -mulrA -expr2.
 rewrite mul1r mulrnAl FalgN.
 rewrite !mulrnBl opprB addrA (mulr2n F) (opprD F) addrA.
@@ -274,8 +271,8 @@ Proof.
 have := congr1 (fun x : {tfps _ _} => (x`_n.+1)%R) (FC_differential_eq n).
 rewrite coef1 coeftD !mulrDl !mul1r !coeftD.
 rewrite -!mulNrn !(mulrnAl, coeftMn, mulNr, coeftN).
-rewrite !coef_tfpsXM coeft_tmulX !coef_deriv_tfps !coef_tfps_of_fun.
-rewrite /= ltnSn leqnSn /= ltnS leq_pred.
+rewrite !coef_tfpsXM coeft_tmulX !coef_deriv_tfps !coef_tfps_of_fun /=.
+rewrite ltnSn leqnSn /= ltnS leq_pred.
 case: n => [|n] /=; first by rewrite !Csimpl.
 move: {n} n.+1 => n; move: (C n.+1) (C n) => Cn1 Cn.
 rewrite !mulNrn addrA [X in (X - _)%R]addrC addrA -mulrSr -!mulrnA.
