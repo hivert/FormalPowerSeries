@@ -6,7 +6,6 @@
 theories/fps_scratch.v
 theories/directed.v
 theories/invlim.v
-theories/dirlim.v
 theories/natbar.v
 # theories/infpoly.v
 theories/padic.v
