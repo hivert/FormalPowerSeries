@@ -3,7 +3,6 @@
 -arg -notation-overridden
 -arg -w
 -arg -ambiguous-paths
-theories/fps_scratch.v
 theories/directed.v
 theories/invlim.v
 theories/natbar.v
