@@ -85,7 +85,7 @@ mathescape=true
 \begin{frame}[fragile]
   % \includegraphics[trim=left bottom right top, clip]
   \parbox{4cm}{Flajolet-Sedgwick\\
-    \textit{analytic combinatorics}\\
+    \textit{Analytic combinatorics}\\
     Figure I.2. \\
     The prehistory of Catalan numbers.
   }\quad
@@ -480,11 +480,11 @@ mathescape=true
   \end{QUESTION}
   \pause\bigskip
    \begin{itemize}
-   \item \textbf{basic components:}
+   \item \textbf{basic components}
      $\Longrightarrow$ singleton, union, cartesian product, set and
-     multiset, cycles\dots\pause\bigskip
-   \item \textbf{combine} the basic components:
-     $\Longrightarrow$ description grammar, combinatorial class
+     multiset, cycle\dots\pause\bigskip
+   \item \textbf{combine} the basic components
+     $\Longrightarrow$ combinatorial class, description grammar
    \end{itemize}
   \pause\bigskip
 
@@ -559,13 +559,11 @@ mathescape=true
   \pause
 
   Cardinality:
-  \[
-  \card\mC_n = \sum_{i+j=n} \card\mA_i \times \card\mB_j =
-          \sum_{i=0}^{n} \card\mA_i \times \card\mB_{n-i}
-          \]
+  \[ \card\mC_n = \sum_{i+j=n} \card\mA_i \cdot \card\mB_j \]
+  \[[z^n](A(z)\cdot B(z)) = \sum_{i+j=n} [z^i]A(z) \cdot [X^j]B(z)\]
   \begin{NOTE}
     The generating series of a cartesian product is the product of the
-    generating series: \[C(z) = A(z) \times B(z)\,.\]
+    generating series: \[C(z) = A(z) \cdot B(z)\,.\]
   \end{NOTE}
 \end{frame}
 
@@ -642,14 +640,15 @@ mathescape=true
 
   \begin{definition}
     The ring $K[[X]]$ of \emph{formal power series} is the set of sequences
-    $(a_n)_n$, written as $\sum_n a_n z^n$ together with the natural sum, and
-    product (and also derivation, integration, substitution\dots)
+    $(a_n)_n$, written as $\sum_n a_n X^n$ together with the natural sum, and
+    product.
   \end{definition}
+  More structures: derivation, integration, substitution\dots
   \pause\bigskip
 
   Problem: series are infinite objects
   \begin{itemize}
-  \item Impossible to store them in a finite data structure
+  \item Impossible to store one in a finite data structure
     \medskip
 
   \item Equality cannot be decided (MathComp requirement)
@@ -724,7 +723,7 @@ Record truncfps := MkTfps { tfps : {poly R}; _ : size tfps <= n.+1 }.
   \end{coqcode}
   \bigskip
 
-  Extracting coefficient:
+  Extracting coefficients:
   \begin{coqcode}
 Implicit Types (p q r s : {poly R}) (f g : {tfps R n}).
 
@@ -805,7 +804,7 @@ All the formula for analysis:
 \begin{itemize}
 \item primitive
 \item exponential, logarithm
-\item composition $F(G(x))$, needs $G_0 = 0$.
+\item composition $F(G(X))$ (needs $G_0 = 0$ no convergence).
 \end{itemize}
 \end{frame}
 
@@ -971,6 +970,7 @@ Canonical fps_zmodType :=
   Eval hnf in ZmodType {fps R} [zmodMixin of {fps R} by <-].
 Canonical fps_ringType :=
   Eval hnf in RingType {fps R} [ringMixin of {fps R} by <-].
+[...]
 \end{coqcode}
 \end{frame}
 
@@ -1014,9 +1014,7 @@ forall C : nat -> nat,
 \end{frame}
 
 \begin{frame}[fragile]{Proofs in mathcomp}
-
-  \[2\times 3 + 1 = 7 \text{proofs !}\]
-
+  \[2\times 3 + 1 = 7 \text{ proofs !}\]
   \begin{itemize}
   \item Truncated or infinite power series
   \end{itemize}
@@ -1030,7 +1028,7 @@ Proposition FC_algebraic_eq : FC = 1 + \X * FC ^+ 2.
 \end{coqcode}
 \bigskip
 
-3 methods to extract the coefficient:
+3 methods to extract the coefficients:
 \begin{itemize}
 \item generalized Newton binomial formula
 \item Lagrange inversion formula
