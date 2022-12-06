@@ -515,16 +515,16 @@ mathescape=true
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Generating function}
+\begin{frame}{Generating series}
   
   \begin{DEFN}
-    The (ordinary) \emph{generating function} of a sequence $(a_n)_n$ 
+    The (ordinary) \emph{generating series} of a sequence $(a_n)_n$ 
     is the formal power series
     \begin{equation*}
       A(z) := \sum_{n=0}^{\infty} a_n z^n\,.
     \end{equation*}
-    The \emph{generating function} of a combinatorial class $\mA$ is the
-    generating function of the numbers $a_n := \card(\mA_n)$. Equivalently,
+    The \emph{generating series} of a combinatorial class $\mA$ is the
+    generating series of the numbers $a_n := \card(\mA_n)$. Equivalently,
     \begin{equation*}
       A(z) = \sum_{\alpha\in\mA} z^{|\alpha|}\,.
     \end{equation*}
@@ -590,12 +590,25 @@ mathescape=true
   \end{tabular}
 \end{frame}
 
-\begin{frame}{Example : Binary trees}
+\begin{frame}[fragile]{Example : Binary trees}
 
   Size = number of internal nodes
 
-  \[\BinTree = \{\epsilon\} \sqcup \BinTree\times\mZ\times\BinTree\]
-
+  \begin{center}
+  \begin{tikzpicture}[
+  inner/.style={circle,draw,thick,minimum width=3mm,inner sep=0},
+  triangle/.style={isosceles triangle,draw=,thick,shape border rotate=90,
+    isosceles triangle stretches=true,
+    minimum height=10mm,minimum
+    width=15mm,inner sep=0},
+  level 1/.style={sibling distance=30mm},
+]
+  \node[inner] {} [child anchor=north]
+    child {node[triangle] {}}
+    child {node[triangle] {}};
+\end{tikzpicture}
+  \end{center}
+  \[\BinTree = \{\epsilon\}\ \sqcup\ \BinTree\times\mZ\times\BinTree\]
   \[T(z) = 1 + T(z) \cdot z \cdot T(z) = 1 + z \cdot T(z)^2\]
   \bigskip\pause
 
@@ -819,18 +832,18 @@ All the formula for analysis:
 
   \begin{itemize}
   \item $I$: ordered directed set -- only need nonnegative integers.
-  \item Fix an algebraic category (e.g. ring with ring morphisms)
+  \item In an algebraic category (e.g. ring with ring morphisms)
   \end{itemize}
   \begin{DEFN}
     An \emph{inverse system} is given by
     \begin{itemize}
-    \item Objects : a sequence $(A_i)_{i\in I}$
-    \item Bonding morphisms : for each $i\leq j$ a morphism $\phi_{i,j}:
-      A_j\mapsto A_i$ (\red{beware the inverse direction}).
+    \item \blue{Objects}: a sequence $(A_i)_{i\in I}$
+    \item \blue{Bonding morphisms}: for each $i\leq j$ a morphism
+      $\phi_{i,j}: A_j\mapsto A_i$ (\red{beware the inverse direction}).
     \end{itemize}
     such that for all $i\in I$, the morphism $\phi_{i,i}$ is the identity and
     \begin{itemize}
-    \item Compatibility: for all $i \leq j \leq k$, one has
+    \item \blue{Compatibility}: for all $i \leq j \leq k$, one has
       $\phi_{i,j} \circ \phi_{j,k} = \phi_{i,k}$
       \vskip-3mm
 \[
@@ -850,13 +863,13 @@ All the formula for analysis:
   \begin{DEFN}
     An \emph{inverse limit} of an inverse system, is given by
     \begin{itemize}
-    \item An object $A$
-    \item Projection morphisms : for each $i$ a morphism $\mu_{i}:  A\mapsto
-      A_i$.
+    \item \blue{Object}: $A$
+    \item \blue{Projection morphisms}: for each $i$ a morphism
+      $\mu_{i}: A\mapsto A_i$.
     \end{itemize}
       such that
     \begin{itemize}
-    \item Compatibility: for all $i \leq j$, one has
+    \item \blue{Compatibility}: for all $i \leq j$, one has
       $\phi_{i,j} \circ \mu_{j} = \phi_{i}$
     \end{itemize}
   \end{DEFN}
@@ -1002,12 +1015,16 @@ forall C : nat -> nat,
 
 \begin{frame}[fragile]{Proofs in mathcomp}
 
-  $2\times 3 + 1 = 7$ proofs !
+  \[2\times 3 + 1 = 7 \text{proofs !}\]
+
   \begin{itemize}
   \item Truncated or infinite power series
   \end{itemize}
 
 \begin{coqcode}
+Definition FC : {fps Rat} := \fps (C i)%:R .X^i.
+Proposition FC_algebraic_eq : FC = 1 + ''X * FC ^+ 2.
+
 Definition FC : {tfps Rat n} := [tfps i => (C i)%:R].
 Proposition FC_algebraic_eq : FC = 1 + \X * FC ^+ 2.
 \end{coqcode}
@@ -1017,7 +1034,7 @@ Proposition FC_algebraic_eq : FC = 1 + \X * FC ^+ 2.
 \begin{itemize}
 \item generalized Newton binomial formula
 \item Lagrange inversion formula
-\item Holonomic computation
+\item holonomic computation
 \end{itemize}
 \bigskip
 
@@ -1031,7 +1048,7 @@ Proposition FC_algebraic_eq : FC = 1 + \X * FC ^+ 2.
   \begin{THEO}
     For any $\alpha$ (non necessarily integer):
     \[
-      (1+x)^\alpha =
+      (1+X)^\alpha =
       \sum_n \frac{\alpha(\alpha -1)\dots(\alpha - m + 1)}{m!} X^n
     \]
   \end{THEO}
@@ -1043,52 +1060,53 @@ Theorem coef_expr1cX c a m :
 \end{coqcode}
 \end{frame}
 
-\begin{frame}[fragile]{Lagrange-Bürman formula}
-  Newton's only works for quadratic equation.
+\begin{frame}{General methods ?}
+
+  \begin{PROBLEM}
+    Newton's only works for equation which are solvable by radicals.
+  \end{PROBLEM}
   \bigskip
 
-  \begin{PROP}[Lagrange Inversion]
-    Suppose that $F(X)=X + \dots$ is a formal power series starting with $X$.
-    Then, there exists a unique series $F^*$ such that
-    \[ F(F^*(X)) = X\,.\]
-    $F^*$ is called the Lagrange inverse of $F$
-  \end{PROP}
-  \bigskip\pause
+  More general solutions:
   \begin{itemize}
-  \item $F^*$ also verifies $F^*(F(X)) = X$;
-  \item $\{\text{series starting with } X\}$ group for $\circ$ and $F^*$ is the
-    inverse.
+  \item Lagrange inversion
+  \item Holonomic computation
   \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Lagrange-Bürman formula}
-  Better in combinatorics: $\tilde F(X) = \left(\frac{X}{F}\right)^*$.
-  \begin{THEO}[Lagrange-Bürmann fixpoint]
-    Suppose that $G(X)=1 + \dots$ starts with $1$.
-    Then, there exists a unique series $\tilde G$ such that
-    \[ \tilde G(X) = X\cdot G(\tilde G(X))\,.\]
-    Its coefficient are given by 
-    $\displaystyle[X^{i+1}](\tilde G) = \frac{[X^{i}](G^{i})}{i+1}\,.$
-  \end{THEO}
-  For catalan: $F - 1= \widetilde{(1 + X)^2}$
+\begin{frame}[fragile]{Lagrange formula}
+  Fact: $\{\text{series starting with } X\}$ is a group for $\circ$ (neutral $X$).
+  \begin{PROP}[Lagrange Inversion]
+    $F(X)=X + \dots$ has a \emph{unique inverse} $F^*$ (Lagrange inverse):
+    \[ F(F^*(X)) = F^*(F(X)) = X\,.\]
+
+    Writing $F=\frac{X}{G}$ fixed point version
+    $F^*(X) = X\cdot G(F^*(X))\,.$
+
+    Its coefficient are given by
+    $\displaystyle[X^{i+1}](F^*) = \frac{[X^{i}](G^{i+1})}{i+1}\,.$
+  \end{PROP}
+  For catalan: $G(X) = (1 + X)^2$
   \begin{coqcode}
 Proposition FC_fixpoint_eq : FC - 1 = lagrfix ((1 + ''X) ^+ 2).
   \end{coqcode}
 \end{frame}
 
 \begin{frame}[fragile]{Holonomic computation}
-  \begin{DEFN}
-    A series $F$ is \emph{algebraic} if there exists polynomials
-    $(P_0, \dots, P_d)$ such that
-    \[P_0 + P_1 F + P_2 F^2 + \dots P_d F^d\,.\]
+  \begin{itemize}
+  \item $F$ is \emph{rational} if $F = \frac{N}{P}$ with $N, P$ polynomials.
+  \item $F$ is \emph{algebraic} if there exists polynomials
+    $(P_0, \dots, P_d)$ s.t.
+    \[P_0 + P_1 F + P_2 F^2 + \dots P_d F^d = 0\,.\]
 
-    A series $F$ is \emph{holonomic} if there exists polynomials
-    $(P_c, P_0, \dots, P_d)$ such that
-    \[P_C + P_0 F + P_1 F' + P_2 F'' + \dots P_d F^{(d)}\,.\]
-
-  \end{DEFN}
+  \item $F$ is \emph{holonomic} if there exists polynomials
+    $(P_c, P_0, \dots, P_d)$ s.t.
+    \[P_C + P_0 F + P_1 F' + P_2 F'' + \dots P_d F^{(d)} = 0\,.\]
+  \end{itemize}
   \begin{theorem}
-    algebraic implies holonomic.
+    \begin{center}
+      rational $\quad\to\quad$ algebraic $\quad\to\quad$ holonomic.
+    \end{center}
   \end{theorem}
 \end{frame}
 
@@ -1102,9 +1120,10 @@ Proposition FC_differential_eq n :     (* truncated series version *)
 
 Proposition FC_differential_eq :       (* infinite series version *)
   (1 - ''X *+ 2) * FC + (1 - ''X *+ 4) * ''X * FC^`() = 1.
-  \end{coqcode}
-  extracting the coefficients gives
-  the following recurrence which is the simplest possible
+\end{coqcode}
+\bigskip
+
+  Extracting the coefficients gives the simplest possible recurrence:
   \[(n+2) C_{n+1} = (4n + 2) C_{n}\,.\]
 \end{frame}
 
@@ -1114,8 +1133,9 @@ Proposition FC_differential_eq :       (* infinite series version *)
 
   \begin{itemize}
   \item Once we have the formalization of power series, using them is quite
-    simple (300 line for the three proofs), automation (eg: \texttt{ring}
-    tactic) can make it shorter;
+    simple (300 lines for the three proofs)
+  \item I strongly regret I didn't had them for Littlewood-Richardson !
+  \item Automation (eg: \texttt{ring} tactic) should make it even shorter;
   \item Much shorter that the bijective proofs (500 lines);
   \item Using truncated power series makes the proof only slightly longer (to
     deal with the degree bound), but the statement more complicated (degree
