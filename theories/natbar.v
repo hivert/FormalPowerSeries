@@ -12,6 +12,7 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+From HB Require Import structures.
 From mathcomp Require Import all_ssreflect.
 From mathcomp Require Import order.
 
@@ -43,12 +44,20 @@ Lemma opt_natbarK : cancel opt_natbar natbar_opt.
 Proof. by case. Qed.
 Lemma natbar_optK : cancel natbar_opt opt_natbar.
 Proof. by case. Qed.
+
+(* Q: Are the warning normal ? *)
+HB.instance Definition _ := Equality.copy natbar (can_type opt_natbarK).
+HB.instance Definition _ := Choice.copy natbar (can_type opt_natbarK).
+HB.instance Definition _ := Countable.copy natbar (can_type opt_natbarK).
+
+(*
 Definition natbar_eqMixin := CanEqMixin opt_natbarK.
 Canonical natbar_eqType := Eval hnf in EqType natbar natbar_eqMixin.
 Definition natbar_choiceMixin := CanChoiceMixin opt_natbarK.
 Canonical natbar_choiceType := Eval hnf in ChoiceType natbar natbar_choiceMixin.
 Definition natbar_countMixin := CanCountMixin opt_natbarK.
 Canonical natbar_countType := Eval hnf in CountType natbar natbar_countMixin.
+ *)
 
 Implicit Type (m n o p : nat).
 Implicit Type (u v w x y : natbar).
@@ -93,9 +102,14 @@ Qed.
 Lemma addbar_eqI u v : (addbar u v == Inf) = (u == Inf) || (v == Inf).
 Proof. by case: u v => [m|] [n|]. Qed.
 
+HB.instance Definition _ := Monoid.isLaw.Build
+                              natbar (Nat 0) addbar addbarA add0bar addbar0.
+HB.instance Definition _ := Monoid.isComLaw.Build
+                              natbar (Nat 0) addbar addbarA addbarC add0bar.
+(*
 Canonical natbar_monoid := Monoid.Law addbarA add0bar addbar0.
 Canonical natbar_comoid := Monoid.ComLaw addbarC.
-
+ *)
 
 (** Valuation ordering *)
 Definition lebar u v :=
@@ -104,11 +118,30 @@ Definition lebar u v :=
   | Nat m, Nat n => m <= n
   | _, _ => false
   end.
+(*
 Definition ltbar u v := (v != u) && (lebar u v).
 Definition meetbar x y := if ltbar x y then x else y.
 Definition joinbar x y := if ltbar x y then y else x.
+*)
 Definition lebar_display : unit. Proof. exact: tt. Qed.
 
+Lemma lebar_refl : reflexive lebar.
+Proof. by case=> [m|] /=. Qed.
+Lemma lebar_anti : antisymmetric lebar.
+Proof. by case=> [m|] [n|] //=; rewrite -eqn_leq => /eqP ->. Qed.
+Lemma lebar_trans : transitive lebar.
+Proof. by case=> [m|] [n|] [p|] //=; exact: leq_trans. Qed.
+Lemma total_lebar : total lebar.
+Proof. by case=> [m|] [n|] //=; exact: leq_total. Qed.
+
+HB.instance Definition _ :=
+    Order.Le_isPOrder.Build lebar_display natbar lebar_refl lebar_anti lebar_trans.
+HB.instance Definition _ :=
+    Order.POrder_isTotal.Build lebar_display natbar total_lebar.
+
+(* Q: Is program Definition supported by HB ? *)
+
+(*
 Program Definition natbar_OrderMixin :=
   @LeOrderMixin _ lebar ltbar meetbar joinbar _ _ _ _ _ _.
 Next Obligation. by case=> [m|] [n|] //=; rewrite -eqn_leq => /eqP ->. Qed.
@@ -123,10 +156,17 @@ Canonical natbar_distrLatticeType :=
   Eval hnf in DistrLatticeType natbar natbar_OrderMixin.
 Canonical natbar_orderType :=
   Eval hnf in OrderType natbar natbar_OrderMixin.
+ *)
 
 Lemma le0bar v : Nat 0 <= v. Proof. by case: v. Qed.
+
+HB.instance Definition _ :=
+  Order.hasBottom.Build lebar_display natbar le0bar.
+
+(*
 Canonical natbar_bLatticeType :=
   Eval hnf in BLatticeType natbar (BottomMixin le0bar).
+ *)
 
 Lemma leEnatbar (n m : nat) : (Nat n <= Nat m) = (n <= m)%N.
 Proof. by []. Qed.
@@ -139,10 +179,16 @@ Proof. exact: le_total. Qed.
 
 Lemma lebarI v : v <= Inf. Proof. by case v. Qed.
 
+HB.instance Definition _ :=
+  Order.hasTop.Build lebar_display natbar lebarI.
+
+(*
 Canonical natbar_tbDistrLatticeType :=
   Eval hnf in TBLatticeType natbar (TopMixin lebarI).
+ *)
 
-Lemma ltbar0Sn n : 0 < Nat n.+1.       Proof. by []. Qed.
+(* Used to Work without Nat before 0 *)
+Lemma ltbar0Sn n : Nat 0 < Nat n.+1.       Proof. by []. Qed.
 Lemma ltbarS n : Nat n < Nat n.+1.     Proof. by rewrite ltEnatbar. Qed.
 Lemma lebarS n : Nat n <= Nat n.+1.    Proof. by rewrite leEnatbar. Qed.
 Hint Resolve lebarS : core.
@@ -150,6 +196,8 @@ Lemma ltIbar v : Inf < v = false.      Proof. exact/le_gtF/lex1. Qed.
 Lemma leInatbar n : Inf <= Nat n = false.
 Proof. by []. Qed.
 
+
+(* Q: Anything particular to have a morphism here ? *)
 Lemma minbarE : {morph Nat : m n / minn m n >-> Order.meet m n}.
 Proof.
 move=> m n; case: (leqP m n) => [| /ltnW].
@@ -165,5 +213,4 @@ move=> m n; case: (leqP m n) => [| /ltnW].
 Qed.
 
 End NatBar.
-
 
