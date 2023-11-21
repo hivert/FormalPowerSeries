@@ -13,7 +13,6 @@
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
 From mathcomp Require Import all_ssreflect all_algebra.
-From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
 Require Import natbar.
@@ -112,6 +111,9 @@ Canonical nat_dirType := DirType nat (@lattice_dirMixin _ _).
 Canonical natdvd_dirType := DirType natdvd (@lattice_dirMixin _ _).
 
 
+(* Commented out since nee classical_sets and not needed anyway
+
+From mathcomp Require Import boolp classical_sets.
 Section UpSets.
 
 Variables (disp : unit) (I : dirType disp).
@@ -148,4 +150,4 @@ by have [_ ] := (H t Pt); apply; first apply: le_ij.
 Qed.
 
 End UpSets.
-
+*)
