@@ -40,8 +40,9 @@ Example C5 : C 5 = 42. Proof. by rewrite !Csimpl. Qed.
 
 Import GRing.Theory.
 
-Local Definition Rat := [fieldType of rat].
-Local Definition char_Rat := Num.Theory.char_num [numDomainType of Rat].
+Local Definition Rat := GRing.Field.clone _ rat.
+Local Definition Rat_numDomain := (Num.NumDomain.clone _ Rat).
+Local Definition char_Rat := Num.Theory.char_num Rat_numDomain.
 Local Definition nat_unit := nat_unit_field char_Rat.
 Local Definition fact_unit := fact_unit char_Rat.
 Hint Resolve char_Rat nat_unit : core.
@@ -110,7 +111,7 @@ have:= congr1 (fun x : {tfps _ _ } => x`_i.+1) (FC_algebraic_solution n).
 rewrite coef_tfpsXM Hi ![X in (X = _)]/= => ->.
 rewrite coefZ coefB coef1 sub0r -scaleNr coef_expr1cX ?{}Hi //.
 rewrite mulrN mulrA -mulNr; congr (_ / (i.+1)`!%:R).
-rewrite -[4]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
+rewrite -[4%N]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
 rewrite exprMn -mulrA.
 have -> : (1 *- 2)^+ i.+1 = \prod_(i0 < i.+1) (1 *- 2) :> rat.
   by rewrite prodr_const /= card_ord.
@@ -180,10 +181,10 @@ Proposition FC_fixpoint_eq n : (FC n.+1 - 1) = lagrfix ((1 + \X) ^+ 2).
 Proof.
 apply: (lagrfix_uniq (one_plusX_2_unit _)).
 rewrite {1}FC_algebraic_eq -addrA addrC subrK.
-rewrite rmorphX rmorphD /= comp_tfps1 comp_tfpsX //; first last.
+rewrite rmorphXn rmorphD /= comp_tfps1 comp_tfpsX //; first last.
   rewrite coeft0_eq0E coef_trXn coeftB coeft1.
   by rewrite coef_tfps_of_fun /= C0 subrr.
-rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
+rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphXn /=.
 apply/tfpsP => i le_in1.
 rewrite coef_tfpsXM coeft_tmulX coef_trXnt.
 by case: i le_in1.
@@ -192,7 +193,7 @@ Qed.
 Theorem CatM_Lagrange i : (i.+1 * (C i))%N = 'C(i.*2, i).
 Proof.
 case: i => [|i]; first by rewrite C0 mul1n bin0.
-apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
+apply/eqP; rewrite -(Num.Theory.eqr_nat Rat_numDomain); rewrite natrM.
 have:= congr1 (fun s : {tfps Rat i.+1} => s`_i.+1) (FC_fixpoint_eq i).
 rewrite coef_tfps coeftD coef_tfps_of_fun ltnSn.
 rewrite coeftN coeft1 subr0 /= => ->.
@@ -255,11 +256,11 @@ rewrite mul1r mulrnAl FalgN.
 rewrite !mulrnBl opprB addrA (mulr2n F) (opprD F) addrA.
 rewrite [_ - F]addrC 2!addrA [-F + _]addrC subrr add0r.
 rewrite !mulrBr mulr1 addrA addrC !addrA.
-rewrite opprB mulrBl mul1r mulr_natr -mulrnA -[(2 * 2)%N]/4.
+rewrite opprB mulrBl mul1r mulr_natr -mulrnA -[(2 * 2)%N]/4%N.
 rewrite [\X *+ 4 - 1 + _]addrC addrA subrK addrK.
 rewrite -addrA -mulNr -mulrDl.
 rewrite opprD [-1 + _]addrC addrA subrK -opprD mulNr.
-rewrite -[4]/(2 + 2)%N mulrnDr addrA.
+rewrite -[4%N]/(2 + 2)%N mulrnDr addrA.
 by rewrite [_ *- _ + _]addrC subrK.
 Qed.
 

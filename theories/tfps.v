@@ -3166,8 +3166,10 @@ Section ExprTfps.
 Variable f : {tfps R n}.
 Hypothesis f0_eq1 : f \in coeft0_eq1.
 
-Let log_coeft0_eq0Z c : c *: log f \in coeft0_eq0.
+
+Local Lemma log_coeft0_eq0Z c : c *: log f \in coeft0_eq0.
 Proof. by rewrite coeft0_eq0Z // log_in_coeft0_eq0. Qed.
+Let tmp_log_coeft0_eq0Z := log_coeft0_eq0Z.
 
 Lemma coeft0_eq1_expr c : f ^^ c \in coeft0_eq1.
 Proof. by rewrite /expr_tfps exp_in_coeft0_eq1. Qed.
