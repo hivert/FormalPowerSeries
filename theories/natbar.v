@@ -46,8 +46,6 @@ Lemma natbar_optK : cancel natbar_opt opt_natbar.
 Proof. by case. Qed.
 
 (* Q: Are the warning normal ? *)
-HB.instance Definition _ := Equality.copy natbar (can_type opt_natbarK).
-HB.instance Definition _ := Choice.copy natbar (can_type opt_natbarK).
 HB.instance Definition _ := Countable.copy natbar (can_type opt_natbarK).
 
 (*
@@ -102,8 +100,6 @@ Qed.
 Lemma addbar_eqI u v : (addbar u v == Inf) = (u == Inf) || (v == Inf).
 Proof. by case: u v => [m|] [n|]. Qed.
 
-HB.instance Definition _ := Monoid.isLaw.Build
-                              natbar (Nat 0) addbar addbarA add0bar addbar0.
 HB.instance Definition _ := Monoid.isComLaw.Build
                               natbar (Nat 0) addbar addbarA addbarC add0bar.
 (*
@@ -140,6 +136,9 @@ HB.instance Definition _ :=
     Order.POrder_isTotal.Build lebar_display natbar total_lebar.
 
 (* Q: Is program Definition supported by HB ? *)
+(* To get the list of proof obligations
+Check Order.Le_isPOrder.Build lebar_display natbar.
+*)
 
 (*
 Program Definition natbar_OrderMixin :=
