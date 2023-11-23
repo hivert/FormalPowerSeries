@@ -1120,7 +1120,8 @@ HB.instance Definition _ :=
 (* Q: why is this needed ??? *)
 HB.instance Definition _ :=
   GRing.Lalgebra_isComAlgebra.Build _ {tfps R n}.
-Check ([comAlgType R of {tfps R n}]).
+
+(* Check {tfps R n} : comAlgType R. *)
 
 Lemma hmul_tfpsC : commutative (@hmul_tfps R n).
 Proof. by move=> f1 f2; apply/tfpsP => i; rewrite !coef_poly mulrC. Qed.
@@ -1133,15 +1134,16 @@ Section TFPSComUnitRing.
 Variable (R : comUnitRingType) (n : nat).
 Implicit Types (f g : {tfps R n}).
 
-Check {tfps R n} : unitRingType.
+(* Check {tfps R n} : unitRingType.
 Check {tfps R n} : comRingType.
-Check {tfps R n} : comAlgType R.
+Check {tfps R n} : comAlgType R. *)
 
-(* Rebuilt the various instances on a comUnitRingType base ring *)
+(* Rebuilt the various instances on a comUnitRingType base ring. *)
+(* Needed e.g. for the two instances below.                      *)
 HB.instance Definition _ := GRing.ComRing.on {tfps R n}.
 
-Check {tfps R n} : comUnitRingType.
-Check {tfps R n} : comUnitAlgType R.
+(* Check {tfps R n} : comUnitRingType.
+Check {tfps R n} : comUnitAlgType R. *)
 
 End TFPSComUnitRing.
 
@@ -1267,7 +1269,7 @@ Lemma map_poly_idfun (R : ringType) : map_poly (@idfun R) =1 @idfun {poly R}.
 Proof. exact: coefK. Qed.
 
 Lemma map_tfps_idfun (K : fieldType) (m : nat) :
-  map_tfps [rmorphism of (@idfun K)] =1 @idfun {tfps K m}.
+  map_tfps (GRing.RMorphism.clone _ _ _ (@idfun K)) =1 @idfun {tfps K m}.
 Proof.
 move=> f; apply/tfpsP => i le_in /=.
 by rewrite coef_tfpsE /= map_poly_idfun.
