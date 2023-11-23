@@ -3,6 +3,8 @@
 -arg -notation-overridden
 -arg -w
 -arg -ambiguous-paths
+-arg -w
+-arg -redundant-canonical-projection
 theories/directed.v
 theories/invlim.v
 theories/natbar.v
