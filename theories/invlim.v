@@ -476,8 +476,7 @@ End UniversalProperty.
 End LAlgInvLimTheory.
 
 (* TODO : What about comRingType, comAlgType, unitRingType, ... ??? *)
-
-
+(* Not needed unless particular theory need interface           ??? *)
 
 (************************ STOPPED HERE ***************************)
 
@@ -514,12 +513,18 @@ Fact iladdP x y : isthread Sys (fun i => 'pi_i x + 'pi_i y).
 Proof. by move=> i j Hij; rewrite raddfD (ilprojE x) (ilprojE y). Qed.
 Definition iladd x y : TLim := ilthr (iladdP x y).
 
-Program Definition invlim_zmodMixin of phant TLim :=
-  @ZmodMixin TLim ilzero ilopp iladd _ _ _ _.
-Next Obligation. by move=> a b c; apply invlimE=> i; rewrite !ilthrP addrA. Qed.
-Next Obligation. by move=> a b; apply invlimE=> i; rewrite !ilthrP addrC. Qed.
-Next Obligation. by move=> b; apply invlimE=> i; rewrite !ilthrP add0r. Qed.
-Next Obligation. by move=> b; apply invlimE=> i; rewrite !ilthrP addNr. Qed.
+Fact iladdA : associative iladd.
+Proof.  by move=> a b c; apply invlimE=> i; rewrite !ilthrP addrA. Qed.
+Fact iladdC : commutative iladd.
+Proof. by move=> a b; apply invlimE=> i; rewrite !ilthrP addrC. Qed.
+Fact iladd0r : left_id ilzero iladd.
+Proof. by move=> b; apply invlimE=> i; rewrite !ilthrP add0r. Qed.
+Fact iladdNr : left_inverse ilzero ilopp iladd.
+Proof. by move=> b; apply invlimE=> i; rewrite !ilthrP addNr. Qed.
+
+HB.instance Definition _ :=
+    GRing.isZmodule.Build TLim iladdA iladdC iladd0r iladdNr.
+
 
 (* Not global canonical but accessible by [zmodMixin of ... by <-] *)
 (* A mettre dans un module pour avoir le canonical local *)
