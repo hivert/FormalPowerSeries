@@ -93,13 +93,13 @@ HB.mixin Record isInvLim
     (bonding : forall i j, i <= j -> Obj j -> Obj i)
     (Sys : invsys bonding)
   TLim of Choice TLim := {
-  invlim_proj : forall i, TLim -> Obj i;
-  invlim_ind  : forall (T : Type) (f : forall i, T -> Obj i),
+    invlim_proj : forall i, TLim -> Obj i;
+    invlim_ind  : forall (T : Type) (f : forall i, T -> Obj i),
       (cone Sys f) -> T -> TLim;
-  ilprojP : cone Sys invlim_proj;
-  ilind_commute : forall T (f : forall i, T -> Obj i) (Hcone : cone Sys f),
+    ilprojP : cone Sys invlim_proj;
+    ilind_commute : forall T (f : forall i, T -> Obj i) (Hcone : cone Sys f),
       forall i, invlim_proj i \o invlim_ind _ _ Hcone =1 f i;
-  ilind_uniq : forall T (f : forall i, T -> Obj i) (Hcone : cone Sys f),
+    ilind_uniq : forall T (f : forall i, T -> Obj i) (Hcone : cone Sys f),
       forall (ind : T -> TLim),
         (forall i, invlim_proj i \o ind =1 f i) ->
         ind =1 invlim_ind _ _ Hcone
@@ -111,7 +111,10 @@ HB.structure Definition InvLim
     (Obj : I -> Type)
     (bonding : forall i j, i <= j -> Obj j -> Obj i)
     (Sys : invsys bonding)
-  := {TLim of isInvLim disp I Obj bonding Sys TLim & Choice TLim}.
+  := {
+    TLim of isInvLim disp I Obj bonding Sys TLim
+    & Choice TLim
+  }.
 
 
 
@@ -254,9 +257,9 @@ HB.mixin Record isZmoduleInvLim
     (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
     (Sys : invsys bonding)
     (TLim : Type) of InvLim disp Sys TLim & Zmodule TLim := {
-    ilproj_is_additive :
-       forall i, additive ('pi[TLim]_i)
-    }.
+  ilproj_is_additive :
+    forall i, additive ('pi[TLim]_i)
+  }.
 
 #[short(type="zmodInvLimType")]
 HB.structure Definition ZmodInvLim
@@ -264,9 +267,13 @@ HB.structure Definition ZmodInvLim
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
     (Sys : invsys bonding)
-  := {TLim of InvLim disp Sys TLim
-      & isZmoduleInvLim disp I Obj bonding Sys TLim
-      & Zmodule TLim}.
+  := {
+    TLim of InvLim disp Sys TLim
+    & isZmoduleInvLim disp I Obj bonding Sys TLim
+    & Zmodule TLim
+  }.
+
+About InvLim.
 
 Section ZmodInvLimTheory.
 
@@ -309,9 +316,9 @@ HB.mixin Record isRingInvLim
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
     (Sys : invsys bonding)
     (TLim : Type) of InvLim disp Sys TLim & Ring TLim := {
-    ilproj_is_multiplicative :
-       forall i, multiplicative ('pi[TLim]_i)
-    }.
+  ilproj_is_multiplicative :
+    forall i, multiplicative ('pi[TLim]_i)
+  }.
 
 #[short(type="ringInvLimType")]
 HB.structure Definition RingInvLim
@@ -319,9 +326,11 @@ HB.structure Definition RingInvLim
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
     (Sys : invsys bonding)
-  := {TLim of ZmodInvLim disp Sys TLim
-      & isRingInvLim disp I Obj bonding Sys TLim
-      & Ring TLim}.
+  := {
+    TLim of ZmodInvLim disp Sys TLim
+    & isRingInvLim disp I Obj bonding Sys TLim
+    & Ring TLim
+  }.
 
 Section RingInvLimTheory.
 
@@ -357,185 +366,42 @@ Proof. by move/invlimPn=> [i]; rewrite rmorph1 => Hi; exists i. Qed.
 End RingInvLimTheory.
 
 
-Section ClassDef.
-
-Variables (disp : Datatypes.unit) (I : porderType disp).
-Variable Obj : I -> comRingType.
-Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-
-(* Stopped here !!!! *)
-
-Set Primitive Projections.
-Record class_of (T : Type) : Type := Class {
-  base  : RingInvLim.class_of Sys T;
-  mixin : commutative (Ring.mul base)
-}.
-Unset Primitive Projections.
-
-Definition base2 M (c : class_of M) := ComRing.Class (@mixin M c).
-Local Coercion base : class_of >-> RingInvLim.class_of.
-Local Coercion base2 : class_of >-> ComRing.class_of.
-
-Structure type := Pack {sort; _ : class_of sort}.
-Local Coercion sort : type >-> Sortclass.
-Variables (T : Type) (cT : type).
-Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
-Definition clone c of phant_id class c := @Pack T c.
-
-Definition pack :=
-  fun bT b & phant_id (RingInvLim.class (Sys := Sys) bT) b =>
-  fun rT r & phant_id (ComRing.mixin (ComRing.class rT)) r =>
-    Pack (@Class T b r).
-
-Definition eqType := @Equality.Pack cT class.
-Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @Zmodule.Pack cT class.
-Definition ringType := @Ring.Pack cT class.
-Definition comRingType := @ComRing.Pack cT class.
-Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
-Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
-Definition ringInvlimType := @RingInvLim.Pack _ _ _ _ _ cT class.
-
-Definition comring_invlimType := @ComRing.Pack invlimType class.
-Definition comring_zmodInvlimType := @ComRing.Pack zmodInvlimType class.
-Definition comring_ringInvlimType := @ComRing.Pack ringInvlimType class.
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >->  RingInvLim.class_of.
-Coercion base2 : class_of >-> ComRing.class_of.
-Coercion mixin : class_of >-> commutative.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical zmodType.
-Coercion ringType : type >-> Ring.type.
-Canonical ringType.
-Coercion comRingType : type >-> ComRing.type.
-Canonical comRingType.
-
-Coercion invlimType : type >-> InvLim.type.
-Canonical invlimType.
-Coercion zmodInvlimType : type >-> ZmodInvLim.type.
-Canonical zmodInvlimType.
-Coercion ringInvlimType : type >-> RingInvLim.type.
-Canonical ringInvlimType.
-
-(*
-Canonical comring_invlimType.
-Canonical comring_zmodInvlimType.
-Canonical comring_ringInvlimType.
- *)
-
-Notation comRingInvLimType := type.
-Notation ComRingInvLimType T := (@pack _ _ _ _ _ T _ _ id _ _ id).
-Notation "[ 'comRingInvLimType' 'of' T 'for' cT ]" :=
-  (@clone _ _ _ _ _ T cT _ idfun)
-  (at level 0, format "[ 'comRingInvLimType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'comRingInvLimType' 'of' T ]" :=
-  (@clone _ _ _ _ _ T _ _ id)
-  (at level 0, format "[ 'comRingInvLimType'  'of'  T ]") : form_scope.
-
-End Exports.
-End ComRingInvLim.
-Export ComRingInvLim.Exports.
+#[short(type="comRingInvLimType")]
+HB.structure Definition ComRingInvLim
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> comRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : invsys bonding)
+  := {
+    TLim of ComRing TLim
+    & RingInvLim disp Sys TLim
+  }.
 
 
-Module LmodInvLim.
-Section ClassDef.
+#[key="TLim"]
+  HB.mixin Record isLmodInvLim
+    (R : ringType)
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> lmodType R)
+    (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
+    (Sys : invsys bonding)
+    (TLim : Type) of InvLim disp Sys TLim & Lmodule R TLim := {
+  ilproj_is_linear :
+    forall i, linear ('pi[TLim]_i)
+  }.
 
-Variable R : ringType.
-
-Variables (disp : Datatypes.unit) (I : porderType disp).
-Variable Obj : I -> lmodType R.
-Variable bonding : forall i j, i <= j -> {linear Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-
-Record mixin_of (T : lmodType R) (mixin : InvLim.mixin_of Sys T) := Mixin {
-  _ : forall i, linear (InvLim.invlim_proj mixin i : T -> Obj i)
-}.
-
-Set Primitive Projections.
-Record class_of (T : Type) : Type := Class {
-  base  : Lmodule.class_of R T;
-  mixin : InvLim.mixin_of Sys (Lmodule.Pack (Phant R) base);
-  compadd : ZmodInvLim.mixin_of mixin;
-  compscal : mixin_of mixin;
-}.
-Unset Primitive Projections.
-
-Definition base2 M (c : class_of M) := ZmodInvLim.Class (compadd c).
-Local Coercion base : class_of >-> Lmodule.class_of.
-Local Coercion base2 : class_of >-> ZmodInvLim.class_of.
-Local Coercion mixin : class_of >-> InvLim.mixin_of.
-
-Structure type := Pack {sort; _ : class_of sort}.
-Local Coercion sort : type >-> Sortclass.
-Variables (T : Type) (cT : type).
-Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
-Definition clone c of phant_id class c := @Pack T c.
-
-Definition pack :=
-  fun bT b & phant_id (Lmodule.class (phR := Phant R) bT) b =>
-  fun rT r & phant_id (InvLim.mixin (InvLim.class (Sys := Sys) rT)) r =>
-  fun zT z & phant_id (ZmodInvLim.compadd (ZmodInvLim.class (Sys := Sys) zT)) z =>
-      fun m => Pack (@Class T b r z m).
-
-Definition eqType := @Equality.Pack cT class.
-Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @Zmodule.Pack cT class.
-Definition lmodType := @Lmodule.Pack R (Phant R) cT class.
-
-Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
-Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
-
-Definition lmod_invlimType :=
-  @Lmodule.Pack R (Phant R) invlimType class.
-Definition lmod_zmodInvlimType :=
-  @Lmodule.Pack R (Phant R) zmodInvlimType class.
-(* TODO more join *)
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> Lmodule.class_of.
-Coercion base2 : class_of >-> ZmodInvLim.class_of.
-Coercion mixin : class_of >-> InvLim.mixin_of.
-Coercion compadd : class_of >-> ZmodInvLim.mixin_of.
-Coercion compscal : class_of >-> mixin_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical zmodType.
-Coercion lmodType : type >-> Lmodule.type.
-Canonical lmodType.
-
-Coercion invlimType : type >-> InvLim.type.
-Canonical invlimType.
-Coercion zmodInvlimType : type >-> ZmodInvLim.type.
-Canonical zmodInvlimType.
-
-Notation lmodInvLimType := type.
-Notation LmodInvLimType R T m := (@pack R _ _ _ _ _ T _ _ id _ _ id _ _ id m).
-Notation LmodInvLimMixin := Mixin.
-Notation "[ 'lmodInvLimType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
-  (at level 0, format "[ 'lmodInvLimType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'lmodInvLimType' 'of' T ]" := (@clone T _ _ id)
-  (at level 0, format "[ 'lmodInvLimType'  'of'  T ]") : form_scope.
-End Exports.
-
-End LmodInvLim.
-Export LmodInvLim.Exports.
+#[short(type="lmodInvLimType")]
+HB.structure Definition LmodInvLim
+    (R : ringType)
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> lmodType R)
+    (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
+    (Sys : invsys bonding)
+  := {
+    TLim of ZmodInvLim _ Sys TLim
+    & isLmodInvLim R disp I Obj bonding Sys TLim
+    & Lmodule R TLim
+  }.
 
 
 Section LmodInvLimTheory.
@@ -548,9 +414,8 @@ Variable Sys : invsys bonding.
 
 Variable TLim : lmodInvLimType Sys.
 
-Fact ilproj_is_linear i : linear ('pi_i : TLim -> Obj i).
-Proof. by case: TLim => T [b m c [lin]]; rewrite /pi_phant. Qed.
-Canonical ilproj_linear i := AddLinear (ilproj_is_linear i).
+HB.instance Definition _ i :=
+  isLinear.Build R TLim (Obj i) _ _ (ilproj_is_linear i).
 
 (** The universal induced map is a Z-module morphism *)
 Section UniversalProperty.
@@ -563,114 +428,26 @@ Proof.
 move=> t u v; apply invlimE => i.
 by rewrite !raddfD /= !piindE !linearZ /= piindE.
 Qed.
-Canonical ilind_linear := AddLinear ilind_is_linear.
+HB.instance Definition _ :=
+  isLinear.Build R T TLim _ _ (ilind_is_linear).
 
 End UniversalProperty.
 End LmodInvLimTheory.
 
 
-Module LalgInvLim.
-Section ClassDef.
+#[short(type="lalgInvLimType")]
+HB.structure Definition LalgebraInvLim
+    (R : ringType)
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> lalgType R)
+    (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
+    (Sys : invsys bonding)
+  := {
+    TLim of Lalgebra R TLim
+    & RingInvLim disp Sys TLim
+    & LmodInvLim _ Sys TLim
+  }.
 
-Variables (R : ringType).
-Variables (disp : Datatypes.unit) (I : porderType disp).
-Variable Obj : I -> lalgType R.
-Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-
-Set Primitive Projections.
-Record class_of (T : Type) : Type := Class {
-  base  : Lalgebra.class_of R T;
-  mixin : InvLim.mixin_of Sys (Lalgebra.Pack (Phant R) base);
-  compadd : ZmodInvLim.mixin_of mixin;
-  compscal : LmodInvLim.mixin_of mixin;
-  compmul : RingInvLim.mixin_of mixin;
-}.
-Unset Primitive Projections.
-
-Definition base2 M (c : class_of M) := RingInvLim.Class (compadd c) (compmul c).
-Definition base3 M (c : class_of M) :=
-  LmodInvLim.Class (base := base c) (compadd c) (compscal c).
-
-Local Coercion base : class_of >-> Lalgebra.class_of.
-Local Coercion base2 : class_of >-> RingInvLim.class_of.
-Local Coercion base3 : class_of >-> LmodInvLim.class_of.
-Local Coercion mixin : class_of >-> InvLim.mixin_of.
-
-Structure type := Pack {sort; _ : class_of sort}.
-Local Coercion sort : type >-> Sortclass.
-Variables (T : Type) (cT : type).
-Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
-Definition clone c of phant_id class c := @Pack T c.
-
-Definition pack :=
-  fun bT b & phant_id (Lalgebra.class (phR := Phant R) bT) b =>
-  fun ilT il & phant_id (InvLim.mixin (InvLim.class (Sys := Sys) ilT)) il =>
-  fun zT z & phant_id (ZmodInvLim.compadd (ZmodInvLim.class (Sys := Sys) zT)) z =>
-  fun lT l & phant_id (LmodInvLim.compscal (LmodInvLim.class (Sys := Sys) lT)) l =>
-  fun mT m & phant_id (RingInvLim.compmul (RingInvLim.class (Sys := Sys) mT)) m =>
-      Pack (@Class T b il z l m).
-
-Definition eqType := @Equality.Pack cT class.
-Definition choiceType := @Choice.Pack cT class.
-Definition zmodType := @Zmodule.Pack cT class.
-Definition ringType := @Ring.Pack cT class.
-Definition lmodType := @Lmodule.Pack R (Phant R) cT class.
-Definition lalgType := @Lalgebra.Pack R (Phant R) cT class.
-
-Definition invlimType := @InvLim.Pack _ _ _ _ _ cT class.
-Definition zmodInvlimType := @ZmodInvLim.Pack _ _ _ _ _ cT class.
-Definition ringInvlimType := @RingInvLim.Pack _ _ _ _ _ cT class.
-Definition lmodInvlimType := @LmodInvLim.Pack R _ _ _ _ _ cT class.
-
-Definition lalg_invlimType := @Lalgebra.Pack R (Phant R) invlimType class.
-(* TODO more join *)
-
-End ClassDef.
-
-Module Exports.
-Coercion base : class_of >-> Lalgebra.class_of.
-Coercion base2 : class_of >-> RingInvLim.class_of.
-Coercion base3 : class_of >-> LmodInvLim.class_of.
-Coercion mixin : class_of >-> InvLim.mixin_of.
-Coercion compadd : class_of >-> ZmodInvLim.mixin_of.
-Coercion compscal : class_of >-> LmodInvLim.mixin_of.
-Coercion  compmul : class_of >-> RingInvLim.mixin_of.
-Coercion sort : type >-> Sortclass.
-Bind Scope ring_scope with sort.
-Coercion eqType : type >-> Equality.type.
-Canonical eqType.
-Coercion choiceType : type >-> Choice.type.
-Canonical choiceType.
-Coercion zmodType : type >-> Zmodule.type.
-Canonical zmodType.
-Coercion ringType : type >-> Ring.type.
-Canonical ringType.
-Coercion lmodType : type >-> Lmodule.type.
-Canonical lmodType.
-Coercion lalgType : type >-> Lalgebra.type.
-Canonical lalgType.
-
-Coercion invlimType : type >-> InvLim.type.
-Canonical invlimType.
-Coercion zmodInvlimType : type >-> ZmodInvLim.type.
-Canonical zmodInvlimType.
-Coercion ringInvlimType : type >-> RingInvLim.type.
-Canonical ringInvlimType.
-Coercion lmodInvlimType : type >-> LmodInvLim.type.
-Canonical lmodInvlimType.
-
-Notation lalgInvLimType := type.
-Notation LalgInvLimType R T :=
-  (@pack R _ _ _ _ _ T _ _ id _ _ id _ _ id _ _ id _ _ id).
-Notation "[ 'lalgInvLimType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
-  (at level 0, format "[ 'lalgInvLimType'  'of'  T  'for'  cT ]") : form_scope.
-Notation "[ 'lalgInvLimType' 'of' T ]" := (@clone T _ _ id)
-  (at level 0, format "[ 'lalgInvLimType'  'of'  T ]") : form_scope.
-End Exports.
-
-End LalgInvLim.
-Export LalgInvLim.Exports.
 
 Section LAlgInvLimTheory.
 
@@ -681,16 +458,30 @@ Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
 
 Variable TLim : lalgInvLimType Sys.
-Canonical ilproj_lrmorphism i := [lrmorphism of 'pi[TLim]_i].
+
+(* Rebuilt the various instances on a lalgtype. *)
+HB.instance Definition _ i := Linear.on 'pi[TLim]_i.
+(* Check fun i => 'pi[TLim]_i : {lrmorphism TLim -> Obj i}. *)
 
 Section UniversalProperty.
 
 Variable (T : lalgType R) (f : forall i, {lrmorphism T -> Obj i}).
 Hypothesis Hcone : cone Sys f.
-Canonical ilind_lrmorphism := [lrmorphism of 'ind[TLim] Hcone].
+
+(* Rebuild the various instances on a lalgtype. *)
+HB.instance Definition _ i := Linear.on ('ind[TLim] Hcone).
+(* Check 'ind[TLim] Hcone : {lrmorphism T -> TLim}. *)
 
 End UniversalProperty.
 End LAlgInvLimTheory.
+
+(* TODO : What about comRingType, comAlgType, unitRingType, ... ??? *)
+
+
+
+(************************ STOPPED HERE ***************************)
+
+
 
 
 (****************************************************************************)
