@@ -490,6 +490,8 @@ End LAlgInvLimTheory.
 (** in mathcomp.                                                            *)
 (****************************************************************************)
 
+
+
 Module InvLimitZmod.
 Section InvLimitZmod.
 
@@ -522,14 +524,29 @@ Proof. by move=> b; apply invlimE=> i; rewrite !ilthrP add0r. Qed.
 Fact iladdNr : left_inverse ilzero ilopp iladd.
 Proof. by move=> b; apply invlimE=> i; rewrite !ilthrP addNr. Qed.
 
+#[non_forgetful_inheritance]
 HB.instance Definition _ :=
-    GRing.isZmodule.Build TLim iladdA iladdC iladd0r iladdNr.
+    isZmodule.Build TLim iladdA iladdC iladd0r iladdNr.
+
+Check [zmodType of TLim].
+
+Check Zmodule.clone TLim _ _.
+
+Check (isZmoduleInvLim.Build disp I Obj bonding Sys _ _).
+
+Fact invlim ilproj_is_additive i : additive ('pi[TLim]_i).
+
+Proof.
+move=> /= x y /=.  (* Coq needs help tofind where to rewrite ilthrP *)
+by rewrite [LHS]ilthrP [X in _ + X]ilthrP.
+Qed.
+
+End InvLimitZmod.
+End InvLimitZmod.
 
 
 (* Not global canonical but accessible by [zmodMixin of ... by <-] *)
 (* A mettre dans un module pour avoir le canonical local *)
-Local Canonical invlim_zmodType :=
-  Eval hnf in ZmodType TLim (invlim_zmodMixin (Phant TLim)).
 
 Program Definition invlim_zmodInvLimMixin of (phant TLim) :=
   ZmodInvLimMixin (mixin := InvLim.class TLim) _.
