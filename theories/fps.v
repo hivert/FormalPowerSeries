@@ -13,6 +13,7 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
@@ -45,10 +46,16 @@ Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
 Reserved Notation "f \oS g" (at level 50).
 
 
+
+(* I'd rather not add a coercion here ! It is redundant with the
+   notation p``_i which is very confusing *)
+Record fpseries (R : ringType) := FPSeries { seriesfun : nat -> R }.
+Notation "{ 'fps' R }" := {classic (fpseries R)}.
+
+
 Section Defs.
 
 Variable R : ringType.
-
 
 Fact fps_bond_key : unit. Proof. by []. Qed.
 Definition fps_bond :=
@@ -62,21 +69,22 @@ Variables (i j : nat) (le_ij : (i <= j)%O).
 Lemma fps_bondE f : fps_bond le_ij f = trXnt i f.
 Proof. by rewrite unlock. Qed.
 
-Lemma bond_is_rmorphism : rmorphism (fps_bond le_ij).
-Proof.
-rewrite unlock; split; first exact: trXnt_is_linear.
-by apply trXnt_is_multiplicative; rewrite -leEnat.
-Qed.
-Canonical bond_additive  := Eval hnf in Additive bond_is_rmorphism.
-Canonical bond_rmorphism := Eval hnf in RMorphism bond_is_rmorphism.
+Fact bond_is_additive : additive (fps_bond le_ij).
+Proof. by rewrite unlock => x y; rewrite raddfB. Qed.
+HB.instance Definition _ :=
+  GRing.isAdditive.Build {tfps R j} {tfps R i} _ bond_is_additive.
 
-Lemma bond_is_linear : linear (fps_bond le_ij).
+Fact bond_is_multiplicative : multiplicative (fps_bond le_ij).
+Proof. by rewrite unlock; exact: trXnt_is_multiplicative. Qed.
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build {tfps R j} {tfps R i} _ bond_is_multiplicative.
+
+Fact bond_is_linear : linear (fps_bond le_ij).
 Proof. by rewrite unlock; exact: trXnt_is_linear. Qed.
-Canonical bond_linear     := Eval hnf in AddLinear bond_is_linear.
-Canonical bond_lrmorphism := Eval hnf in [lrmorphism of (fps_bond le_ij)].
+HB.instance Definition _ :=
+  GRing.isLinear.Build R {tfps R j} {tfps R i} _ _ bond_is_linear.
 
 End Canonical.
-
 
 Program Definition fps_invsys :=
   InvSys (bonding := fun (i j : nat) (le_ij : (i <= j)%O) => fps_bond le_ij)
@@ -87,30 +95,16 @@ by move=> f /=; rewrite unlock; apply: trXnt_trXnt; rewrite -leEnat.
 Qed.
 
 
-(* I'd rather not add a coercion here ! It is redundant with the
-   notation p``_i which is very confusing *)
-Record fpseries := FPSeries { seriesfun : nat -> R }.
-
-Canonical fpseries_eqType := Eval hnf in EqType fpseries gen_eqMixin.
-Canonical fpseries_choiceType :=
-  Eval hnf in ChoiceType fpseries gen_choiceMixin.
-
-Lemma seriesfun_inj : injective seriesfun.
+Lemma seriesfun_inj : injective (@seriesfun R).
 Proof. by move=> [f1] [f2] /= ->. Qed.
 
-Definition fpseries_of of phant R := fpseries.
-Identity Coercion type_fpseries_of : fpseries_of >-> fpseries.
 
-Definition coef_series_def (s : fpseries_of (Phant R)) i := seriesfun s i.
+Definition coef_series_def s i := @seriesfun R s i.
 Fact coef_series_key : unit. Proof. by []. Qed.
 Definition coef_series := locked_with coef_series_key coef_series_def.
 Canonical coef_series_unlockable :=
   Eval hnf in [unlockable fun coef_series].
-Definition coefps_head h i (s : fpseries_of (Phant R)) :=
-  let: tt := h in coef_series s i.
 
-Local Notation "{ 'fps' R }" := (fpseries_of (Phant R)).
-Local Notation coefs i := (coefps_head tt i).
 Local Notation "s ``_ i" := (coef_series s i).
 
 Lemma coefs_FPSeries (f : nat -> R) i : (FPSeries f)``_i = f i.
@@ -159,14 +153,14 @@ Qed.
 
 End UniversalProperty.
 
-(** Putting fps_bond below break inference for further canonical structures *)
-Program Definition fps_invlimMixin :=
-  @InvLimMixin _ _ _ _ (*fps_bond*) fps_invsys {fps R} fpsproj fpsind _ _ _.
-Next Obligation. by move=> i j le_ij x; apply: fpsprojP. Qed.
-Next Obligation. by move=> x /=; rewrite fpsindP. Qed.
-Next Obligation. by move=> x; apply: (fpsindE Hcone). Qed.
-Canonical fps_invlimType :=
-  Eval hnf in InvLimType {fps R} fps_invlimMixin.
+HB.instance Definition _ :=
+  isInvLim.Build _ _ _ _ fps_invsys {fps R} fpsprojP fpsindP fpsindE.
+
+Check {fps R} : invLimType fps_invsys.
+
+HB.instance Definition _ :=
+  InvLim_isLalgInvLim.Build R _ _ _ _ fps_invsys fps.
+
 
 Canonical fps_zmodType :=
   Eval hnf in ZmodType {fps R} [zmodMixin of {fps R} by <-].
