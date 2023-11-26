@@ -1355,8 +1355,7 @@ transitivity ('pi_i (\big[op/idx]_(c <- S | c \in ilopand Hop i) F c));
     rewrite {}/Inv; elim: {1}(enum_fset S) => [| s0 s IHs].
       by rewrite  big_nil => s; rewrite Monoid.mul1m.
     rewrite big_cons.
-    case asboolP; rewrite {1}/invar => H s1 //; rewrite -Monoid.mulmA H.
-    admit.
+    by case asboolP; rewrite {1}/invar => H s1 //; rewrite -Monoid.mulmA H IHs.
   congr 'pi_i; apply: eq_big => x //.
   by apply/negb_inj; rewrite negbK; apply/ilopandP/asboolP.
 rewrite ilthrP; congr 'pi_i.
@@ -1382,7 +1381,10 @@ Variable (C : choiceType).
 Implicit Type F : C -> TLim.
 Implicit Types (s x y z t : TLim).
 
-Local Notation add_law := (add_comoid [zmodType of TLim]).
+Check TLim : nmodType.
+
+Let add_law : Monoid.com_law 0 := (+%R : TLim -> TLim -> TLim).
+(* Let add_law := [the Monoid.com_law of TLim]. *)
 
 Definition is_summable F := is_ilopable add_law F.
 Definition summand F (sm : is_summable F) := ilopand sm.
@@ -1442,7 +1444,7 @@ Variable (C : choiceType).
 Implicit Type F : C -> TLim.
 Implicit Types (s x y z t : TLim).
 
-Local Notation mul_law := (mul_comoid [comRingType of TLim]).
+Let mul_law : Monoid.com_law 1 := ( *%R : TLim -> TLim -> TLim).
 
 Definition is_prodable F := is_ilopable mul_law F.
 Definition prodand F (sm : is_prodable F) := ilopand sm.
