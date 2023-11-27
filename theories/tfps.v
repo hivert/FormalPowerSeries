@@ -1301,7 +1301,7 @@ Fact coeft0_eq0_key : pred_key coeft0_eq0. Proof. by []. Qed.
 Canonical coeft0_eq0_keyed := Eval hnf in KeyedPred coeft0_eq0_key.
 HB.instance Definition _ := isIdealr.Build {tfps R n} coeft0_eq0 coeft0_eq0_idealr.
 
-(*
+(* TODO
 Definition coeft0_eq0_ntideal := idealr_closed_nontrivial coeft0_eq0_idealr.
 Canonical coeft0_eq0_ideal :=
   Eval hnf in MkIdeal coeft0_eq0_zmodPred coeft0_eq0_ntideal.

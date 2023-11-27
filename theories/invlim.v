@@ -377,6 +377,51 @@ HB.structure Definition ComRingInvLim
     & RingInvLim disp Sys TLim
   }.
 
+#[short(type="unitRingInvLimType")]
+HB.structure Definition UnitRingInvLim
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> unitRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : invsys bonding)
+  := {
+    TLim of UnitRing TLim
+    & RingInvLim disp Sys TLim
+  }.
+
+Section InvLimUnitRingTheory.
+
+Variables
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> unitRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : invsys bonding).
+Variable TLim : unitRingInvLimType Sys.
+
+Lemma ilunitP (x : TLim) :
+  reflect (forall i, 'pi_i x \is a unit) (x \is a unit).
+Proof.
+apply (iffP idP) => [xunit i | H]; first exact: rmorph_unit.
+have invthr : isthread Sys (fun i => ('pi_i x)^-1).
+  by move=> i j ilej; rewrite /= rmorphV ?(ilprojE x) // H.
+apply/unitrP; exists (ilthr invthr).
+split; apply: invlimE => i; rewrite rmorph1 rmorphM /= ilthrP.
+- exact: (mulVr (H i)).
+- exact: (mulrV (H i)).
+Qed.
+
+End  InvLimUnitRingTheory.
+
+
+#[short(type="comUnitRingInvLimType")]
+HB.structure Definition ComUnitRingInvLim
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> comUnitRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : invsys bonding)
+  := {
+    TLim of ComUnitRing TLim
+    & RingInvLim disp Sys TLim
+  }.
 
 #[key="TLim"]
   HB.mixin Record isLmodInvLim
@@ -538,7 +583,6 @@ HB.instance Definition _ :=
 HB.end.
 
 
-
 HB.factory Record InvLim_isRingInvLim
     (disp : Datatypes.unit) (I : porderType disp)
     (Obj : I -> ringType)
@@ -618,6 +662,7 @@ HB.instance Definition _ :=
 HB.end.
 
 
+
 HB.factory Record InvLim_isUnitRingInvLim
     (disp : Datatypes.unit) (I : porderType disp)
     (Obj : I -> unitRingType)
@@ -674,10 +719,6 @@ Qed.
 HB.instance Definition _ :=
   GRing.Ring_hasMulInverse.Build TLim
     ilmulVr ilmulrV ilunit_impl ilinv0id.
-
-Lemma ilunitP x :
-  reflect (forall i, 'pi_i x \is a unit) (x \is a unit).
-Proof. exact: asboolP. Qed.
 
 HB.end.
 
@@ -894,9 +935,12 @@ Record invlim := MkInvLim {
                    }.
 
 HB.instance Definition _ := [isSub for invlimthr].
+HB.instance Definition _ := gen_eqMixin invlim.
+HB.instance Definition _ := gen_choiceMixin invlim.
 
 End Implem.
-Notation "{ 'invlim' S }" := {classic (invlim S)}.
+
+Notation "{ 'invlim' S }" := (invlim S).
 
 
 
