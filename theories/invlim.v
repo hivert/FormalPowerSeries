@@ -1425,8 +1425,6 @@ Variable (C : choiceType).
 Implicit Type F : C -> TLim.
 Implicit Types (s x y z t : TLim).
 
-Check TLim : nmodType.
-
 Let add_law : Monoid.com_law 0 := (+%R : TLim -> TLim -> TLim).
 (* Let add_law := [the Monoid.com_law of TLim]. *)
 
