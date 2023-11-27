@@ -84,7 +84,7 @@ Variable (idx : R) (op : Monoid.com_law idx).
 
 Lemma index_translation (m j : nat) (F : nat -> R) :
   \big[op/idx]_(i < m - j) F i =
-  \big[op/idx]_(k < m | (j <= k))  F (k - j).
+  \big[op/idx]_(k < m | j <= k)  F (k - j).
 Proof.
 rewrite -(big_mkord predT F) /= (big_mknat _ j m (fun k => F (k - j))).
 rewrite -{2}[j]add0n (big_addn 0 m j _ _).
@@ -95,10 +95,10 @@ Lemma aux_triangular_index_bigop (m : nat) (F : nat -> nat -> R) :
   \big[op/idx]_(i < m) \big[op/idx]_(j < m | i + j < m) F i j =
   \big[op/idx]_(k < m) \big[op/idx]_(l < k.+1) F l (k - l).
 Proof.
-evar (G : 'I_m -> R) ; rewrite [LHS](eq_bigr G) => [|i _] ; last first.
+evar (G : 'I_m -> R); rewrite [LHS](eq_bigr G) => [|i _] ; last first.
 - rewrite (eq_bigl (fun j : 'I_m => j < m - i)) => [|j /=].
   + rewrite big_ord_narrow => [ | _ /= ] ; first exact: leq_subr.
-    by rewrite index_translation /G; reflexivity.
+    by rewrite index_translation /G.
   + by rewrite ltn_subRL.
 - rewrite /G (triangular_swap _ (fun i k : 'I_m => i <= k)
                                 (fun i k => F i (k - i))).
