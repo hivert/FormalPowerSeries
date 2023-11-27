@@ -273,8 +273,6 @@ HB.structure Definition ZmodInvLim
     & Zmodule TLim
   }.
 
-About InvLim.
-
 Section ZmodInvLimTheory.
 
 Variables (disp : Datatypes.unit) (I : porderType disp).
@@ -934,7 +932,9 @@ Record invlim := MkInvLim {
                      _ : `[< isthread Sys invlimthr >];
                    }.
 
-HB.instance Definition _ := [isSub for invlimthr].
+(* A non canonical subtype for invlim *)
+Definition invlim_subType : subType _ :=
+  HB.pack invlim [isSub for invlimthr].
 HB.instance Definition _ := gen_eqMixin invlim.
 HB.instance Definition _ := gen_choiceMixin invlim.
 
@@ -949,8 +949,8 @@ Section InverseLimitTheory.
 Variables (disp : Datatypes.unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
-
 Variable Sys : invsys bonding.
+
 Implicit Type x y : {invlim Sys}.
 
 Definition ilproj_impl i : {invlim Sys} -> Obj i :=
@@ -965,7 +965,7 @@ Local Notation "''pi_' i" := (ilproj_impl i).
 
 Lemma invlimP x y : (forall i, 'pi_i x = 'pi_i y) -> x = y.
 Proof.
-move=> eqxy; apply val_inj => /=.
+move=> eqxy; apply (val_inj (sT := invlim_subType _)) => /=.
 case: x y eqxy => [fx _] [fy _] /=.
 exact: functional_extensionality_dep.
 Qed.
