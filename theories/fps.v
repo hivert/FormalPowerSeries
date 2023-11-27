@@ -2024,8 +2024,9 @@ Section ExprFPS.
 Variable f : {fps R}.
 Hypothesis f0_eq1 : f \in coefs0_eq1.
 
-Let log_coefs0_eq0Z c : c *: log f \in coefs0_eq0.
+Local Lemma log_coefs0_eq0Z c : c *: log f \in coefs0_eq0.
 Proof. by rewrite coefs0_eq0Z // log_in_coefs0_eq0. Qed.
+Let tmp_log_coefs0_eq0Z := log_coefs0_eq0Z.
 
 Lemma coefs0_eq1_expr c : f ^^ c \in coefs0_eq1.
 Proof. by rewrite /expr_tfps exp_in_coefs0_eq1. Qed.
