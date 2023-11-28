@@ -98,11 +98,11 @@ HB.mixin Record isInvLim
       (cone Sys f) -> T -> TLim;
     ilprojP : cone Sys invlim_proj;
     ilind_commute : forall T (f : forall i, T -> Obj i) (Hcone : cone Sys f),
-      forall i, invlim_proj i \o invlim_ind _ _ Hcone =1 f i;
+      forall i, invlim_proj i \o invlim_ind T f Hcone =1 f i;
     ilind_uniq : forall T (f : forall i, T -> Obj i) (Hcone : cone Sys f),
       forall (ind : T -> TLim),
         (forall i, invlim_proj i \o ind =1 f i) ->
-        ind =1 invlim_ind _ _ Hcone
+        ind =1 invlim_ind T f Hcone
   }.
 
 #[short(type="invLimType")]
@@ -128,15 +128,13 @@ Variable ilT : invLimType Sys.
 
 Definition pi_phant of phant ilT := (@invlim_proj _ _ _ _ _ ilT).
 Local Notation "\pi" := (pi_phant (Phant ilT)).
+Local Notation "\pi_ i" := (@pi_phant (Phant ilT) i).
 Definition ind_phant of phant ilT := (@invlim_ind _ _ _ _ _ ilT).
 Local Notation "\ind" := (ind_phant (Phant ilT)).
 
 Lemma ilprojE (x : ilT) :
-  forall i j, forall (Hij : i <= j), bonding Hij (\pi j x) = \pi i x.
-Proof.
-move=> i j Hij.
-by rewrite -/((bonding Hij \o (pi_phant (Phant ilT)) j) x) ilprojP.
-Qed.
+  forall i j, forall (Hij : i <= j), bonding Hij (\pi_j x) = \pi_i x.
+Proof. by move=> i j Hij; rewrite [LHS]ilprojP. Qed.
 
 Lemma piindE  T (f : forall i, T -> Obj i) (Hcone : cone Sys f) i x :
   \pi i (\ind Hcone x) = f i x.
