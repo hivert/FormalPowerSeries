@@ -950,11 +950,6 @@ Fact coefs0_eq0_key : pred_key coefs0_eq0. Proof. by []. Qed.
 Canonical coefs0_eq0_keyed := Eval hnf in KeyedPred coefs0_eq0_key.
 HB.instance Definition _ := isIdealr.Build {fps R} coefs0_eq0 coefs0_eq0_idealr.
 
-(* TODO
-Definition coefs0_eq0_ntideal := idealr_closed_nontrivial coefs0_eq0_idealr.
-Canonical coefs0_eq0_ideal :=
-  Eval hnf in MkIdeal coefs0_eq0_zmodPred coefs0_eq0_ntideal.
- *)
 
 Lemma coefs0_eq0Z f c : f \in coefs0_eq0 -> c *: f \in coefs0_eq0.
 Proof. by move=> hf; rewrite -mulr_algl idealMr. Qed.

@@ -478,7 +478,7 @@ End UniversalProperty.
 End LmodInvLimTheory.
 
 
-(* TODO: no builder ??? *)
+(* No builder ??? *)
 #[short(type="lalgInvLimType")]
 HB.structure Definition LalgebraInvLim
     (R : ringType)
@@ -519,9 +519,23 @@ HB.instance Definition _ i := Linear.on ('ind[TLim] Hcone).
 End UniversalProperty.
 End LAlgInvLimTheory.
 
-(* TODO : What about comRingType, comAlgType, unitRingType, ... ??? *)
-(* Not needed unless particular theory need interface           ??? *)
 
+(* No builder ??? *)
+#[short(type="algInvLimType")]
+HB.structure Definition AlgebraInvLim
+    (R : ringType)
+    (disp : Datatypes.unit) (I : porderType disp)
+    (Obj : I -> algType R)
+    (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
+    (Sys : invsys bonding)
+  := {
+    TLim of Algebra R TLim
+    & RingInvLim _ Sys TLim
+    & LmodInvLim _ Sys TLim
+  }.
+
+(* What about comAlgType, unitAlgType, comUnitAlgType... ??? *)
+(* Not needed unless particular theory need interface    ??? *)
 
 
 (****************************************************************************)
@@ -843,8 +857,6 @@ Qed.
 HB.instance Definition _ :=
   GRing.Lmodule_isLalgebra.Build R TLim ilscaleAl.
 
-(* TODO: Missing call to a non existent builder for lalgInvLimType ??? *)
-
 HB.end.
 
 
@@ -874,8 +886,6 @@ by apply invlimE=> i /=; rewrite !(linearZ, rmorphM) /= linearZ /= !scalerAr.
 Qed.
 HB.instance Definition _ :=
   GRing.Lalgebra_isAlgebra.Build R TLim ilscaleAr.
-
-(* TODO: Missing call to a non existent builder for algebraInvLim ??? *)
 
 HB.end.
 
