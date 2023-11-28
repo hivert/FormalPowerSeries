@@ -177,13 +177,9 @@ move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
 by apply contraLR; rewrite -!leqNgt; exact: leq_add.
 Qed.
 
-Check padic_int p_pr : comUnitRingType.
-
 HB.instance Definition _ := GRing.ComUnitRing.on (padic_int p_pr).
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build (padic_int p_pr) padic_mul_eq0.
-
-Check padic_int p_pr : idomainType.
 
 End PadicTheory.
 

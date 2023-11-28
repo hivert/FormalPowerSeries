@@ -246,18 +246,18 @@ HB.instance Definition _ i :=
   isAdditive.Build {fps R} R _ (coefs_is_additive i).
 
 Lemma coefsD s t i : (s + t)``_i = s``_i + t``_i.
-Proof. exact: (raddfD (Additive.clone _ _ (coefs i) _)). Qed.
+Proof. exact: (raddfD (coefs i)). Qed.
 Lemma coefsN s i : (- s)``_i = - (s``_i).
-Proof. exact: (raddfN (Additive.clone _ _ (coefs i) _)). Qed.
+Proof. exact: (raddfN (coefs i)). Qed.
 Lemma coefsB s t i : (s - t)``_i = s``_i - t``_i.
-Proof. exact: (raddfB (Additive.clone _ _ (coefs i) _)). Qed.
+Proof. exact: (raddfB (coefs i)). Qed.
 Lemma coefsMn s n i : (s *+ n)``_i = (s``_i) *+ n.
-Proof. exact: (raddfMn (Additive.clone _ _ (coefs i) _)). Qed.
+Proof. exact: (raddfMn (coefs i)). Qed.
 Lemma coefsMNn s n i : (s *- n)``_i = (s``_i) *- n.
 Proof. by rewrite coefsN coefsMn. Qed.
 Lemma coefs_sum I (r : seq I) (s : pred I) (F : I -> {fps R}) k :
   (\sum_(i <- r | s i) F i)``_k = \sum_(i <- r | s i) (F i)``_k.
-Proof. exact: (raddf_sum (Additive.clone _ _ (coefs _) _)). Qed.
+Proof. exact: (raddf_sum (coefs _)). Qed.
 
 
 Fact compat_fpsC : cone (fps_invsys R) (@tfpsC R).
@@ -399,12 +399,12 @@ HB.instance Definition _ :=
   isMultiplicative.Build _ _ _ coefs0_multiplicative.
 
 Lemma coefs0M s t : (s * t)``_0 = s``_0 * t``_0.
-Proof. exact: (rmorphM (RMorphism.clone _ _ (coefs 0) _)). Qed.
+Proof. exact: (rmorphM (coefs 0)). Qed.
 Lemma coefs0X s i : (s ^+ i)``_0 = s``_0 ^+ i.
-Proof. exact: (rmorphXn (RMorphism.clone _ _ (coefs 0) _)). Qed.
+Proof. exact: (rmorphXn (coefs 0)). Qed.
 Lemma coef0_prod I (r : seq I) (s : pred I) (F : I -> {fps R}) :
   (\prod_(i <- r | s i) F i)``_0 = \prod_(i <- r | s i) (F i)``_0.
-Proof. exact: (rmorph_prod (RMorphism.clone _ _ (coefs 0) _)). Qed.
+Proof. exact: (rmorph_prod (coefs 0)). Qed.
 
 Lemma mul_fpsC a s : a%:S * s = a *: s.
 Proof.
@@ -672,7 +672,7 @@ case: valuatXnP => [v t Ht|]->{s}; apply (iffP idP) => //=.
 - rewrite leEnatbar => nlev.
   exists (''X ^+ (v - n) * t); rewrite mulrA.
   by rewrite -exprD subnKC //.
-- rewrite leEnatbar => [] [s] /(congr1 (fun x => coef_series x v)).
+- rewrite leEnatbar => [] [s] /(congr1 (coef_series ^~ v)).
   by apply contra_eqT; rewrite -ltnNge !coef_fpsXnM /= ltnn subnn => ->.
 - by move=> _; exists 0; rewrite mulr0.
 Qed.
@@ -889,8 +889,7 @@ move=> x y eqmap; apply/invlimE => i.
 by apply: (map_tfps_inj (F := F)); rewrite -!proj_map_fps eqmap.
 Qed.
 
-Lemma map_fps_idfun (K : fieldType) :
-  map_fps (RMorphism.clone _ _ _ (@idfun K)) =1 @idfun {fps K}.
+Lemma map_fps_idfun (K : fieldType) : map_fps (@idfun K) =1 @idfun {fps K}.
 Proof.
 move=> x; apply/invlimE => i.
 by rewrite proj_map_fps map_tfps_idfun.
@@ -1344,7 +1343,7 @@ Lemma prim_fpsK : cancel (@prim_fps R) (@deriv_fps R).
 Proof.
 move=> p; apply/fpsP => n.
 rewrite coef_deriv_fps coef_prim_fps /=.
-by rewrite -[X in X = _]mulr_natr divrK.
+by rewrite -[LHS]mulr_natr divrK.
 Qed.
 
 Lemma deriv_tfpsK :
@@ -1431,8 +1430,9 @@ Qed.
 
 Fact comp_fps_is_linear g : linear (comp_fps g).
 Proof. exact: ilind_is_linear _ (compat_comp_fps g). Qed.
+
 HB.instance Definition _ g :=
-  isLinear.Build _ _ _ _ _ (comp_fps_is_linear g).
+  isLinear.Build _ _ _ _ (comp_fps g) (comp_fps_is_linear g).
 
 Lemma comp_fps1 f : 1 \oS f = 1.
 Proof. by apply invlimE => i; rewrite proj_comp_fps proj1 comp_tfps1. Qed.
@@ -1488,7 +1488,7 @@ Local Open Scope fps_scope.
 Fact comp_fps_is_multiplicative f : multiplicative (comp_fps f).
 Proof. exact: ilind_is_multiplicative _ (compat_comp_fps f). Qed.
 HB.instance Definition _ g :=
-  isMultiplicative.Build _ _ _ (comp_fps_is_multiplicative g).
+  isMultiplicative.Build _ _ (comp_fps g) (comp_fps_is_multiplicative g).
 
 Lemma comp_fpsA f g h : f \oS (g \oS h) = (f \oS g) \oS h.
 Proof. by apply invlimE => i; rewrite !proj_comp_fps comp_tfpsA. Qed.
