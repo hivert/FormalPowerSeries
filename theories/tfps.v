@@ -303,9 +303,6 @@ rewrite -tfpsP; split => eq_pq i le_in.
 - by have := eq_pq i le_in; rewrite !coef_trXn le_in.
 Qed.
 
-Lemma tfpsK : cancel (@tfps R n) trXn.
-Proof. by move=> f; apply/tfpsP => i le_in; rewrite coef_trXn le_in. Qed.
-
 Lemma trXnK p : size p <= n.+1 -> tfps (trXn p) = p.
 Proof.
 move=> le_szn; apply polyP => i.
@@ -338,26 +335,17 @@ Lemma coef_tfps_of_fun (f : nat -> R) i :
   (tfps_of_fun f)`_i = if i <= n then f i else 0.
 Proof. by rewrite /tfps_of_fun coef_poly ltnS. Qed.
 
-
-(*
-TODO : Quotient structure from Polynomials
-*)
-(* From fraction.v
-HB.instance Definition _ : EqQuotient _ equivf type := EqQuotient.on type.
-HB.instance Definition _ := Choice.on type.
-HB.instance Definition _ := EqQuotient.on {fraction R}.
-HB.instance Definition _ := Choice.on {fraction R}.
-*)
-(*
-Definition poly_trXn_class := QuotClass tfpsK.
-Canonical poly_trXn_type := Eval hnf in QuotType {tfps R n} poly_trXn_class.
+Lemma tfpsK : cancel (@tfps R n) trXn.
+Proof. by move=> f; apply/tfpsP => i le_in; rewrite coef_trXn le_in. Qed.
+HB.instance Definition _ :=
+  isQuotient.Build {poly R} {tfps R n} tfpsK.
 
 Lemma poly_trXn_quotP p q :
   reflect
     (forall i, (i <= n)%N -> p`_i = q`_i)
     (p == q %[mod {tfps R n}])%qT.
 Proof. by rewrite !unlock /pi_phant; apply (iffP eqP); rewrite trXnP. Qed.
- *)
+
 
 End CoefTFPS.
 
@@ -1299,13 +1287,7 @@ Qed.
 
 Fact coeft0_eq0_key : pred_key coeft0_eq0. Proof. by []. Qed.
 Canonical coeft0_eq0_keyed := Eval hnf in KeyedPred coeft0_eq0_key.
-HB.instance Definition _ := isIdealr.Build {tfps R n} coeft0_eq0 coeft0_eq0_idealr.
-
-(* TODO
-Definition coeft0_eq0_ntideal := idealr_closed_nontrivial coeft0_eq0_idealr.
-Canonical coeft0_eq0_ideal :=
-  Eval hnf in MkIdeal coeft0_eq0_zmodPred coeft0_eq0_ntideal.
- *)
+HB.instance Definition _ := isIdealr.Build {tfps R n} _ coeft0_eq0_idealr.
 
 Lemma coeft0_eq0Z f c : f \in coeft0_eq0 -> c *: f \in coeft0_eq0.
 Proof. by move=> hf; rewrite -mulr_algl idealMr. Qed.
