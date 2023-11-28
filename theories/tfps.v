@@ -1257,7 +1257,7 @@ Lemma map_poly_idfun (R : ringType) : map_poly (@idfun R) =1 @idfun {poly R}.
 Proof. exact: coefK. Qed.
 
 Lemma map_tfps_idfun (K : fieldType) (m : nat) :
-  map_tfps (GRing.RMorphism.clone _ _ _ (@idfun K)) =1 @idfun {tfps K m}.
+  map_tfps (@idfun K) =1 @idfun {tfps K m}.
 Proof.
 move=> f; apply/tfpsP => i le_in /=.
 by rewrite coef_tfpsE /= map_poly_idfun.
@@ -2305,7 +2305,7 @@ rewrite -[RHS]tfpsK [m.+1.-1]/=.
 rewrite /= !comp_tfps_coeft0_eq0 ?coeft0_eq0_trXnt //.
 rewrite deriv_trXn !trXn_trXn // deriv_comp.
 rewrite -[LHS]trXn_mul /=; congr (trXn _ (_ * _)).
-by rewrite -trXn_comp_polyr trXn_comp_polyl ?(eqP f0_eq0) //.
+by rewrite -trXn_comp_polyr trXn_comp_polyl ?(eqP f0_eq0).
 Qed.
 
 End CompComRing.
@@ -3417,7 +3417,7 @@ Variables R : unitAlgType rat.
 Fact rat_algtype_nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Proof.
 rewrite -ratr_rmorphism_nat_unit.
-have eq_in_ratr := fmorph_eq_rat (GRing.RMorphism.clone _ _ _ (in_alg R)).
+have eq_in_ratr := fmorph_eq_rat (in_alg R).
 by repeat split => [x y|]; rewrite -!eq_in_ratr ?rmorphB ?rmorphM ?rmorph1.
 Qed.
 
