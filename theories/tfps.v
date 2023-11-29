@@ -1483,7 +1483,7 @@ Proof.
 move=> le_mn; pose c1 := fun i : nat => 1 : R.
 rewrite (eq_bigr (fun i : 'I_n.+1 => (c1 i) *: \X ^+ i)); first last.
   by move=> i _; rewrite scale1r.
-by rewrite !coef_tfps_sumfXi //.
+by rewrite !coef_tfps_sumfXi.
 Qed.
 
 Lemma geometrictMlf f :

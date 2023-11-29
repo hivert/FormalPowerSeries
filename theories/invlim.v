@@ -415,8 +415,9 @@ HB.structure Definition ComUnitRingInvLim
     & RingInvLim disp Sys TLim
   }.
 
+
 #[key="TLim"]
-  HB.mixin Record isLmodInvLim
+HB.mixin Record isLmodInvLim
     (R : ringType)
     (disp : unit) (I : porderType disp)
     (Obj : I -> lmodType R)
@@ -426,7 +427,6 @@ HB.structure Definition ComUnitRingInvLim
   ilproj_is_linear :
     forall i, linear ('pi[TLim]_i)
   }.
-
 #[short(type="lmodInvLimType")]
 HB.structure Definition LmodInvLim
     (R : ringType)
@@ -472,7 +472,6 @@ End UniversalProperty.
 End LmodInvLimTheory.
 
 
-(* No builder ??? *)
 #[short(type="lalgInvLimType")]
 HB.structure Definition LalgebraInvLim
     (R : ringType)
@@ -514,7 +513,6 @@ End UniversalProperty.
 End LAlgInvLimTheory.
 
 
-(* No builder ??? *)
 #[short(type="algInvLimType")]
 HB.structure Definition AlgebraInvLim
     (R : ringType)

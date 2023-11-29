@@ -1430,7 +1430,6 @@ Qed.
 
 Fact comp_fps_is_linear g : linear (comp_fps g).
 Proof. exact: ilind_is_linear _ (compat_comp_fps g). Qed.
-
 HB.instance Definition _ g :=
   GRing.isLinear.Build _ _ _ _ (comp_fps g) (comp_fps_is_linear g).
 
