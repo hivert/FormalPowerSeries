@@ -20,7 +20,6 @@ From mathcomp Require Import order bigop.
 Require Import natbar directed.
 
 
-Import GRing.
 Import GRing.Theory.
 Import Order.Syntax.
 Import Order.Theory.
@@ -30,9 +29,11 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Reserved Notation "{ 'dirlim' S }"
-         (at level 0, format "{ 'dirlim'  S }").
+Reserved Notation "{ 'dirlim' S }" (at level 0, format "{ 'dirlim'  S }").
 Reserved Notation "''inj_' i" (at level 8, i at level 2, format "''inj_' i").
+Reserved Notation "''inj[' TLim ']'" (at level 8).
+Reserved Notation "''inj[' TLim ']_' i" (at level 8, i at level 2).
+Reserved Notation "''ind[' TLim ']'" (at level 8).
 
 
 
@@ -42,7 +43,7 @@ Reserved Notation "''inj_' i" (at level 8, i at level 2, format "''inj_' i").
 (***************************************************************************)
 Section DirectSystem.
 
-Variables (disp : Datatypes.unit) (I : porderType disp).
+Variables (disp : unit) (I : porderType disp).
 
 (** Objects and bonding morphisms of the direct system at left outside     *)
 (** the record below to allows the addition of more algebraic structure    *)
@@ -90,7 +91,7 @@ Open Scope ring_scope.
 
 #[key="TLim"]
 HB.mixin Record isDirLim
-    (disp : Datatypes.unit) (I : porderType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> Type)
     (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : dirsys bonding)
@@ -109,7 +110,7 @@ HB.mixin Record isDirLim
 
 #[short(type="dirLimType")]
 HB.structure Definition DirLim
-    (disp : Datatypes.unit) (I : porderType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> Type)
     (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : dirsys bonding)
@@ -122,40 +123,39 @@ HB.structure Definition DirLim
 
 Section InternalTheory.
 
-Variables (disp : Datatypes.unit) (I : porderType disp).
+Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
 Variable dlT : dirLimType Sys.
 
-Local Notation "\inj" := (@dirlim_inj _ _ _ _ _ dlT).
-Local Notation "\inj_ i" := (@dirlim_inj _ _ _ _ _ dlT i) (at level 5).
-Local Notation "\ind" := (@dirlim_ind _ _ _ _ _ dlT _ _).
+Local Notation "''inj'" := (dirlim_inj (s := dlT)).
+Local Notation "''inj_' i" := (dirlim_inj (s := dlT) i).
+Local Notation "''ind'" := (dirlim_ind (s := dlT) _ _).
 
 Lemma dlinjE :
-  forall i j, forall (Hij : i <= j) x, \inj_j (bonding Hij x) = \inj_i x.
+  forall i j, forall (Hij : i <= j) x, 'inj_j (bonding Hij x) = 'inj_i x.
 Proof. by move=> i j Hij x; rewrite [LHS]dlinjP. Qed.
 
 Lemma injindE  T (f : forall i, Obj i -> T) (Hcone : cocone Sys f) i x :
-  (\ind Hcone) (\inj_ i x) = f i x.
+  'ind Hcone ('inj_ i x) = f i x.
 Proof. exact: dlind_commute. Qed.
 
 End InternalTheory.
 
 Arguments dlinjP {disp I Obj bonding} [Sys].
 
-Notation "''inj[' TLim ']_' i" := (@dirlim_inj _ _ _ _ _ TLim i)
-                              (at level 8, i at level 2, only parsing).
-Notation "''inj[' TLim ']'" := ('inj[TLim]_ _) (at level 8).
+Notation "''inj[' TLim ']_' i" := (dirlim_inj (s := TLim) i) (only parsing).
+Notation "''inj[' TLim ']'" := ('inj[TLim]_ _)  (only parsing).
 Notation "''inj_' i" := ('inj[ _ ]_ i).
 Notation "''inj'" := ('inj[ _ ]_ _).
-Notation "''ind'" := (@dirlim_ind _ _ _ _ _ _ _ _).
-Notation "''ind[' T ']'" := (@dirlim_ind _ _ _ _ _ T _ _).
+Notation "''ind[' T ']'" := (dirlim_ind (s := T) _ _)  (only parsing).
+Notation "''ind'" := ('ind[ _ ]).
 
 
 Section Theory.
 
-Variables (disp : Datatypes.unit) (I : porderType disp).
+Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
@@ -190,7 +190,7 @@ End Theory.
 
 Section DirLimDirected.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
@@ -234,7 +234,7 @@ End DirLimDirected.
 
 Section DirSysCongr.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
@@ -309,7 +309,7 @@ Arguments Dsyscongr {disp I Obj bonding i j x y k} (le_ik le_jk).
 
 Section DirLimitEqType.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> eqType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
@@ -344,30 +344,30 @@ End DirLimitEqType.
 
 #[key="TLim"]
 HB.mixin Record isZmoduleDirLim
-    (disp : Datatypes.unit) (I : porderType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j : I, i <= j -> {additive Obj i -> Obj j})
     (Sys : dirsys bonding)
-    (TLim : Type) of DirLim disp Sys TLim & Zmodule TLim := {
+    (TLim : Type) of DirLim disp Sys TLim & GRing.Zmodule TLim := {
   dlinj_is_additive :
     forall i : I, additive 'inj[TLim]_i
   }.
 
 #[short(type="zmodDirLimType")]
 HB.structure Definition ZmodDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
     TLim of DirLim disp Sys TLim
     & isZmoduleDirLim disp I Obj bonding Sys TLim
-    & Zmodule TLim
+    & GRing.Zmodule TLim
   }.
 
 Section ZmodDirLimTheory.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> zmodType.
 Variable bonding : forall i j, i <= j -> {additive Obj i -> Obj j}.
 Variable Sys : dirsys bonding.
@@ -375,7 +375,7 @@ Variable TLim : zmodDirLimType Sys.
 Implicit Type x y : TLim.
 
 HB.instance Definition _ i :=
-  isAdditive.Build (Obj i) TLim _ (dlinj_is_additive i).
+  GRing.isAdditive.Build (Obj i) TLim _ (dlinj_is_additive i).
 
 (** The universal induced map is a Z-module morphism *)
 Section UniversalProperty.
@@ -389,7 +389,7 @@ move=> /= u v; case: (dirlim2P u v) => i x y <-{u} <-{v}.
 by rewrite -raddfB /= !injindE raddfB.
 Qed.
 HB.instance Definition _ :=
-  isAdditive.Build TLim T _ dlind_is_additive.
+  GRing.isAdditive.Build TLim T _ dlind_is_additive.
 
 End UniversalProperty.
 
@@ -408,30 +408,30 @@ End ZmodDirLimTheory.
 
 #[key="TLim"]
 HB.mixin Record isRingDirLim
-    (disp : Datatypes.unit) (I : porderType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
-    (TLim : Type) of DirLim disp Sys TLim & Ring TLim := {
+    (TLim : Type) of DirLim disp Sys TLim & GRing.Ring TLim := {
   dlinj_is_multiplicative :
     forall i, multiplicative ('inj[TLim]_i)
   }.
 
 #[short(type="ringDirLimType")]
 HB.structure Definition RingDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
     TLim of ZmodDirLim disp Sys TLim
     & isRingDirLim disp I Obj bonding Sys TLim
-    & Ring TLim
+    & GRing.Ring TLim
   }.
 
 Section RingDirLimTheory.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> ringType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j}.
 Variable Sys : dirsys bonding.
@@ -440,7 +440,7 @@ Variable TLim : ringDirLimType Sys.
 Implicit Type x y : TLim.
 
 HB.instance Definition _ i :=
-  isMultiplicative.Build (Obj i) TLim _ (dlinj_is_multiplicative i).
+  GRing.isMultiplicative.Build (Obj i) TLim _ (dlinj_is_multiplicative i).
 
 Section UniversalProperty.
 
@@ -456,7 +456,7 @@ split=> /= [u v|].
   by rewrite injindE rmorph1.
 Qed.
 HB.instance Definition _ :=
-  isMultiplicative.Build TLim T _ dlind_is_multiplicative.
+  GRing.isMultiplicative.Build TLim T _ dlind_is_multiplicative.
 
 End UniversalProperty.
 
@@ -475,23 +475,23 @@ End RingDirLimTheory.
 
 #[short(type="comRingDirLimType")]
 HB.structure Definition ComRingDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
-    TLim of ComRing TLim
+    TLim of GRing.ComRing TLim
     & RingDirLim disp Sys TLim
   }.
 
 #[short(type="unitRingDirLimType")]
 HB.structure Definition UnitRingDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
-    TLim of UnitRing TLim
+    TLim of GRing.UnitRing TLim
     & RingDirLim disp Sys TLim
   }.
 
@@ -499,17 +499,19 @@ HB.structure Definition UnitRingDirLim
 Section DirLimUnitRingTheory.
 
 Variables
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding).
 Variable TLim : unitRingDirLimType Sys.
 
 Lemma dlunitP (u : TLim) :
-  reflect (exists i (x : Obj i), 'inj x = u /\ x \is a unit) (u \is a unit).
+  reflect
+    (exists i (x : Obj i), 'inj x = u /\ x \is a GRing.unit)
+    (u \is a GRing.unit).
 Proof.
 apply (iffP idP) => [/unitrP [uinv][] | [i][x [<-{u} xunit]]]; first last.
-  exact: (rmorph_unit (RMorphism.clone _ _ 'inj[TLim]_i _) xunit).
+  exact: (rmorph_unit (GRing.RMorphism.clone _ _ 'inj[TLim]_i _) xunit).
 case: (dirlim2P u uinv) => i x y <- <-{u}; rewrite -!rmorphM /=.
 move=> /dlinj_eq1 [j][leij]; rewrite rmorphM => yx1.
 move=> /dlinj_eq1 [k][leik]; rewrite rmorphM => xy1.
@@ -529,12 +531,12 @@ End  DirLimUnitRingTheory.
 
 #[short(type="comUnitRingDirLimType")]
 HB.structure Definition ComUnitRingDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> comUnitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
-    TLim of ComUnitRing TLim
+    TLim of GRing.ComUnitRing TLim
     & RingDirLim disp Sys TLim
   }.
 
@@ -542,11 +544,11 @@ HB.structure Definition ComUnitRingDirLim
 #[key="TLim"]
   HB.mixin Record isLmodDirLim
     (R : ringType)
-    (disp : Datatypes.unit) (I : porderType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : dirsys bonding)
-    (TLim : Type) of DirLim disp Sys TLim & Lmodule R TLim := {
+    (TLim : Type) of DirLim disp Sys TLim & GRing.Lmodule R TLim := {
   dlinj_is_linear :
     forall i, linear ('inj[TLim]_i)
   }.
@@ -554,20 +556,20 @@ HB.structure Definition ComUnitRingDirLim
 #[short(type="lmodDirLimType")]
 HB.structure Definition LmodDirLim
     (R : ringType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
     TLim of ZmodDirLim _ Sys TLim
     & isLmodDirLim R disp I Obj bonding Sys TLim
-    & Lmodule R TLim
+    & GRing.Lmodule R TLim
   }.
 
 Section LmodDirLimTheory.
 
 Variable (R : ringType).
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> lmodType R.
 Variable bonding : forall i j, i <= j -> {linear Obj i -> Obj j}.
 Variable Sys : dirsys bonding.
@@ -575,7 +577,7 @@ Variable Sys : dirsys bonding.
 Variable TLim : lmodDirLimType Sys.
 
 HB.instance Definition _ i :=
-  isLinear.Build R (Obj i) TLim _ _ (dlinj_is_linear i).
+  GRing.isLinear.Build R (Obj i) TLim _ _ (dlinj_is_linear i).
 
 (** The universal induced map is a Z-module morphism *)
 Section UniversalProperty.
@@ -590,7 +592,7 @@ case: (dirlim2P u v) => i x y <-{u} <-{v}.
 by rewrite -linearPZ /= !injindE linearPZ.
 Qed.
 HB.instance Definition _ :=
-  isLinear.Build R TLim T _ _ (dlind_is_linear).
+  GRing.isLinear.Build R TLim T _ _ (dlind_is_linear).
 
 End UniversalProperty.
 End LmodDirLimTheory.
@@ -599,12 +601,12 @@ End LmodDirLimTheory.
 #[short(type="lalgDirLimType")]
 HB.structure Definition LalgebraDirLim
     (R : ringType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
-    TLim of Lalgebra R TLim
+    TLim of GRing.Lalgebra R TLim
     & RingDirLim _ Sys TLim
     & LmodDirLim _ Sys TLim
   }.
@@ -612,7 +614,7 @@ HB.structure Definition LalgebraDirLim
 Section LAlgDirLimTheory.
 
 Variable (R : ringType).
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> lalgType R.
 Variable bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j}.
 Variable Sys : dirsys bonding.
@@ -620,7 +622,7 @@ Variable Sys : dirsys bonding.
 Variable TLim : lalgDirLimType Sys.
 
 (* Rebuilt the various instances on a lalgtype. *)
-HB.instance Definition _ i := Linear.on 'inj[TLim]_i.
+HB.instance Definition _ i := GRing.Linear.on 'inj[TLim]_i.
 (* Check fun i => 'inj[TLim]_i : {lrmorphism Obj i -> TLim}. *)
 
 Section UniversalProperty.
@@ -629,7 +631,7 @@ Variable (T : lalgType R) (f : forall i, {lrmorphism Obj i -> T}).
 Hypothesis Hcone : cocone Sys f.
 
 (* Rebuild the various instances on a lalgtype. *)
-HB.instance Definition _ i := Linear.on ('ind[TLim] Hcone).
+HB.instance Definition _ i := GRing.Linear.on ('ind[TLim] Hcone).
 (* Check 'ind[TLim] Hcone : {lrmorphism T -> TLim}. *)
 
 End UniversalProperty.
@@ -639,12 +641,12 @@ End LAlgDirLimTheory.
 #[short(type="algDirLimType")]
 HB.structure Definition AlgebraDirLim
     (R : ringType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   := {
-    TLim of Algebra R TLim
+    TLim of GRing.Algebra R TLim
     & RingDirLim _ Sys TLim
     & LmodDirLim _ Sys TLim
   }.
@@ -658,13 +660,13 @@ HB.structure Definition AlgebraDirLim
 (****************************************************************************)
 
 HB.factory Record DirLim_isZmodDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -725,11 +727,11 @@ move=> a; case: (dirlimP a) => i x <-{a}.
 by rewrite dloppE dladdE addNr -dlzeroE.
 Qed.
 HB.instance Definition _ :=
-    isZmodule.Build TLim dladdA dladdC dladd0r dladdNr.
+    GRing.isZmodule.Build TLim dladdA dladdC dladd0r dladdNr.
 
 Fact dlinj_is_additive i : additive 'inj[TLim]_i.
 Proof.
-by move=> x y; rewrite {2}/opp /= dloppE {2}/add /= dladdE.
+by move=> x y; rewrite {2}/GRing.opp /= dloppE {2}/GRing.add /= dladdE.
 Qed.
 HB.instance Definition _ :=
   isZmoduleDirLim.Build _ _ _ _ _ TLim dlinj_is_additive.
@@ -738,13 +740,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isRingDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -827,13 +829,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isComRingDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -856,13 +858,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isUnitRingDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -875,11 +877,11 @@ HB.instance Definition _ :=
 
 Definition dlunit x :=
   `[< exists p : {i & Obj i},
-        ('inj[TLim] (projT2 p) == x) && (projT2 p \is a unit) >].
+        ('inj[TLim] (projT2 p) == x) && (projT2 p \is a GRing.unit) >].
 
 Lemma dlunitP x :
   dlunit x ->
-  {p : {i & Obj i} | 'inj[TLim] (projT2 p) = x /\ projT2 p \is a unit}.
+  {p : {i & Obj i} | 'inj[TLim] (projT2 p) = x /\ projT2 p \is a GRing.unit}.
 Proof.
 by rewrite /dlunit => /asboolP/cid [p] /andP[/eqP Heq Hunit]; exists p.
 Qed.
@@ -936,13 +938,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isIDomainDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -964,21 +966,21 @@ rewrite rmorphM => /eqP.
 by rewrite mulf_eq0 => /orP [] /eqP /(congr1 'inj[TLim]) H; [left|right];
    move: H; have /= -> := dlinjE TLim _ _ => ->; rewrite rmorph0.
 Qed.
-HB.instance Definition _ := ComUnitRing_isIntegral.Build TLim dlmul_eq0.
+HB.instance Definition _ := GRing.ComUnitRing_isIntegral.Build TLim dlmul_eq0.
 
 HB.end.
 
 
 HB.factory Record DirLim_isLmoduleDirLim
     (R : ringType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
     (R : ringType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -1036,14 +1038,14 @@ HB.end.
 
 HB.factory Record DirLim_isLalgDirLim
     (R : ringType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
     (R : ringType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -1071,14 +1073,14 @@ HB.end.
 
 HB.factory Record DirLim_isAlgebraDirLim
     (R : comRingType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
     (R : comRingType)
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -1101,13 +1103,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isFieldDirLim
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
   TLim of DirLim _ Sys TLim := {}.
 HB.builders Context
-    (disp : Datatypes.unit) (I : dirType disp)
+    (disp : unit) (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : dirsys bonding)
@@ -1116,7 +1118,7 @@ HB.builders Context
 HB.instance Definition _ :=
   DirLim_isIDomainDirLim.Build _ _ _ _ Sys TLim.
 
-Fact dirlim_field_axiom : field_axiom TLim.
+Fact dirlim_field_axiom : GRing.field_axiom TLim.
 Proof.
 move=> x; case: (dirlimP x) => /= i u <-{x} Hu.
 have : u != 0 by move: Hu; apply contra => /eqP ->; rewrite raddf0.
@@ -1124,7 +1126,7 @@ rewrite -unitfE => uunit.
 by apply/dlunitP; exists i; exists u.
 Qed.
 HB.instance Definition _ :=
-    UnitRing_isField.Build TLim dirlim_field_axiom.
+    GRing.UnitRing_isField.Build TLim dirlim_field_axiom.
 
 HB.end.
 
@@ -1138,7 +1140,7 @@ Close Scope ring_scope.
 (***************************************************************************)
 Section Implem.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
@@ -1166,7 +1168,7 @@ Notation "{ 'dirlim' S }" := (dirlim_of (Phantom _ S)).
 
 Section DirectLimitTheory.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 
@@ -1212,7 +1214,7 @@ End DirectLimitTheory.
 
 Section InterSpec.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j, (i <= j)%O -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
@@ -1239,7 +1241,7 @@ End InterSpec.
 Open Scope ring_scope.
 Section Canonicals.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 
 Section ZModule.
 Variable Obj : I -> zmodType.
@@ -1336,7 +1338,7 @@ End Canonicals.
 
 Section Test.
 Variable (R : comRingType).
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> algType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj i -> Obj j}.
 Variable Sys : dirsys bonding.
@@ -1347,7 +1349,7 @@ End Test.
 
 Section DirLimitChoiceType.
 
-Variables (disp : Datatypes.unit) (I : dirType disp).
+Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
