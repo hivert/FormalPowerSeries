@@ -27,7 +27,6 @@ Unset Printing Implicit Defensive.
 Import Order.Syntax.
 Import Order.TTheory.
 
-Import GRing.
 Import GRing.Theory.
 Local Open Scope ring_scope.
 
@@ -61,7 +60,7 @@ Section Defs.
 
 Variable R : ringType.
 
-Fact fps_bond_key : Datatypes.unit. Proof. by []. Qed.
+Fact fps_bond_key : unit. Proof. by []. Qed.
 Definition fps_bond :=
   locked_with fps_bond_key (fun (i j : nat) of (i <= j)%O => @trXnt R j i).
 Canonical fps_bond_unlockable := Eval hnf in [unlockable fun fps_bond].
@@ -76,17 +75,17 @@ Proof. by rewrite unlock. Qed.
 Fact bond_is_additive : additive (fps_bond le_ij).
 Proof. by rewrite unlock => x y; rewrite raddfB. Qed.
 HB.instance Definition _ :=
-  isAdditive.Build {tfps R j} {tfps R i} _ bond_is_additive.
+  GRing.isAdditive.Build {tfps R j} {tfps R i} _ bond_is_additive.
 
 Fact bond_is_multiplicative : multiplicative (fps_bond le_ij).
 Proof. by rewrite unlock; exact: trXnt_is_multiplicative. Qed.
 HB.instance Definition _ :=
-  isMultiplicative.Build {tfps R j} {tfps R i} _ bond_is_multiplicative.
+  GRing.isMultiplicative.Build {tfps R j} {tfps R i} _ bond_is_multiplicative.
 
 Fact bond_is_linear : linear (fps_bond le_ij).
 Proof. by rewrite unlock; exact: trXnt_is_linear. Qed.
 HB.instance Definition _ :=
-  isLinear.Build R {tfps R j} {tfps R i} _ _ bond_is_linear.
+  GRing.isLinear.Build R {tfps R j} {tfps R i} _ _ bond_is_linear.
 
 End Canonical.
 
@@ -104,7 +103,7 @@ Proof. by move=> [f1] [f2] /= ->. Qed.
 
 
 Definition coef_series_def s i := @seriesfun R s i.
-Fact coef_series_key : Datatypes.unit. Proof. by []. Qed.
+Fact coef_series_key : unit. Proof. by []. Qed.
 Definition coef_series := locked_with coef_series_key coef_series_def.
 Canonical coef_series_unlockable :=
   Eval hnf in [unlockable fun coef_series].
@@ -243,7 +242,7 @@ Local Notation coefs i := (coefps_head tt i).
 Lemma coefs_is_additive i : additive (coefs i).
 Proof. by move=> s t; rewrite /= !coefs_projE projB coefB. Qed.
 HB.instance Definition _ i :=
-  isAdditive.Build {fps R} R _ (coefs_is_additive i).
+  GRing.isAdditive.Build {fps R} R _ (coefs_is_additive i).
 
 Lemma coefsD s t i : (s + t)``_i = s``_i + t``_i.
 Proof. exact: (raddfD (coefs i)). Qed.
@@ -272,9 +271,9 @@ Lemma coefsC c i : c%:S``_i = (if i == 0%N then c else 0).
 Proof. by rewrite coefs_projE piindE coeftC. Qed.
 
 HB.instance Definition _ :=
-  isAdditive.Build _ _ fpsC (ilind_is_additive _ compat_fpsC).
+  GRing.isAdditive.Build _ _ fpsC (ilind_is_additive _ compat_fpsC).
 HB.instance Definition _ :=
-  isMultiplicative.Build _ _ fpsC (ilind_is_multiplicative _ compat_fpsC).
+  GRing.isMultiplicative.Build _ _ fpsC (ilind_is_multiplicative _ compat_fpsC).
 
 Lemma fpsCK : cancel fpsC (coefs 0%N).
 Proof. by move=> c; rewrite /= coefsC. Qed.
@@ -333,11 +332,12 @@ by rewrite !fps_polyK // (leq_trans _ (leqnSn _)) // ?leq_maxr ?leq_maxl.
 Qed.
 
 HB.instance Definition _ :=
-  isAdditive.Build _ _ fps_poly (ilind_is_additive _ compat_poly).
+  GRing.isAdditive.Build _ _ fps_poly (ilind_is_additive _ compat_poly).
 HB.instance Definition _ :=
-  isMultiplicative.Build _ _ fps_poly (ilind_is_multiplicative _ compat_poly).
+  GRing.isMultiplicative.Build
+    _ _ fps_poly (ilind_is_multiplicative _ compat_poly).
 HB.instance Definition _ :=
-  isLinear.Build R _ _ _ fps_poly (ilind_is_linear _ compat_poly).
+  GRing.isLinear.Build R _ _ _ fps_poly (ilind_is_linear _ compat_poly).
 
 Lemma fps_poly0 : fps_poly 0 = 0.
 Proof. exact: raddf0. Qed.
@@ -396,7 +396,7 @@ split=> [s t|] /=; last by rewrite coefs1.
 by rewrite coefsM big_ord_recl big_ord0 addr0 /= subnn.
 Qed.
 HB.instance Definition _ :=
-  isMultiplicative.Build _ _ _ coefs0_multiplicative.
+  GRing.isMultiplicative.Build _ _ _ coefs0_multiplicative.
 
 Lemma coefs0M s t : (s * t)``_0 = s``_0 * t``_0.
 Proof. exact: (rmorphM (coefs 0)). Qed.
@@ -450,13 +450,13 @@ apply/negP => /eqP/fpsP/(_ 1%N)/eqP.
 by rewrite coef_fpsX coefs0 /= oner_eq0.
 Qed.
 
-Lemma commr_fpsX s : comm s ''X.
+Lemma commr_fpsX s : GRing.comm s ''X.
 Proof.
 apply/fpsP=> i; rewrite coefsMr coefsM.
 by apply: eq_bigr => j _; rewrite coef_fpsX commr_nat.
 Qed.
 
-Lemma commr_fpsXn n s : comm s ''X^n.
+Lemma commr_fpsXn n s : GRing.comm s ''X^n.
 Proof. exact/commrX/commr_fpsX. Qed.
 
 Lemma coef_fpsXM f i :
@@ -515,7 +515,7 @@ Implicit Type f : {fps R}.
 HB.instance Definition _ :=
   InvLim_isUnitRingInvLim.Build _ _ _ _ _ {fps R}.
 
-Lemma unit_fpsE f : (f \is a unit) = (f``_0 \is a unit).
+Lemma unit_fpsE f : (f \is a GRing.unit) = (f``_0 \is a GRing.unit).
 Proof.
 apply/ilunitP/idP => [/(_ 0%N) | Hu i].
 - by rewrite coefs_projE -unit_tfpsE.
@@ -523,16 +523,16 @@ apply/ilunitP/idP => [/(_ 0%N) | Hu i].
 Qed.
 
 Lemma proj_unit_fps f :
-  reflect (forall i : nat, 'pi_i f \is a unit)
-          (f \is a unit).
+  reflect (forall i : nat, 'pi_i f \is a GRing.unit)
+          (f \is a GRing.unit).
 Proof.
 rewrite unit_fpsE; apply (iffP idP) => [fU i| fU].
 - by move: fU; rewrite -(coeft_proj (leq0n i)) unit_tfpsE.
 - by rewrite coefs_projE -unit_tfpsE.
 Qed.
 Lemma proj_nunit_fps f :
-  reflect (forall i : nat, 'pi_i f \isn't a unit)
-          (f \isn't a unit).
+  reflect (forall i : nat, 'pi_i f \isn't a GRing.unit)
+          (f \isn't a GRing.unit).
 Proof.
 rewrite unit_fpsE; apply (iffP idP) => [fU i| fU].
 - by move: fU; rewrite -(coeft_proj (leq0n i)) unit_tfpsE.
@@ -542,7 +542,7 @@ Qed.
 Lemma projV i : {morph 'pi[{fps R}]_i : x / x ^-1 }.
 Proof.
 move=> f.
-case (boolP (f \is a unit)) => [/rmorphV -> // | ninv].
+case (boolP (f \is a GRing.unit)) => [/rmorphV -> // | ninv].
 by rewrite !invr_out // unit_tfpsE coeft_proj // -unit_fpsE.
 Qed.
 
@@ -550,7 +550,7 @@ Lemma coefs0V f : (f^-1)``_0 = (f``_0)^-1.
 Proof. by rewrite !coefs_projE -coeft0V projV. Qed.
 
 Lemma coefsV f i :
-  f \is a unit ->
+  f \is a GRing.unit ->
   f^-1``_i = if i == 0%N then f``_0 ^-1
              else - (f``_0 ^-1) * (\sum_(j < i) f``_j.+1 * f^-1``_(i - j.+1)).
 Proof.
@@ -806,7 +806,7 @@ Fact series_idomainAxiom s t :
 Proof. by move/eqP; rewrite !valuatInfE valuatM addbar_eqI. Qed.
 
 HB.instance Definition _ :=
-  ComUnitRing_isIntegral.Build {fps R} series_idomainAxiom.
+  GRing.ComUnitRing_isIntegral.Build {fps R} series_idomainAxiom.
 
 End FPSIDomain.
 Arguments valuatM {R}.
@@ -842,7 +842,7 @@ Qed.
 Fact map_fps_is_additive : additive map_fps.
 Proof. by rewrite map_fps_indE => f g; rewrite rmorphB. Qed.
 HB.instance Definition _ i :=
-  isAdditive.Build {fps K} {fps L} _ map_fps_is_additive.
+  GRing.isAdditive.Build {fps K} {fps L} _ map_fps_is_additive.
 
 Fact map_fpsZ : scalable_for (F \; *:%R) map_fps.
 Proof.
@@ -850,7 +850,7 @@ move=> c g.
 by apply/invlimE => i; rewrite !(linearZ, proj_map_fps) /= proj_map_fps.
 Qed.
 HB.instance Definition _ :=
-  isScalable.Build _ {fps K} {fps L} _ _ map_fpsZ.
+  GRing.isScalable.Build _ {fps K} {fps L} _ _ map_fpsZ.
 
 Fact map_fps_is_multiplicative : multiplicative map_fps.
 Proof.
@@ -858,7 +858,7 @@ rewrite map_fps_indE.
 by split; [move=> f g; rewrite rmorphM | rewrite rmorph1].
 Qed.
 HB.instance Definition _ :=
-  isMultiplicative.Build {fps K} {fps L} _ map_fps_is_multiplicative.
+  GRing.isMultiplicative.Build {fps K} {fps L} _ map_fps_is_multiplicative.
 
 
 (* Tests *)
@@ -994,7 +994,7 @@ Qed.
 Fact coefs0_eq1_key : pred_key coefs0_eq1. Proof. by []. Qed.
 Canonical coefs0_eq1_keyed := Eval hnf in KeyedPred coefs0_eq1_key.
 HB.instance Definition _ :=
-  isMulClosed.Build {fps R} coefs0_eq1 mulr_closed_coefs0_eq1.
+  GRing.isMulClosed.Build {fps R} coefs0_eq1 mulr_closed_coefs0_eq1.
 
 (* Tests *)
 Example one_in_coefs0_eq1 : 1 \in coefs0_eq1.
@@ -1028,7 +1028,7 @@ move=> f; rewrite !coefs0_eq1E coefs0V; move/eqP ->.
 by rewrite invr1.
 Qed.
 HB.instance Definition _ :=
-  isInvClosed.Build {fps R} coefs0_eq1 invr_closed_coefs0_eq1.
+  GRing.isInvClosed.Build {fps R} coefs0_eq1 invr_closed_coefs0_eq1.
 
 Lemma coefs0_eq1V f : f \in coefs0_eq1 -> f^-1 \in coefs0_eq1.
 Proof. by move=> hf; rewrite rpredVr. Qed.
@@ -1037,7 +1037,7 @@ Lemma coefs0_eq1_div f g :
   f \in coefs0_eq1 -> g \in coefs0_eq1 -> f / g \in coefs0_eq1.
 Proof. by move=> hf hg; rewrite rpred_div. Qed.
 
-Lemma coefs0_eq1_unit f : f \in coefs0_eq1 -> f \is a unit.
+Lemma coefs0_eq1_unit f : f \in coefs0_eq1 -> f \is a GRing.unit.
 Proof. by rewrite !coefs0_eq1E unit_fpsE => /eqP ->; apply unitr1. Qed.
 
 End Coefficient01Unit.
@@ -1090,7 +1090,7 @@ Proof.
 by move=> c f g; apply/fpsP => i; rewrite !(coefs_simpl, coefs_sdivX).
 Qed.
 HB.instance Definition _ :=
-  isLinear.Build R {fps R} {fps R} _ _ sdivX_is_linear.
+  GRing.isLinear.Build R {fps R} {fps R} _ _ sdivX_is_linear.
 
 
 Implicit Type f : {fps R}.
@@ -1165,7 +1165,7 @@ Qed.
 Fact deriv_fps_is_linear : linear deriv_fps.
 Proof. by rewrite deriv_fps_indE; apply: linearP. Qed.
 HB.instance Definition _ :=
-  isLinear.Build _ _ _ _ _ deriv_fps_is_linear.
+  GRing.isLinear.Build _ _ _ _ _ deriv_fps_is_linear.
 
 Fact deriv_fps0 : (0 : {fps R})^`()%fps = 0.
 Proof. exact: raddf0. Qed.
@@ -1247,7 +1247,7 @@ Implicit Types (f g : {fps R}).
 
 (* Noncommutative version *)
 Theorem derivV_fps_nc f :
-  f \is a unit ->
+  f \is a GRing.unit ->
   (f^-1)^`()%fps = - f^-1 * f^`()%fps * f^-1.
 Proof.
 move=> fU; apply invlimE => i.
@@ -1265,14 +1265,14 @@ Variables (R : comUnitRingType).
 Implicit Types (f g : {fps R}).
 
 Theorem derivV_fps f :
-  f \is a unit -> (f^-1)^`()%fps = - f^`()%fps / (f ^+ 2).
+  f \is a GRing.unit -> (f^-1)^`()%fps = - f^`()%fps / (f ^+ 2).
 Proof.
 move=> fU.
 by rewrite derivV_fps_nc // -mulrA mulrC -mulrA !mulrN mulNr -invrM.
 Qed.
 
 Theorem deriv_div_fps f g :
-  g \is a unit ->
+  g \is a GRing.unit ->
   (f / g)^`()%fps = (f^`()%fps * g - f * g^`()%fps) / (g ^+ 2).
 Proof.
 move => fU.
@@ -1321,7 +1321,7 @@ rewrite !(coefsD, coefsZ, coefs_FPSeries) !mulrA -mulrDl.
 by rewrite mulrnAr -mulrnDl.
 Qed.
 HB.instance Definition _ :=
-  isLinear.Build _ _ _ _ _ prim_fps_is_linear.
+  GRing.isLinear.Build _ _ _ _ _ prim_fps_is_linear.
 
 (* tests *)
 Example prim_fps0 : prim_fps 0 = 0.
@@ -1336,7 +1336,7 @@ End Primitive.
 Section PrimitiveUnitRing.
 
 Variable R : unitRingType.
-Hypothesis nat_unit : forall i, i.+1%:R \is a @unit R.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Implicit Types (f g : {fps R}).
 
 Lemma prim_fpsK : cancel (@prim_fps R) (@deriv_fps R).
@@ -1432,7 +1432,7 @@ Fact comp_fps_is_linear g : linear (comp_fps g).
 Proof. exact: ilind_is_linear _ (compat_comp_fps g). Qed.
 
 HB.instance Definition _ g :=
-  isLinear.Build _ _ _ _ (comp_fps g) (comp_fps_is_linear g).
+  GRing.isLinear.Build _ _ _ _ (comp_fps g) (comp_fps_is_linear g).
 
 Lemma comp_fps1 f : 1 \oS f = 1.
 Proof. by apply invlimE => i; rewrite proj_comp_fps proj1 comp_tfps1. Qed.
@@ -1472,7 +1472,7 @@ Variables (R : unitRingType).
 Implicit Types (f g : {fps R}).
 
 Lemma comp_fps_unitE f g :
-  ((f \oS g) \is a unit)%fps = (f \is a unit).
+  ((f \oS g) \is a GRing.unit)%fps = (f \is a GRing.unit).
 Proof. by rewrite !unit_fpsE coef0_comp_fps. Qed.
 
 End CompUnitRing.
@@ -1488,7 +1488,8 @@ Local Open Scope fps_scope.
 Fact comp_fps_is_multiplicative f : multiplicative (comp_fps f).
 Proof. exact: ilind_is_multiplicative _ (compat_comp_fps f). Qed.
 HB.instance Definition _ g :=
-  isMultiplicative.Build _ _ (comp_fps g) (comp_fps_is_multiplicative g).
+  GRing.isMultiplicative.Build
+    _ _ (comp_fps g) (comp_fps_is_multiplicative g).
 
 Lemma comp_fpsA f g h : f \oS (g \oS h) = (f \oS g) \oS h.
 Proof. by apply invlimE => i; rewrite !proj_comp_fps comp_tfpsA. Qed.
@@ -1555,13 +1556,13 @@ Qed.
 Lemma lagrfix_divP f : sdivX (lagrfix f) = f \oS lagrfix f.
 Proof. by rewrite {1}lagrfixP smulXK. Qed.
 Lemma sdivX_lagrfix_unit g :
-  g \is a unit -> sdivX (lagrfix g) \is a unit.
+  g \is a GRing.unit -> sdivX (lagrfix g) \is a GRing.unit.
 Proof.
 by move=> gU; rewrite lagrfix_divP unit_fpsE coef0_comp_fps -unit_fpsE.
 Qed.
 
 Lemma lagrfix_inv f g :
-  g \is a unit -> f \in coefs0_eq0 ->
+  g \is a GRing.unit -> f \in coefs0_eq0 ->
   f = ''X * (g \oS f) -> (''X * g^-1) \oS f = ''X.
 Proof.
 move=> gU f0eq0 feq; rewrite feq.
@@ -1570,10 +1571,10 @@ by rewrite mulrK // comp_fps_unitE.
 Qed.
 
 Lemma lagrfix_invPr g :
-  g \is a unit -> (''X * g^-1) \oS lagrfix g = ''X.
+  g \is a GRing.unit -> (''X * g^-1) \oS lagrfix g = ''X.
 Proof. by move/lagrfix_inv/(_ (coefs0_eq0_lagrfix g))/(_ (lagrfixP g)). Qed.
 
-Definition lagrunit f := (f \in coefs0_eq0) && (sdivX f \is a unit).
+Definition lagrunit f := (f \in coefs0_eq0) && (sdivX f \is a GRing.unit).
 Definition lagrinv f := lagrfix (sdivX f)^-1.
 
 Lemma proj_lagrunit f :
@@ -1601,7 +1602,7 @@ rewrite coef_comp_fps // big_ord_recl (eqP f0) mul0r add0r.
 by rewrite big_ord_recl /= big_ord0 /bump /= -!/(_`_ 1) !add1n addr0.
 Qed.
 
-Lemma sdivX_unitE f : (sdivX f \is a unit) = (f``_1 \is a unit).
+Lemma sdivX_unitE f : (sdivX f \is a GRing.unit) = (f``_1 \is a GRing.unit).
 Proof. by rewrite unit_fpsE coefs_sdivX. Qed.
 
 Lemma lagrunit_comp : {in lagrunit &, forall f g, lagrunit (f \oS g) }.
@@ -1654,14 +1655,14 @@ by apply/esym/lagrinvPl_uniq; [apply: lagrunitV | apply: lagrinvPr].
 Qed.
 
 Lemma lagrfix_invPl :
-  {in unit, forall g, lagrfix g \oS (''X * g^-1) = ''X}.
+  {in GRing.unit, forall g, lagrfix g \oS (''X * g^-1) = ''X}.
 Proof.
 move=> g /proj_unit_fps gU; apply/(invlim_geE 1%N)=> [][|i] // _.
 rewrite proj_comp_fps proj_lagrfix proj_mulXE !proj_simpl.
 exact: (lagrfix_invPl (gU i)).
 Qed.
 
-Lemma lagrfix_uniq g : g \in unit ->
+Lemma lagrfix_uniq g : g \in GRing.unit ->
   forall f, f = ''X * (g \oS f) -> f = lagrfix g.
 Proof.
 move=> /proj_unit_fps gU f Hf.
@@ -1676,11 +1677,11 @@ End Lagrange.
 Section LagrangeTheorem.
 
 Variables R : comUnitRingType.
-Hypothesis nat_unit : forall i, i.+1%:R \is a @unit R.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Implicit Type (f g : {fps R}).
 
 Theorem Lagrange_Bürmann_exp g i k :
-  g \in unit ->
+  g \in GRing.unit ->
   (k <= i)%N -> ((lagrfix g) ^+ k)``_i *+ i = (g ^+ i)``_(i - k) *+ k.
 Proof.
 move=> /proj_unit_fps gU; case: i => [|i le_ki1].
@@ -1692,7 +1693,7 @@ by rewrite -!projX !coeft_proj ?leq_subr ?(leq_trans (leq_subr _ _)).
 Qed.
 
 Theorem coefs_lagrfix g i :
-  g \in unit -> (lagrfix g)``_i.+1 = (g ^+ i.+1)``_i / i.+1%:R.
+  g \in GRing.unit -> (lagrfix g)``_i.+1 = (g ^+ i.+1)``_i / i.+1%:R.
 Proof.
 move/Lagrange_Bürmann_exp => /(_ i.+1 _ (ltn0Sn _)).
 rewrite subSS subn0 mulr1n expr1 => <-.
@@ -1700,7 +1701,7 @@ by rewrite -[X in X / _]mulr_natr mulrK.
 Qed.
 
 Theorem Lagrange_Bürmann g h i :
-  g \in unit ->
+  g \in GRing.unit ->
   (h \oS lagrfix g)``_i.+1 = (h^`()%fps * g ^+ i.+1)``_i / i.+1%:R.
 Proof.
 move=> /proj_unit_fps gU.
@@ -1709,7 +1710,7 @@ by rewrite !proj_simpl proj_deriv_fps.
 Qed.
 
 Theorem Lagrange_Bürmann2 g h i :
-  g \in unit ->
+  g \in GRing.unit ->
   (h \oS lagrfix g)``_i = ((1 - ''X * g^`()%fps / g) * h * g ^+ i)``_i.
 Proof.
 move=> /proj_unit_fps gU.
@@ -1721,7 +1722,7 @@ by rewrite -lock proj_mulXE -proj_deriv_fps.
 Qed.
 
 Theorem Lagrange_Bürmann_exp2 g i k :
-  g \in unit ->
+  g \in GRing.unit ->
   ((lagrfix g) ^+ k)``_i = ((1 - ''X * g^`()%fps / g) * ''X ^+ k * g ^+ i)``_i.
 Proof.
 move/Lagrange_Bürmann2 => <-.
@@ -1796,7 +1797,7 @@ Lemma coefs0_exp f : (exp f)``_0 = 1.
 Proof. by rewrite /exp coef0_comp_fps coefs0_exps. Qed.
 Lemma exp_in_coefs0_eq1 f : exp f \in coefs0_eq1.
 Proof. by rewrite coefs0_eq1E coefs0_exp. Qed.
-Lemma exp_unit f : exp f \is a unit.
+Lemma exp_unit f : exp f \is a GRing.unit.
 Proof. exact/coefs0_eq1_unit/exp_in_coefs0_eq1. Qed.
 
 Lemma coefs0_logs : logs``_0 = 0.
@@ -1850,7 +1851,7 @@ Import TFPSUnitRing.
 Section ExpMorph.
 
 Variable R : comUnitRingType.
-Hypothesis nat_unit : forall i, i.+1%:R \is a @unit R.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Implicit Types (f g : {fps R}).
 
 Theorem expD : {in @coefs0_eq0 R &, {morph exp : f g / f + g >-> f * g}}.
@@ -1874,11 +1875,11 @@ End ExpMorph.
 Section MoreDerivative.
 
 Variable R : comUnitRingType.
-Hypothesis nat_unit : forall i, i.+1%:R \is a @unit R.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Implicit Types (f g : {fps R}).
 
 Theorem derivXn_fps m :
-  m != 0%N ->  {in unit, forall f,
+  m != 0%N ->  {in GRing.unit, forall f,
      (f ^- m)^`()%fps = f ^- m.+1 * f^`()%fps *- m}.
 Proof.
 move=> Hm /= f fU; rewrite -exprVn derivX_fps derivV_fps //.
@@ -1925,7 +1926,7 @@ Open Scope fps_scope.
 Section DerivExpLog.
 
 Variables R : comUnitRingType.
-Hypothesis nat_unit : forall i, i.+1%:R \is a @unit R.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Implicit Type (f g : {fps R}).
 
 Lemma deriv_exps : exps^`() = exps :> {fps R}.
@@ -2071,11 +2072,11 @@ move=> Hf.
 by rewrite -mulN1r expr_fpsM expr_fpsN1 ?expr_fpsn ?exprVn ?rpredV.
 Qed.
 
-Lemma expr_fpsK a : a \is a unit ->
+Lemma expr_fpsK a : a \is a GRing.unit ->
   {in coefs0_eq1, cancel (@expr_fps R a) (@expr_fps R a^-1)}.
 Proof. by move=> aU f f0_eq1; rewrite -expr_fpsM divrr ?expr_fps1. Qed.
 
-Lemma expr_fps_inj a : a \is a unit ->
+Lemma expr_fps_inj a : a \is a GRing.unit ->
   {in coefs0_eq1 &, injective (@expr_fps R a)}.
 Proof. by move=> /expr_fpsK/can_in_inj. Qed.
 
@@ -2099,7 +2100,7 @@ End DerivExpLog.
 Section CoefExpX.
 
 Variables R : comUnitRingType.
-Hypothesis nat_unit : forall i, i.+1%:R \is a @unit R.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 
 Lemma coefs1cX c : 1 + c *: ''X \in @coefs0_eq1 R.
 Proof.
@@ -2129,7 +2130,7 @@ Open Scope fps_scope.
 Section SquareRoot.
 
 Variables R : idomainType.
-Hypothesis nat_unit : forall i, i.+1%:R \is a @unit R.
+Hypothesis nat_unit : forall i, i.+1%:R \is a @GRing.unit R.
 Implicit Types (f g : {fps R}).
 
 (* Lifting from TFPS is more complicated than re-doing the computation *)
