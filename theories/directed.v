@@ -14,6 +14,7 @@
 (******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
 Require Import natbar.
@@ -38,22 +39,11 @@ HB.mixin Record Directed (d : unit) T of Order.POrder d T := {
 HB.structure Definition DirectedType d :=
   { T of Directed d T & Order.POrder d T }.
 
-
-(*
-Lemma directedP (disp : unit) (T : dirType disp) : directed (T := T) <=%O.
-Proof.
-case: T => sort [/= bs mx []].
-Qed.
-*)
-
-(* Q: does an empty factory make sense ? *)
 HB.factory Record Lattice_isDirected d T of Order.Lattice d T := { }.
-
 HB.builders Context d T of Lattice_isDirected d T.
 
 Fact lattice_directed : directed (T := T) <=%O.
 Proof. by move=> x y; exists (x `|` y); [apply: leUl |apply: leUr]. Qed.
-
 HB.instance Definition _ := Directed.Build d T lattice_directed.
 
 HB.end.
@@ -71,26 +61,17 @@ Variables (disp : unit) (T : latticeType disp).
 
 Fact lattice_directed : directed (T := T) <=%O.
 Proof. by move=> x y; exists (x `|` y); [apply: leUl |apply: leUr]. Qed.
-
 (* Q: non forgetful inheritance detected. *)
 HB.instance Definition _ := Directed.Build disp T lattice_directed.
 
-(*
-Definition lattice_dirMixin := DirMixin lattice_directed.
-Canonical lattice_dirType := DirType T lattice_dirMixin.
-*)
 End Generic.
-*)
-(*
+
 Canonical nat_dirType := DirType nat (@lattice_dirMixin _ _).
 Canonical natdvd_dirType := DirType natdvd (@lattice_dirMixin _ _).
+
 *)
 
 
-
-(* Commented out since need classical_sets and not needed anyway
-
-From mathcomp Require Import boolp classical_sets.
 Section UpSets.
 
 Variables (disp : unit) (I : dirType disp).
@@ -127,4 +108,4 @@ by have [_ ] := (H t Pt); apply; first apply: le_ij.
 Qed.
 
 End UpSets.
-*)
+
