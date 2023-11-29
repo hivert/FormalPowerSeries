@@ -31,8 +31,6 @@ Definition directed (T : Type) (R : T -> T -> bool) :=
   forall x y : T, { z | R x z & R y z }.
 
 
-(* Q: Is the key="T" necessary ??? key gives the carrier type *)
-#[key="T"]
 HB.mixin Record Directed (d : unit) T of Order.POrder d T := {
   directedP : directed (T := T) <=%O
 }.

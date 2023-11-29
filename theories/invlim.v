@@ -126,14 +126,11 @@ Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 Variable Sys : invsys bonding.
 Variable ilT : invLimType Sys.
 
-Definition pi_phant of phant ilT := (@invlim_proj _ _ _ _ _ ilT).
-Local Notation "\pi" := (pi_phant (Phant ilT)).
-Local Notation "\pi_ i" := (@pi_phant (Phant ilT) i).
-Definition ind_phant of phant ilT := (@invlim_ind _ _ _ _ _ ilT).
-Local Notation "\ind" := (ind_phant (Phant ilT)).
+Local Notation "\pi" := (@invlim_proj _ _ _ _ _ ilT).
+Local Notation "\ind" := (@invlim_ind _ _ _ _ _ ilT _ _).
 
 Lemma ilprojE (x : ilT) :
-  forall i j, forall (Hij : i <= j), bonding Hij (\pi_j x) = \pi_i x.
+  forall i j, forall (Hij : i <= j), bonding Hij (\pi j x) = \pi i x.
 Proof. by move=> i j Hij; rewrite [LHS]ilprojP. Qed.
 
 Lemma piindE  T (f : forall i, T -> Obj i) (Hcone : cone Sys f) i x :
@@ -144,11 +141,11 @@ End InternalTheory.
 
 Arguments ilprojP {disp I Obj bonding} [Sys].
 
-Notation "''pi_' i" := (pi_phant (Phant _) i).
-Notation "''pi[' T ']_' i" := (pi_phant (Phant T) i)
+Notation "''pi_' i" := (invlim_proj i).
+Notation "''pi[' T ']_' i" := (@invlim_proj _ _ _ _ _ T i)
                               (at level 8, i at level 2, only parsing).
-Notation "''ind'" := (ind_phant (Phant _)).
-Notation "''ind[' T ']'" := (ind_phant (Phant T)) (only parsing).
+Notation "''ind'" := (@invlim_ind _ _ _ _ _ _ _ _).
+Notation "''ind[' T ']'" := (@invlim_ind _ _ _ _ _ T _ _) (only parsing).
 
 
 Section Theory.
@@ -818,7 +815,7 @@ HB.instance Definition _ :=
 
 Fact ilproj_is_linear i : linear 'pi[TLim]_i.
 Proof.
-by move=> /= r u v /=; rewrite -!/(pi_phant (Phant TLim) i) raddfD /= ilthrP.
+by move=> /= r u v /=; rewrite -!/('pi_i) raddfD /= ilthrP.
 Qed.
 HB.instance Definition _ :=
   isLmodInvLim.Build R _ _ _ _ _ TLim ilproj_is_linear.

@@ -41,19 +41,17 @@ Example C5 : C 5 = 42. Proof. by rewrite !Csimpl. Qed.
 
 Import GRing.Theory.
 
-Local Definition Rat := GRing.Field.clone _ rat.
-Local Definition Rat_numDomain := (Num.NumDomain.clone _ Rat).
-Local Definition char_Rat := Num.Theory.char_num Rat_numDomain.
-Local Definition nat_unit := tfps.TFPSField.nat_unit_field char_Rat.
-Local Definition fact_unit := tfps.TFPSField.fact_unit char_Rat.
-Hint Resolve char_Rat nat_unit : core.
+Local Definition char_rat := Num.Theory.char_num rat.
+Local Definition nat_unit := tfps.TFPSField.nat_unit_field char_rat.
+Local Definition fact_unit := tfps.TFPSField.fact_unit char_rat.
+Hint Resolve char_rat nat_unit : core.
 
 Section GenSeries.
 
 Local Open Scope ring_scope.
 Local Open Scope fps_scope.
 
-Definition FC : {fps Rat} := \fps (C i)%:R .X^i.
+Definition FC : {fps rat} := \fps (C i)%:R .X^i.
 
 Lemma FC_in_coef0_eq1 : FC \in coefs0_eq1.
 Proof. by rewrite coefs0_eq1E coefs_FPSeries C0. Qed.
@@ -77,13 +75,13 @@ Section AlgebraicSolution.
 Local Open Scope ring_scope.
 Local Open Scope fps_scope.
 
-Lemma mulr_nat i (f : {fps Rat}) : i%:R *: f = i%:R * f.
+Lemma mulr_nat i (f : {fps rat}) : i%:R *: f = i%:R * f.
 Proof. by rewrite scaler_nat -[f *+ i]mulr_natr mulrC. Qed.
 
 Theorem FC_algebraic_solution :
   ''X * FC = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: ''X)).
 Proof.
-have co1 : 1 - 4%:R *: ''X \in @coefs0_eq1 Rat.
+have co1 : 1 - 4%:R *: ''X \in @coefs0_eq1 rat.
   by rewrite mulr_nat coefs0_eq1E !coefs_simpl mulrC coef_fpsXM subr0.
 have: (2%:R *: ''X * FC - 1) ^+ 2 = 1 - 4%:R *: ''X.
   apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
@@ -96,8 +94,8 @@ move/(sqrtE nat_unit) => /(_ co1) [HeqP | HeqN].
   rewrite mulr_nat coefsB -mulrA mulrC -mulrA coef_fpsXM coefs1.
   rewrite (eqP (coefs0_eq1_expr _ _)) /= => /eqP.
   rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
-  by have:= char_Rat 2; rewrite !inE Habs /= eq_refl.
-have neq20 : 2%:R != 0 :> Rat by rewrite Num.Theory.pnatr_eq0.
+  by have:= char_rat 2; rewrite !inE Habs /= eq_refl.
+have neq20 : 2%:R != 0 :> rat by rewrite Num.Theory.pnatr_eq0.
 apply (scalerI neq20); rewrite scalerA divff // scale1r -HeqN.
 by rewrite addrC subrK scalerAl.
 Qed.
@@ -128,10 +126,10 @@ congr (_ * _); rewrite {F} mulrC invfM // !mulrA; congr (_ * _).
 rewrite mul2n -{2}[i.*2.+1]addn1 [X in X / _]mulrC -mulrA; congr (_ * _).
 rewrite -[i.*2.+2]addn1 addSnnS -mul2n -[X in (_ + X)%N]muln1.
 rewrite -mulnDr addn1 natrM mulfK //.
-by have /charf0P -> := char_Rat.
+by have /charf0P -> := char_rat.
 Qed.
 
-Theorem Cat_rat i : (C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> Rat.
+Theorem Cat_rat i : (C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> rat.
 Proof. by rewrite -coefFC coefs_FPSeries. Qed.
 
 Local Close Scope ring_scope.
@@ -168,7 +166,7 @@ Section LagrangeSolution.
 Local Open Scope ring_scope.
 Local Open Scope tfps_scope.
 
-Lemma one_plusX_2_unit : ((1 + ''X) ^+ 2 : {fps Rat}) \is a GRing.unit.
+Lemma one_plusX_2_unit : ((1 + ''X) ^+ 2 : {fps rat}) \is a GRing.unit.
 Proof.
 rewrite unit_fpsE coefs0M coefsD coefs1.
 by rewrite coef_fpsX addr0 mulr1.
@@ -187,7 +185,7 @@ Qed.
 Theorem CatM_Lagrange i : (i.+1 * (C i))%N = 'C(i.*2, i).
 Proof.
 case: i => [|i]; first by rewrite C0 mul1n bin0.
-apply/eqP; rewrite -(Num.Theory.eqr_nat Rat_numDomain); rewrite natrM.
+apply/eqP; rewrite -(Num.Theory.eqr_nat rat); rewrite natrM.
 have:= (congr1 (fun s => s``_i.+1) FC_fixpoint_eq).
 rewrite coefsD coefs_FPSeries.
 rewrite coefsN coefs1 subr0 /= => ->.
