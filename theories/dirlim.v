@@ -128,11 +128,9 @@ Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
 Variable dlT : dirLimType Sys.
 
-Definition inj_phant of phant dlT := (@dirlim_inj _ _ _ _ _ dlT).
-Local Notation "\inj" := (@inj_phant (Phant dlT)).
-Local Notation "\inj_ i" := (@inj_phant (Phant dlT) i) (at level 5).
-Definition ind_phant of phant dlT := (@dirlim_ind _ _ _ _ _ dlT).
-Local Notation "\ind" := (ind_phant (Phant dlT)).
+Local Notation "\inj" := (@dirlim_inj _ _ _ _ _ dlT).
+Local Notation "\inj_ i" := (@dirlim_inj _ _ _ _ _ dlT i) (at level 5).
+Local Notation "\ind" := (@dirlim_ind _ _ _ _ _ dlT _ _).
 
 Lemma dlinjE :
   forall i j, forall (Hij : i <= j) x, \inj_j (bonding Hij x) = \inj_i x.
@@ -146,13 +144,13 @@ End InternalTheory.
 
 Arguments dlinjP {disp I Obj bonding} [Sys].
 
-Notation "''inj[' TLim ']_' i" := (@inj_phant _ _ _ _ _ TLim (Phant _) i)
+Notation "''inj[' TLim ']_' i" := (@dirlim_inj _ _ _ _ _ TLim i)
                               (at level 8, i at level 2, only parsing).
 Notation "''inj[' TLim ']'" := ('inj[TLim]_ _) (at level 8).
 Notation "''inj_' i" := ('inj[ _ ]_ i).
 Notation "''inj'" := ('inj[ _ ]_ _).
-Notation "''ind'" := (ind_phant (Phant _)).
-Notation "''ind[' T ']'" := (ind_phant (Phant T)) (only parsing).
+Notation "''ind'" := (@dirlim_ind _ _ _ _ _ _ _ _).
+Notation "''ind[' T ']'" := (@dirlim_ind _ _ _ _ _ T _ _).
 
 
 Section Theory.
