@@ -721,8 +721,7 @@ by rewrite /ilinv; case: pselect => /= [/= H|//]; have:= Hx H.
 Qed.
 
 HB.instance Definition _ :=
-  GRing.Ring_hasMulInverse.Build TLim
-    ilmulVr ilmulrV ilunit_impl ilinv0id.
+  GRing.Ring_hasMulInverse.Build TLim ilmulVr ilmulrV ilunit_impl ilinv0id.
 
 HB.end.
 
