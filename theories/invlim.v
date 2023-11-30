@@ -31,6 +31,8 @@ Unset Printing Implicit Defensive.
 Reserved Notation "{ 'invlim' S }"
          (at level 0, format "{ 'invlim'  S }").
 Reserved Notation "''pi_' i" (at level 8, i at level 2, format "''pi_' i").
+Reserved Notation "''pi[' T ']_' i" (at level 8, i at level 2).
+Reserved Notation "''ind[' T ']'" (at level 8).
 
 Reserved Notation "\Sum_( i : t ) F"
          (at level 41, F at level 41, i at level 50,
@@ -141,10 +143,9 @@ End InternalTheory.
 Arguments ilprojP {disp I Obj bonding} [Sys].
 
 Notation "''pi_' i" := (invlim_proj i).
-Notation "''pi[' T ']_' i" := (@invlim_proj _ _ _ _ _ T i)
-                              (at level 8, i at level 2, only parsing).
-Notation "''ind'" := (@invlim_ind _ _ _ _ _ _ _ _).
-Notation "''ind[' T ']'" := (@invlim_ind _ _ _ _ _ T _ _) (only parsing).
+Notation "''pi[' T ']_' i" := (invlim_proj (s := T) i) (only parsing).
+Notation "''ind[' T ']'" := (invlim_ind (s := T) _ _) (only parsing).
+Notation "''ind'" := ('ind[ _ ]).
 
 
 Section Theory.
@@ -1106,7 +1107,7 @@ Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> algType R.
 Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
-Let test := GRing.Algebra.clone R _ {invlim Sys}.
+Let test : algType R := {invlim Sys}.
 End TestAlg.
 
 Section TestField.
@@ -1114,7 +1115,7 @@ Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> fieldType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
 Variable Sys : invsys bonding.
-Let test := GRing.Field.clone _ {invlim Sys}.
+Let test : fieldType := {invlim Sys}.
 End TestField.
 
 
