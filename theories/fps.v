@@ -47,8 +47,8 @@ Reserved Notation "f \oS g" (at level 50).
 
 
 
-(* I'd rather not add a coercion here ! It is redundant with the
-   notation p``_i which is very confusing *)
+(* I'd rather not add seriesfun as a coercion here !
+   It is redundant with the notation p``_i which get very confusing *)
 Record fpseries (R : ringType) := FPSeries { seriesfun : nat -> R }.
 Notation "{ 'fps' R }" := (fpseries R).
 
