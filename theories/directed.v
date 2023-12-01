@@ -31,7 +31,7 @@ Unset Printing Implicit Defensive.
 Definition directed (T : Type) (R : T -> T -> bool) :=
   forall x y : T, { z | R x z & R y z }.
 
-
+(* TODO : I'm not using anti-symmetry, i.e.: directed sets can be preorders *)
 HB.mixin Record Directed (d : unit) T of Order.POrder d T := {
   directedP : directed (T := T) <=%O
 }.
@@ -104,7 +104,7 @@ Proof.
 move=> [t Pt] H; split.
   by have [[i Fti] _] := H t Pt; exists i; exists t.
 move=> {t Pt} i j le_ij [t Pt Fti]; exists t => //.
-by have [_ ] := (H t Pt); apply; first apply: le_ij.
+by have [_] := H t Pt; apply; first apply: le_ij.
 Qed.
 
 End UpSets.
