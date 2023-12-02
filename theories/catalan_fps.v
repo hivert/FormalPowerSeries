@@ -16,7 +16,6 @@
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import fintype div bigop ssralg binomial rat ssrnum.
 
-Require tfps.
 Require Import auxresults fps.
 
 

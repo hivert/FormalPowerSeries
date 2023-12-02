@@ -3297,9 +3297,12 @@ Proof. by rewrite unitfE; move: char_K_is_zero => /charf0P ->. Qed.
 
 Local Notation nuf := nat_unit_field.
 
+(* TODO : the three lemma below should be elsewhere *)
+(* as they have nothing to do with power series     *)
 Definition natmul_inj         := TFPSUnitRing.natmul_inj         nuf.
 Definition nat_unit_alg       := TFPSUnitRing.nat_unit_alg       nuf.
 Definition fact_unit          := TFPSUnitRing.fact_unit          nuf.
+
 Definition pred_size_prim     := TFPSUnitRing.pred_size_prim     nuf.
 Definition primK              := TFPSUnitRing.primK              nuf.
 Definition prim_tfpsK         := TFPSUnitRing.prim_tfpsK         nuf.
