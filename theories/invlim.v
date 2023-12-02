@@ -244,7 +244,19 @@ Proof.
 move=> Hsurj i j le_ij u; have [x pix] := Hsurj i u.
 by exists ('pi_j x); rewrite ilprojE.
 Qed.
-(* TODO Reciprocal statement -- use some strong form of choice axiom *)
+
+(* TODO: prove the reciprocal statement
+   This seems to need some strong form of choice axiom *)
+Lemma invlim_surj_section :
+  (forall i (u : Obj i), exists x, 'pi[ilT]_i x = u) ->
+  (exists f, forall i (u : Obj i), 'pi[ilT]_i (f i u) = u).
+Proof.
+move=> H.
+have {H}/choice[f Hf] :
+  forall p : {i & Obj i}, exists x, 'pi[ilT]_(projT1 p) x = projT2 p.
+  by move=> [i u] /=.
+by exists (fun i u => f (existT Obj i u)) => i u; apply: (Hf (existT Obj i u)).
+Qed.
 
 End InvLimitEqType.
 

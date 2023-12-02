@@ -235,11 +235,11 @@ split => [Hco|-> //]; apply/fpsprojE => /= i; apply/tfpsP => j le_ji.
 by rewrite !(coeft_proj le_ji) Hco.
 Qed.
 
-Definition coefps_head h i (s : {fps R}) :=
+Definition coefs_head h i (s : {fps R}) :=
   let: tt := h in coef_series s i.
-Local Notation coefs i := (coefps_head tt i).
+Local Notation coefs i := (coefs_head tt i).
 
-Lemma coefs_is_additive i : additive (coefs i).
+Fact coefs_is_additive i : additive (coefs i).
 Proof. by move=> s t; rewrite /= !coefs_projE projB coefB. Qed.
 HB.instance Definition _ i :=
   GRing.isAdditive.Build {fps R} R _ (coefs_is_additive i).
@@ -418,13 +418,10 @@ Proof. by rewrite !coefs_projE linearZ coefZ. Qed.
 Lemma alg_fpsC a : a%:A = a%:S :> {fps R}.
 Proof. by rewrite -mul_fpsC mulr1. Qed.
 
-(*
-Canonical coefps_linear i : {scalar {fps R}} :=
-  Eval hnf in AddLinear
-                ((fun a => (coefsZ a) ^~ i) : scalable_for *%R (coefs i)).
-Canonical coefp0_lrmorphism :=
-  Eval hnf in [lrmorphism of coefs 0].
- *)
+Fact coefs_is_scalable i : scalable_for *%R (coefs i).
+Proof. move=> r x; exact: coefsZ. Qed.
+HB.instance Definition _ i :=
+  GRing.isScalable.Build R {fps R} _ _ _ (coefs_is_scalable i).
 
 Lemma proj0CE f : 'pi[{fps R}]_0%N f = (f``_0%N)%:S%tfps.
 Proof.
