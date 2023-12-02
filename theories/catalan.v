@@ -93,8 +93,8 @@ have: (2%:R *: \X * FC n - 1) ^+ 2 = 1 - 4%:R *: \X.
   by rewrite -[_ *+ 2]mulr_natl !mulrA -natrM subrr.
 move/(sqrtE char_rat) => /(_ co1) [HeqP | HeqN].
   exfalso; move: HeqP => /(congr1 (fun x : {tfps _ _ } => x`_0)).
-  rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_tfpsXM coef1.
-  rewrite (eqP (coeft0_eq1_expr _ _)) /= => /eqP.
+  rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_tfpsXM coef1 /=.
+  rewrite (eqP (coeft0_eq1_expr _ _)) => /eqP.
   rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
   by have:= char_rat 2; rewrite !inE Habs /= eq_refl.
 have neq20 : 2%:R != 0 :> rat by rewrite Num.Theory.pnatr_eq0.

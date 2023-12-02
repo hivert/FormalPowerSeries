@@ -91,8 +91,8 @@ have: (2%:R *: ''X * FC - 1) ^+ 2 = 1 - 4%:R *: ''X.
   by rewrite -[_ *+ 2]mulr_natl !mulrA -natrM subrr.
 move/(sqrtE nat_unit) => /(_ co1) [HeqP | HeqN].
   exfalso; move: HeqP => /(congr1 (fun x => x``_0)).
-  rewrite mulr_nat coefsB -mulrA mulrC -mulrA coef_fpsXM coefs1.
-  rewrite (eqP (coefs0_eq1_expr _ _)) /= => /eqP.
+  rewrite mulr_nat coefsB -mulrA mulrC -mulrA coef_fpsXM coefs1 /=.
+  rewrite (eqP (coefs0_eq1_expr _ _)) => /eqP.
   rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
   by have:= char_rat 2; rewrite !inE Habs /= eq_refl.
 have neq20 : 2%:R != 0 :> rat by rewrite Num.Theory.pnatr_eq0.
@@ -239,7 +239,7 @@ have -> : ''X * FC^`()%fps = (FC - 1)/(1 - ''X *+ 2 * FC).
   by rewrite !(mulrnAr, mulrnAl) mulrC mulrA.
 rewrite mulrA -[X in X + _](mulrK X2Fu) -mulrDl -[RHS]divr1.
 apply/eqP; rewrite eq_divr ?unitr1 // mulr1 mul1r.
-rewrite -mulrA [FC * _]mulrC [(1 - _ * FC) * FC]mulrBl -mulrA -expr2.
+rewrite -mulrA [FC * _]mulrC [(1 - ''X *+ 2 * FC) * FC]mulrBl -mulrA -expr2.
 rewrite mul1r mulrnAl FalgN.
 rewrite !mulrnBl opprB addrA (mulr2n FC) (opprD FC) addrA.
 rewrite [_ - FC]addrC 2!addrA [-FC + _]addrC subrr add0r.
