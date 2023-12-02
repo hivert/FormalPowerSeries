@@ -256,7 +256,7 @@ Lemma coefsMNn s n i : (s *- n)``_i = (s``_i) *- n.
 Proof. by rewrite coefsN coefsMn. Qed.
 Lemma coefs_sum I (r : seq I) (s : pred I) (F : I -> {fps R}) k :
   (\sum_(i <- r | s i) F i)``_k = \sum_(i <- r | s i) (F i)``_k.
-Proof. exact: (raddf_sum (coefs _)). Qed.
+Proof. exact: (raddf_sum (coefs k)). Qed.
 
 
 Fact compat_fpsC : cone (fps_invsys R) (@tfpsC R).
@@ -311,7 +311,7 @@ Proof. rewrite -fpsC0; apply/inj_eq/fpsC_inj. Qed.
 Lemma fpsC_eq1 (c : R) : (c%:S == 1 :> {fps R}) = (c == 1).
 Proof. rewrite -fpsC1; apply/inj_eq/fpsC_inj. Qed.
 
-Lemma compat_poly : cone (fps_invsys R) (@trXn R).
+Fact compat_poly : cone (fps_invsys R) (@trXn R).
 Proof. by  move=> i j le_ij p; rewrite /= fps_bondE /trXnt /= trXn_trXn. Qed.
 Definition fps_poly : {poly R} -> {fps R} := 'ind compat_poly.
 
@@ -332,12 +332,14 @@ by rewrite !fps_polyK // (leq_trans _ (leqnSn _)) // ?leq_maxr ?leq_maxl.
 Qed.
 
 HB.instance Definition _ :=
-  GRing.isAdditive.Build _ _ fps_poly (ilind_is_additive _ compat_poly).
+  GRing.isAdditive.Build
+    _ _ fps_poly (ilind_is_additive _ compat_poly).
 HB.instance Definition _ :=
   GRing.isMultiplicative.Build
     _ _ fps_poly (ilind_is_multiplicative _ compat_poly).
 HB.instance Definition _ :=
-  GRing.isLinear.Build R _ _ _ fps_poly (ilind_is_linear _ compat_poly).
+  GRing.isLinear.Build
+    R _ _ _ fps_poly (ilind_is_linear _ compat_poly).
 
 Lemma fps_poly0 : fps_poly 0 = 0.
 Proof. exact: raddf0. Qed.
@@ -801,7 +803,6 @@ Proof. exact: (big_morph _ sleadM slead1). Qed.
 Fact series_idomainAxiom s t :
   s * t = 0 -> (s == 0 :> {fps R}) || (t == 0 :> {fps R}).
 Proof. by move/eqP; rewrite !valuatInfE valuatM addbar_eqI. Qed.
-
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build {fps R} series_idomainAxiom.
 
@@ -940,9 +941,7 @@ split => [|| a p q ]; rewrite ?coefs0_eq0E ?coefs0 ?coefs1 ?eqxx ?oner_eq0 //.
 move=> /eqP p0_eq0 /eqP q0_eq0.
 by rewrite coefsD q0_eq0 addr0 coefs0M p0_eq0 mulr0.
 Qed.
-
 Fact coefs0_eq0_key : pred_key coefs0_eq0. Proof. by []. Qed.
-
 Canonical coefs0_eq0_keyed := Eval hnf in KeyedPred coefs0_eq0_key.
 HB.instance Definition _ := isIdealr.Build {fps R} coefs0_eq0 coefs0_eq0_idealr.
 
@@ -992,6 +991,7 @@ Fact coefs0_eq1_key : pred_key coefs0_eq1. Proof. by []. Qed.
 Canonical coefs0_eq1_keyed := Eval hnf in KeyedPred coefs0_eq1_key.
 HB.instance Definition _ :=
   GRing.isMulClosed.Build {fps R} coefs0_eq1 mulr_closed_coefs0_eq1.
+
 
 (* Tests *)
 Example one_in_coefs0_eq1 : 1 \in coefs0_eq1.
@@ -1127,7 +1127,6 @@ Qed.
 End MapMulfXDivfX.
 
 
-
 Section Derivative.
 
 Variables (R : ringType).
@@ -1213,7 +1212,6 @@ by rewrite !(proj_simpl, proj_deriv_fps) -!fps_bondE !ilprojE.
 Qed.
 
 End MoreDerivative.
-
 
 
 Section DerivativeComRing.
@@ -1361,14 +1359,13 @@ Section Composition.
 Variables (R : ringType).
 Implicit Types (f g : {fps R}).
 
-Lemma compat_comp_fps g :
+Fact compat_comp_fps g :
   cone (fps_invsys R)
        (fun i => (comp_tfps ('pi_i g)) \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_comp -?leEnat // -!fps_bondE !ilprojE.
 Qed.
-
 Definition comp_fps g : {fps R} -> {fps R} := 'ind (compat_comp_fps g).
 
 Local Notation "f \oS g" := (comp_fps g f).
@@ -1513,7 +1510,7 @@ Section Lagrange.
 Variables R : comUnitRingType.
 Implicit Type (f g : {fps R}).
 
-Lemma compat_lagrfix :
+Fact compat_lagrfix :
   cone (fps_invsys R)
        (fun i => if i is i'.+1
                  then (@lagrfix R i') \o 'pi[{fps R}]_i'
@@ -1527,7 +1524,6 @@ case: i j => [|i] [|j] //; first by rewrite trXnt0.
 rewrite ltnS => le_ij.
 by rewrite trXnt_lagrfix // -!fps_bondE !ilprojE.
 Qed.
-
 Definition lagrfix : {fps R} -> {fps R} := 'ind compat_lagrfix.
 
 Lemma proj0_lagrfix f : 'pi_0%N (lagrfix f) = 0.
@@ -1562,7 +1558,7 @@ Lemma lagrfix_inv f g :
   f = ''X * (g \oS f) -> (''X * g^-1) \oS f = ''X.
 Proof.
 move=> gU f0eq0 feq; rewrite feq.
-rewrite rmorphM /= rmorphV //= comp_fpsX ?coefs0_eq0E ?coef_fpsXM // -{2}feq.
+rewrite rmorphM /= (rmorphV _ gU) comp_fpsX ?coefs0_eq0E ?coef_fpsXM // -{2}feq.
 by rewrite mulrK // comp_fps_unitE.
 Qed.
 
