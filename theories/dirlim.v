@@ -524,7 +524,9 @@ Lemma dlunitP (x : dlT) :
     (x \is a GRing.unit).
 Proof.
 apply (iffP idP) => [/unitrP [xinv][] | [i][u [<-{x} uunit]]]; first last.
-  exact: (rmorph_unit (GRing.RMorphism.clone _ _ 'inj[dlT]_i _) uunit).
+  (* Q: why coq is not able to infer what is needed in
+     exact: (rmorph_unit _ uunit). *)
+  exact: (rmorph_unit ('inj[dlT]_i : {rmorphism _ -> _}) uunit).
 have [i u v <-{xinv} <-{x}] := dirlim2P x xinv; rewrite -!rmorphM /=.
 move=> /dlinj_eq1 [j][leij]; rewrite rmorphM => vu1.
 move=> /dlinj_eq1 [k][leik]; rewrite rmorphM => uv1.
@@ -1148,6 +1150,7 @@ Close Scope ring_scope.
 (*                                                                         *)
 (***************************************************************************)
 
+(* TODO : seems to be simplifiable using generic_quotient *)
 Section DirLimitChoiceType.
 
 Variables (disp : unit) (I : dirType disp).
