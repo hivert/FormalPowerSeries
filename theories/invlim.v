@@ -87,11 +87,6 @@ End InverseSystem.
 (*                                                                         *)
 (***************************************************************************)
 
-#[key="T"]
-HB.mixin Record Foo TT := {}.
- 
-
-
 #[key="ilT"]
 HB.mixin Record isInvLim
     (disp : unit) (I : porderType disp)
