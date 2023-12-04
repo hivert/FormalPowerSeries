@@ -1164,57 +1164,7 @@ Close Scope ring_scope.
 (** A default implementation for direct limits                             *)
 (*                                                                         *)
 (***************************************************************************)
-
-(* TODO : seems to be simplifiable using generic_quotient *)
-Section DirLimitChoiceType.
-
-Variables (disp : unit) (I : dirType disp).
-Variable Obj : I -> choiceType.
-Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
-Variable Sys : dirsys bonding.
-
-Implicit Types (i j k : I) (p q : {i & Obj i}).
-
-Lemma dlcanon_ex p : exists q, dsyseq Sys p q.
-Proof. by  exists p; apply: dsyseq_refl. Qed.
-Definition dlcanon p : {i & Obj i} := xchoose (dlcanon_ex p).
-
-Lemma dlcanonP p : dsyseq Sys p (dlcanon p).
-Proof. exact: xchooseP. Qed.
-Lemma dlcanonE p q : dsyseq Sys p q <-> dlcanon p = dlcanon q.
-Proof.
-split => Heq.
-- by apply: eq_xchoose => /= x; exact: equiv_ltrans.
-- rewrite (equiv_ltrans (dlcanonP p)) Heq equiv_sym.
-  exact: dlcanonP.
-Qed.
-
-Lemma dlcanon_id p : dlcanon (dlcanon p) = dlcanon p.
-Proof. by apply dlcanonE; rewrite dsyseq_sym; apply: dlcanonP. Qed.
-
-Variable dlT : dirLimType Sys.
-Implicit Types (t a b c : dlT).
-
-Lemma dlrepc_ex t :
-  exists q, (fun q => `[< 'inj (projT2 q) = t >]) q.
-Proof. by case: (dirlimSP t) => p Hp; exists p; apply/asboolP. Qed.
-Definition dlrepr t : {i & Obj i} := xchoose (dlrepc_ex t).
-
-Lemma dlreprP t : 'inj (projT2 (dlrepr t)) = t.
-Proof.
-apply/asboolP.
-exact: (@xchooseP _ (fun q : {i & Obj i} => `[< 'inj (projT2 q) = t >])).
-Qed.
-
-Lemma dlrepr_dlcanonE t p : 'inj (projT2 p) = t -> dlcanon p = dlrepr t.
-Proof.
-move=> <- {t}; apply: eq_xchoose => [[i x]] /=.
-rewrite dsyseq_sym; apply: asbool_equiv_eq.
-by rewrite dirlimE /=; case: p.
-Qed.
-
-End DirLimitChoiceType.
-
+Open Scope quotient_scope.
 
 Section Implem.
 
@@ -1223,16 +1173,9 @@ Variable Obj : I -> choiceType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
 
-Record dirlim := MkDirLim {
-                     dlpair : {i & Obj i};
-                     _ : dlcanon Sys dlpair == dlpair;
-                   }.
+Definition dirlim := {eq_quot (dsyseq Sys)}.
 
-(* A non canonical subtype for invlim *)
-Definition dirlim_subType : subType _ :=
-  HB.pack dirlim [isSub of dirlim for dlpair].
-HB.instance Definition _ := gen_eqMixin dirlim.
-HB.instance Definition _ := gen_choiceMixin dirlim.
+Definition dlinj_impl i (u : Obj i) := \pi_dirlim (existT Obj i u).
 
 End Implem.
 Notation "{ 'dirlim' S }" := (dirlim S).
@@ -1246,39 +1189,31 @@ Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
 Implicit Type (i j k : I) (x y : {dirlim Sys}).
 
-Definition dlinj_fun i (u : Obj i) := dlcanon Sys (existT _ i u).
-Lemma dlinj_spec i (u : Obj i) : dlcanon Sys (dlinj_fun u) == dlinj_fun u.
-Proof. by rewrite /dlinj_fun dlcanon_id. Qed.
-Definition dlinj_impl i (u : Obj i) : {dirlim Sys} := MkDirLim (dlinj_spec u).
 
-Lemma dlinj_implP i (u : Obj i) :
-  dsyseq Sys (existT Obj i u) (dlpair (dlinj_impl u)).
-Proof.
-rewrite /dlinj_impl /= /dlinj_fun /=.
-exact: (dlcanonP Sys (existT Obj i u)).
-Qed.
+Lemma dsyseq_dlinj_impl i (u : Obj i) :
+  dsyseq Sys (existT Obj i u) (repr (dlinj_impl Sys u)).
+Proof. by have [v /eqmodP] := piP {dirlim Sys} (existT Obj i u). Qed.
 
-Local Notation "''inj_' i" := (@dlinj_impl i).
 
 (** Budlding the universal induced map *)
 Section UniversalProperty.
 
 Variable (T : Type) (f : forall i, Obj i -> T).
 
-Definition dlind of cocone Sys f := fun x => f (projT2 (dlpair x)).
+Definition dlind_impl of cocone Sys f := fun x => f (projT2 (repr x)).
 
 Hypothesis Hcone : cocone Sys f.
 
-Lemma dlindP i (u : Obj i) : dlind Hcone ('inj_i u) = f u.
+Lemma dlind_implP i (u : Obj i) : dlind_impl Hcone (dlinj_impl Sys u) = f u.
 Proof.
-rewrite /dlind; apply (dsyseqE Hcone); rewrite dsyseq_sym /=.
-by have /= := (dlinj_implP u); case: (dlinj_fun u).
+rewrite /dlind_impl; apply (dsyseqE Hcone); rewrite dsyseq_sym /=.
+by case: (repr _) (dsyseq_dlinj_impl u).
 Qed.
 
-Lemma dlindE i j (u : Obj i) (v : Obj j) :
+Lemma dlind_implE i j (u : Obj i) (v : Obj j) :
   dsyseq Sys (existT Obj i u) (existT Obj j v) ->
-  dlind Hcone ('inj_i u) = dlind Hcone ('inj_j v).
-Proof. by rewrite !dlindP => /(dsyseqE Hcone). Qed.
+  dlind_impl Hcone (dlinj_impl Sys  u) = dlind_impl Hcone (dlinj_impl Sys  v).
+Proof. by rewrite !dlind_implP => /(dsyseqE Hcone). Qed.
 
 End UniversalProperty.
 
@@ -1292,21 +1227,35 @@ Variable Obj : I -> choiceType.
 Variable bonding : forall i j, (i <= j)%O -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
 
-Program Definition dirlim_Mixin :=
-  @isDirLim.Build disp I Obj bonding Sys {dirlim Sys}
-               (dlinj_impl Sys) (dlind (Sys := Sys)) _ _ _.
-Next Obligation.
-move=> i j le_ij u /=; apply (val_inj (sT := dirlim_subType _)) => /=.
-rewrite /dlinj_fun /= -(dlcanonE Sys) /= dsyseq_sym.
+Lemma dlinj_implP : cocone Sys (dlinj_impl Sys).
+Proof.
+rewrite /dlinj_impl => i j le_ij u /=.
+apply/eqmodP; rewrite /= dsyseq_sym.
 exact: dsyseq_bonding.
 Qed.
-Next Obligation. by move=> x /=; rewrite dlindP. Qed.
-Next Obligation.
-move=> [[i u] /= Hu].
-suff -> : MkDirLim Hu = dlinj_impl Sys u by rewrite dlindP -(H i u).
-by apply (val_inj (sT := dirlim_subType _)) => /=; rewrite /dlinj_fun (eqP Hu).
+
+Lemma dlind_impl_commute
+  T (f : forall i, Obj i -> T) (Hcone : cocone Sys f) i :
+  dlind_impl Hcone \o (dlinj_impl Sys) i =1 f i.
+Proof. by move=> x /=; rewrite dlind_implP. Qed.
+
+Lemma dlind_impl_uniq
+  T (f : forall i, Obj i -> T) (Hcone : cocone Sys f) (ind : {dirlim Sys} -> T) :
+  (forall i, ind \o (dlinj_impl Sys) i =1 f i) ->
+  ind =1 dlind_impl Hcone.
+Proof.
+move=> H /= x; rewrite /dlind_impl /=.
+suff {1}-> : x = dlinj_impl Sys (projT2 (repr x)).
+  exact: H (projT1 (repr x)) (projT2 (repr x)).
+rewrite -{1}(reprK x) /= /dlinj_impl /=.
+by case: (repr x).
 Qed.
-HB.instance Definition _ := dirlim_Mixin.
+
+HB.instance Definition _ := Choice.on {dirlim Sys}.
+#[key="{dirlim Sys}"]
+HB.instance Definition _ :=
+  @isDirLim.Build disp I Obj bonding Sys {dirlim Sys}
+    _ _ dlinj_implP dlind_impl_commute dlind_impl_uniq.
 
 End InterSpec.
 
