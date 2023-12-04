@@ -1,3 +1,4 @@
+(** Inverse limits *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -12,6 +13,10 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** * Inverse Limits
+
+- {invlim Sys} == a default implementation of the inverse limits of [Sys]
+*******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect ssralg.
 From mathcomp Require Import boolp classical_sets.

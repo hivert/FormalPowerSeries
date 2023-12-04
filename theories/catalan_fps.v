@@ -1,4 +1,4 @@
-(** Catalan number via generating functions *)
+(** Catalan number via generating functions (classical power series version) *)
 (******************************************************************************)
 (*       Copyright (C) 2019 Florent Hivert <florent.hivert@lri.fr>            *)
 (*                                                                            *)
@@ -13,6 +13,8 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** * Catalan numbers
+*******************************************************************************)
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import fintype div bigop ssralg binomial rat ssrnum.
 

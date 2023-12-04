@@ -62,7 +62,7 @@ Standard operation on power series:
 
 Composition of truncated power series and Lagrange inversion:
 
-- [comp_fps f g == [g \oS f] (in [fps_scope]) == the compose series
+- [comp_fps f g] == [g \oS f] (in [fps_scope]) == the compose series
                   of [f] and [g] where [f \in coef0_eq0].
 - [lagrfix g]  == the Lagrange fix point [f] in [{fps R}] of the
                   iteration [f = ''X (g \oS f)].

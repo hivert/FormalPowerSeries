@@ -74,7 +74,7 @@ Standard operation on power series:
 
 Composition of truncated power series and Lagrange inversion:
 
-- [comp_tfps f g == [g \oT f] (in [tfps_scope]) == the compose series
+- [comp_tfps f g] == [g \oT f] (in [tfps_scope]) == the compose series
                   of [f] and [g] where [f \in coeft0_eq0].
 - [lagrfix g]  == the Lagrange fix point [f] in [{tfps R n.+1}] of the
                   iteration [f = X * (g o f)] or more precisely
