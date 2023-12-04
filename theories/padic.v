@@ -1,3 +1,4 @@
+(** Combi.padic : padic integer *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -12,6 +13,12 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** * The ring of p-adic integers
+- [Zmn m n]      == the morphism from [Z/nZ] to [Z/mZ] assuming [m] divide [n].
+- [padic_int Pf] == the p-adic integers ring [Zp] where [Pf] is a proof that
+                    [p] is a prime number. It is equiped with a
+                    [comUnitRingType] canonical structure.
+*******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
