@@ -179,7 +179,7 @@ Qed.
 
 Lemma dirlimSP x : { p : {i & Obj i} | 'inj (projT2 p) = x }.
 Proof.
-by apply cid; have [i u eqinj] := dirlimP x; exists (existT _ i u).
+by apply cid; have [i u eqinj] := dirlimP x; exists (existT Obj i u).
 Qed.
 
 End Theory.
@@ -238,31 +238,32 @@ Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
 
 Implicit Types (i j k : I) (u v : {i : I & Obj i}).
+Definition DPair i (u : Obj i) := (existT Obj i u).
 
-Inductive dsyscongr (Sys : dirsys bonding) u v : Prop :=
-  | Dsyscongr : forall k (le_ik : projT1 u <= k) (le_jk : projT1 v <= k),
-    (bonding le_ik (projT2 u) = bonding le_jk (projT2 v)) -> dsyscongr Sys u v.
+Inductive dsysequal (Sys : dirsys bonding) u v : Prop :=
+  | Dsysequal : forall k (le_ik : projT1 u <= k) (le_jk : projT1 v <= k),
+    (bonding le_ik (projT2 u) = bonding le_jk (projT2 v)) -> dsysequal Sys u v.
 
-Definition dsyseq (Sys : dirsys bonding) u v: bool := `[< dsyscongr Sys u v >].
+Definition dsyseq (Sys : dirsys bonding) u v := `[< dsysequal Sys u v >].
 
-Lemma dsyseqP u v : reflect (dsyscongr Sys u v) (dsyseq Sys u v).
+Lemma dsyseqP u v : reflect (dsysequal Sys u v) (dsyseq Sys u v).
 Proof. exact: asboolP. Qed.
 
-Local Arguments Dsyscongr {Sys u v k} (le_ik le_jk).
+Local Arguments Dsysequal {Sys u v k} (le_ik le_jk).
 
 Lemma dsyseq_bonding i j (le_ij : i <= j) (u : Obj i) :
-  dsyseq Sys (existT Obj _ u) (existT Obj _ (bonding le_ij u)).
+  dsyseq Sys (DPair u) (DPair (bonding le_ij u)).
 Proof.
-apply/dsyseqP; apply: (Dsyscongr (k := j)) => /=.
+apply/dsyseqP; apply: (Dsysequal (k := j)) => /=.
 by rewrite bonding_transE //; apply: bondingE.
 Qed.
 
 Lemma dsyseq_refl u : dsyseq Sys u u.
-Proof. by apply/dsyseqP; apply: (Dsyscongr (k := projT1 u)). Qed.
+Proof. by apply/dsyseqP; apply: (Dsysequal (k := projT1 u)). Qed.
 Lemma dsyseq_sym_impl u v : dsyseq Sys u v -> dsyseq Sys v u.
 Proof.
 move/dsyseqP => [k le_ik le_jk Hbond].
-by apply/dsyseqP; apply: (Dsyscongr le_jk le_ik); rewrite Hbond.
+by apply/dsyseqP; apply: (Dsysequal le_jk le_ik); rewrite Hbond.
 Qed.
 Lemma dsyseq_sym u v : dsyseq Sys u v = dsyseq Sys v u.
 Proof. by apply/idP/idP; apply: dsyseq_sym_impl. Qed.
@@ -272,7 +273,7 @@ move=> v u w.
 move/dsyseqP => [l le_il le_jl Huv].
 move/dsyseqP => [m le_jm le_km Hvw].
 have [n le_ln le_mn] := directedP l m.
-apply/dsyseqP; apply: (Dsyscongr (le_trans le_il le_ln) (le_trans le_km le_mn)).
+apply/dsyseqP; apply: (Dsysequal (le_trans le_il le_ln) (le_trans le_km le_mn)).
 rewrite -!bonding_transE // {}Huv -{}Hvw !bonding_transE //.
 exact: bondingE.
 Qed.
@@ -281,18 +282,18 @@ Canonical SysEq :=
   EquivRel (@dsyseq Sys) dsyseq_refl dsyseq_sym dsyseq_trans.
 
 Lemma cocone_dsyseq u :
-  cocone Sys (fun j (v : Obj j) => dsyseq Sys u (existT Obj _ v)).
+  cocone Sys (fun j (v : Obj j) => dsyseq Sys u (DPair v)).
 Proof.
 move=> j k le_jk v /=.
-case: (boolP (dsyseq Sys u (existT Obj j v))) => [/dsyseqP | /dsyseqP Hnthr].
+case: (boolP (dsyseq Sys u (DPair v))) => [/dsyseqP | /dsyseqP Hnthr].
 - move=> [l /= le_il le_jl Hbond]; apply/asboolP.
   have [m le_km le_lm] := directedP k l.
-  apply: (Dsyscongr (le_trans le_il le_lm)) => /=.
+  apply: (Dsysequal (le_trans le_il le_lm)) => /=.
   rewrite -(dirsys_comp Sys le_il le_lm) /= Hbond.
   by rewrite !bonding_transE //; apply: bondingE.
 - apply/negP => /= /asboolP [l /= le_il le_kl].
   rewrite bonding_transE // => Hbond; apply: Hnthr.
-  apply: (Dsyscongr le_il) => /=; first exact: le_trans le_jk le_kl.
+  apply: (Dsysequal le_il) => /=; first exact: le_trans le_jk le_kl.
   by move => le_jl; rewrite Hbond; apply: bondingE.
 Qed.
 
@@ -303,7 +304,7 @@ Variables (T : Type) (f : forall i, Obj i -> T).
 Hypothesis Hcone : cocone Sys f.
 
 Lemma dsyseqE i j (u : Obj i) (v : Obj j) :
-  dsyseq Sys (existT Obj _ u) (existT Obj _ v) -> f u = f v.
+  dsyseq Sys (DPair u) (DPair v) -> f u = f v.
 Proof.
 move/dsyseqP => [k le_ik le_jk Hbond].
 by rewrite -(coconeE Hcone le_ik) Hbond (coconeE Hcone).
@@ -311,42 +312,26 @@ Qed.
 
 End Compatibility.
 
-End DirSysCongr.
-Arguments Dsyscongr {disp I Obj bonding Sys u v k} (le_ik le_jk).
-Arguments dsyscongr {disp I Obj bonding} (Sys) (u v).
-Arguments dsyseq {disp I Obj bonding} (Sys) (u v).
-
-
-Section DirLimitEquality.
-
-Variables (disp : unit) (I : dirType disp).
-Variable Obj : I -> Type.
-Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
-Variable Sys : dirsys bonding.
 Variable dlT : dirLimType Sys.
 Implicit Type (x y z : dlT).
 
 Lemma dirlimE i j (u : Obj i) (v : Obj j) :
-  ('inj[dlT] u = 'inj[dlT] v) <->
-  (dsyscongr Sys (existT Obj _ u) (existT Obj _ v)).
+  ('inj[dlT] u = 'inj[dlT] v) <-> (dsysequal Sys (DPair u) (DPair v)).
 Proof.
 split => [eqinj | [k leik lejk /(congr1 'inj[dlT])]]; last by rewrite !dlinjE.
 suff : exists k (ik : i <= k) (jk : j <= k), bonding ik u = bonding jk v.
   by move=> [k] [ik] [jk] Heq; exists k ik jk.
 apply contrapT; rewrite -forallNP => Hbond.
-have Hcone := cocone_dsyseq Sys (existT Obj _ v).
-have:= injindE dlT Hcone v; rewrite -eqinj injindE.
-rewrite (dsyseq_refl Sys (existT Obj _ v)).
+have Hcone := cocone_dsyseq (DPair v).
+have:= injindE dlT Hcone v; rewrite -eqinj injindE (dsyseq_refl (DPair v)).
 move=> /asboolP [k le_jk le_ik Habs].
 apply: (Hbond k); exists (le_ik); exists (le_jk); rewrite Habs.
 exact: bondingE.
 Qed.
 
 Lemma dirlimeqP i j (u : Obj i) (v : Obj j) :
-  reflect
-    ('inj[dlT] u = 'inj[dlT] v)
-    (dsyseq Sys (existT Obj _ u) (existT Obj _ v)).
-Proof. by apply (iffP (dsyseqP Sys _ _)) => /dirlimE. Qed.
+  reflect ('inj[dlT] u = 'inj[dlT] v) (dsyseq Sys (DPair u) (DPair v)).
+Proof. by apply (iffP (dsyseqP _ _)) => /dirlimE. Qed.
 
 Lemma dirlim_is_inj :
   (forall i, injective 'inj[dlT]_i)
@@ -360,7 +345,10 @@ split => Hinj.
   by rewrite bondingE /=; apply Hinj.
 Qed.
 
-End DirLimitEquality.
+End DirSysCongr.
+Arguments Dsysequal {disp I Obj bonding Sys u v k} (le_ik le_jk).
+Arguments dsysequal {disp I Obj bonding} (Sys) (u v).
+Arguments dsyseq {disp I Obj bonding} (Sys) (u v).
 
 
 (****************************************************************************)
@@ -947,7 +935,7 @@ move: Hl Hr; rewrite !(bonding_transE Sys).
 rewrite !(bondingE bonding _ (le_trans le_ij le_jl)).
 set bu := bonding _ _ _ u; set bv := bonding _ _ _ v => Hvu Huv.
 apply/asboolP.
-exists (existT _ l bu) => /=; apply/andP; split; first by rewrite /bu dlinjE.
+exists (DPair bu) => /=; apply/andP; split; first by rewrite /bu dlinjE.
 by apply/unitrP; exists bv.
 Qed.
 Fact dlinv0id : {in [predC dlunit], dlinv =1 id}.
@@ -1174,8 +1162,7 @@ Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : dirsys bonding.
 
 Definition dirlim := {eq_quot (dsyseq Sys)}.
-
-Definition dlinj_impl i (u : Obj i) := \pi_dirlim (existT Obj i u).
+Definition dlinj_impl i (u : Obj i) := \pi_dirlim (DPair u).
 
 End Implem.
 Notation "{ 'dirlim' S }" := (dirlim S).
@@ -1191,8 +1178,8 @@ Implicit Type (i j k : I) (x y : {dirlim Sys}).
 
 
 Lemma dsyseq_dlinj_impl i (u : Obj i) :
-  dsyseq Sys (existT Obj i u) (repr (dlinj_impl Sys u)).
-Proof. by have [v /eqmodP] := piP {dirlim Sys} (existT Obj i u). Qed.
+  dsyseq Sys (DPair u) (repr (dlinj_impl Sys u)).
+Proof. by have [v /eqmodP] := piP {dirlim Sys} (DPair u). Qed.
 
 
 (** Budlding the universal induced map *)
@@ -1211,7 +1198,7 @@ by case: (repr _) (dsyseq_dlinj_impl u).
 Qed.
 
 Lemma dlind_implE i j (u : Obj i) (v : Obj j) :
-  dsyseq Sys (existT Obj i u) (existT Obj j v) ->
+  dsyseq Sys (DPair u) (DPair v) ->
   dlind_impl Hcone (dlinj_impl Sys  u) = dlind_impl Hcone (dlinj_impl Sys  v).
 Proof. by rewrite !dlind_implP => /(dsyseqE Hcone). Qed.
 
