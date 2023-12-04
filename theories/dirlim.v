@@ -1,3 +1,4 @@
+(** Direct limits *)
 (******************************************************************************)
 (*       Copyright (C) 2021 Florent Hivert <florent.hivert@lri.fr>            *)
 (*                                                                            *)
@@ -12,6 +13,10 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** * Direct limits
+
+- {dirlim Sys} == a default implementation of the direct limit of [Sys]
+*******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect ssralg.
 From mathcomp Require Import boolp classical_sets.
