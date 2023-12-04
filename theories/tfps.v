@@ -18,19 +18,78 @@
 We define the following notions (where in the following [R] is a ring and [n]
 is an integer)
 
-- [{tfps R n}] == The truncated power series ring with coefficient in [R] and
+- [{tfps R n}] == the truncated power series ring with coefficient in [R] and
                   order of truncation [n] (which is included). So the series
-                  are computed modulo [X^{n+1}]
+                  are computed modulo [X^{n+1}].
 
-- [is_stdtab t] == [t] is a *standard tableau* that is a tableau whose row
-            reading is a standard word - [last_big t b] == the index of the
-            first row of [t] which ends with [b] - [remn t] == remove the
-            largest entry ie [n] from a standard tableau of size [n] -
-            [conj_tab t] == the conjugate standard tableau of [t] (this is
-            indeed a tableau when [t] is itself a standard tableau.
+The base ring [R] needs to be at least a [ringType], but [{tfps R n}] aquire
+more structure if [R] has more: namely [{tfps R n}] is a [unitRing] if [R] is
+as well. [{tfps R n}] is commutative if [R] is.
 
-                                                                              *)
-(******************************************************************************)
+Basic formulary:
+
+- [\X]         == the series [X] in [{tfps R n}] where n is inferred.
+- [\Xo(n)]     == the series [X] in [{tfps R n}].
+- [expt n]     == the truncated exponential series in [{tfps R n}].
+- [logt n]     == the truncated logarithm [-log(1 - X)] series in [{tfps R n}].
+- [exp f]      == the truncated series [exp f].
+- [log g]      == the truncated series [log f].
+- [f ^^ r] == [expr_tfps r f] == the truncated series [exp (r log f)].
+- [\sqrt f]    == the truncated square root series of [f].
+
+Construction of power series:
+
+- [x %:S] == [tfpsC r] == the constant power series.
+- [[tfps s <= n => F]] == the power series [\sum_(i < n.+1) (F i) X^i].
+- [[tfps s => F]] == the power series [\sum_(i < n.+1) (F i) X^i] where [n] is
+                  inferred from the context.
+- [trXn p]     == the polynomial [p] truncated at order [n] where [n] is
+                  inferred from the context.
+- [trXnt n f]  == the power series [f] truncated at order [n].
+- [Tfps_of Pf] == the truncated power series associated to the polynomial [f]
+                  where [Pf] is a proof that [size f <= n.+1].
+
+Dealing with coefficients of power series:
+
+- [f`_i]          == the [i]-th coefficient of [f] (reused from polynomial
+                  thanks to the coercion [{tfps R n} >-> {poly R}].
+- [map_tfps F f]  == the power series obtained by mapping [F] to all the
+                  coefficient of [f] where [F : R -> S] is a ring morphism.
+- [convr_tfps f]  == [f] converted to the opposite ring [R^c]
+- [iconvr_tfps f] == [f] converted from the opposite ring [R^c]
+
+- [f \in coeft0_eq0] == the ideal of [f] such that [f`_0 == 0].
+- [f \in coeft0_eq1] == the ideal of [f] such that [f`_0 == 1].
+
+Standard operation on power series:
+
+- [tmulX f]    == the series [X * f] in [{tfps R n.+1}].
+- [tdivX f]    == the series [(f - f``_0) / X] in [{tfps R n.-1}].
+
+- [f^`()] == [deriv_tfps f] (in [tfps_scope]) the derivative of [f] in the
+                  ring [{tfps R n.-1}].
+- [prim p]     == the primitive [p] in the ring [{poly R}].
+- [\int p] == [prim_tfps p] (in [tfps_scope]) the primitive [p] in
+                  the ring [{tfps R n.+1}].
+
+Composition of truncated power series and Lagrange inversion:
+
+- [comp_tfps f g == [g \oT f] (in [tfps_scope]) == the compose series
+                  of [f] and [g] where [f \in coeft0_eq0].
+- [lagrfix g]  == the Lagrange fix point [f] in [{tfps R n.+1}] of the
+                  iteration [f = X * (g o f)] or more precisely
+                  [f = tmulX (g \oT trXnt n f)].
+
+- [lagrunit f] == [f] is inversible for the composition of series, that is
+                  [`f_0` == 0] and [tdivX f] in a multiplicative unit.
+- [lagrinv f]  == the inverse of [f] the for composition of series. It is given
+                  and the Lagrange fixpoint of [(tdivX f)^-1].
+
+Note: we cannot declare the associated group because it is infinite.
+
+We prove the [Lagrange_Bürmann] theorem giving the coefficent of the
+Lagrange fixpoint and its compose series.
+*******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect.
 From mathcomp Require Import ssralg poly polydiv ring_quotient.
@@ -56,7 +115,6 @@ Reserved Notation "[ 'tfps' s => F ]"
 Reserved Notation "c %:S" (at level 2, format "c %:S").
 Reserved Notation "\X" (at level 0).
 Reserved Notation "\Xo( n )" (at level 0).
-Reserved Notation "f *h g" (at level 2).
 Reserved Notation "x ^^ n" (at level 29, left associativity).
 Reserved Notation "f \oT g" (at level 50).
 Reserved Notation "\sqrt f" (at level 10).

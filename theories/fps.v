@@ -13,6 +13,70 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** * Formal power series
+
+We define the following notions (where in the following [R] is a ring and [n]
+is an integer)
+
+- [{fps R}]    == the power series ring with coefficient in [R].
+
+The base ring [R] needs to be at least a [ringType], but [{fps R}] aquire
+more structure if [R] has more: namely [{fps R}] is respectively a
+[unitRing], commutative ring, an integral domain, whenever [R] is.
+
+Basic formulary:
+
+- [''X]        == the series [X] in [{fps R}]
+- [''X^ n]     == the series [X^n] in [{fps R}].
+- [exps n]     == the exponential series in [{fps R}].
+- [logs n]     == the logarithm [-log(1 - X)] series in [{fps R}].
+- [exp f]      == the series [exp f].
+- [log g]      == the series [log f].
+- [f ^^ r] == [expr_fps r f] == the series [exp (r log f)].
+- [\sqrt f]    == the square root series of [f].
+
+Construction of power series:
+
+- [x %:S] == [tfpsC r] == the constant power series.
+- [\fps F i .X^i]] == the power series [\sum_(i < n.+1) (F i) X^i].
+
+Dealing with coefficients of power series:
+
+- [f``_i] == [coef_series s i] == the [i]-th coefficient of [f].
+- [slead s]    == the lower non zero coefficient of [f] or [0] if [f == 0].
+- [valuat s]   == the degree of the lower non zero coefficient of [f].
+- [map_fps F f] == the power series obtained by mapping [F] to all the
+                  coefficient of [f] where [F : R -> S] is a ring morphism.
+
+- [f \in coefs0_eq0] == the ideal of [f] such that [f`_0 == 0].
+- [f \in coefs0_eq1] == the ideal of [f] such that [f`_0 == 1].
+
+Standard operation on power series:
+
+- [sdivX f]    == the series [(f - f``_0) / X].
+
+- [f^``()] == [deriv_fps f] (in [fps_scope]) the derivative of [f] in the
+                  ring [{fps R}].
+- [\int p] == [prim_fps p] (in [fps_scope]) the primitive [p] in
+                  the ring [{fps R}].
+
+Composition of truncated power series and Lagrange inversion:
+
+- [comp_fps f g == [g \oS f] (in [fps_scope]) == the compose series
+                  of [f] and [g] where [f \in coef0_eq0].
+- [lagrfix g]  == the Lagrange fix point [f] in [{fps R}] of the
+                  iteration [f = ''X (g \oS f)].
+
+- [lagrunit f] == [f] is inversible for the composition of series, that is
+                  [`f_0` == 0] and [tdivX f] in a multiplicative unit.
+- [lagrinv f]  == the inverse of [f] the for composition of series. It is given
+                  and the Lagrange fixpoint of [(tdivX f)^-1].
+
+Note: we cannot declare the associated group because it is infinite.
+
+We prove the [Lagrange_Bürmann] theorem giving the coefficent of the
+Lagrange fixpoint and its compose series.
+*******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
