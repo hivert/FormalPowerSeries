@@ -1,4 +1,4 @@
-(** Combi.padic : padic integer *)
+(** * Combi.padic : padic integer *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -13,11 +13,18 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
 (** * The ring of p-adic integers
-- [Zmn m n]      == the morphism from [Z/nZ] to [Z/mZ] assuming [m] divide [n].
-- [padic_int Pf] == the p-adic integers ring [Zp] where [Pf] is a proof that
-                    [p] is a prime number. It is equiped with a
-                    [comUnitRingType] canonical structure.
+
+We define the following:
+- [Zmn m n]      == the morphism from \(Z/nZ\) to \(Z/mZ\) assuming [m] divide [n].
+- [padic_invsys] == the \(p\)-adic inverse system.
+- [padic_int Pf] == the \(p\)-adic integers ring [Zp] where [Pf] is a proof that
+                    [p] is a prime number. It is equiped with a [idomainType]
+                    and [comUnitRingInvLimType padic_invsys] structure.
 *******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
@@ -36,6 +43,7 @@ Import Order.TTheory.
 Open Scope ring_scope.
 Import GRing.Theory.
 
+(** ** The p-adic inverse system *)
 Section DivCompl.
 Open Scope nat_scope.
 
@@ -114,11 +122,15 @@ rewrite leEnat -ltnS => Hij;
 by rewrite -(subnK Hij) expnD dvdn_mull.
 Qed.
 
-Program Definition padic_invsys :=
+Fact padic_bond_id i (Hii : (i <= i)%O) : padic_bond p_pr Hii =1 id.
+Proof. by move=> x; apply valZpK. Qed.
+Fact padic_bond_trans i j k (Hij : (i <= j)%O) (Hjk : (j <= k)%O) :
+  padic_bond p_pr Hij \o padic_bond p_pr Hjk
+  =1 padic_bond p_pr (le_trans Hij Hjk).
+Proof. exact: comp_Zmn (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+Definition padic_invsys :=
   InvSys (bonding := fun (i j : nat) (H : (i <= j)%O) => padic_bond p_pr H)
-         0%N _ _.
-Next Obligation. by move=> x; apply valZpK. Qed.
-Next Obligation. exact: comp_Zmn (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+         0%N padic_bond_id padic_bond_trans.
 
 Variables (i j : nat) (H : (i <= j)%O).
 
@@ -135,7 +147,7 @@ HB.instance Definition _ :=
 End PadicInvSys.
 
 
-
+(** ** The p-adic integers integral domain *)
 Definition padic_int (p : nat) (p_pr : prime p) := {invlim padic_invsys p_pr}.
 
 Section PadicTheory.

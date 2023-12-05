@@ -1,4 +1,4 @@
-(** Truncated power series, i.e. polynom mod X^n *)
+(** * Combi.tfps : Truncated power series, i.e. polynom mod X^n *)
 (******************************************************************************)
 (*    Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>          *)
 (*                                                                            *)
@@ -13,14 +13,21 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
-(** * Truncated power series
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
+(** * Truncated power series, i.e. polynomials modulo X^n
 
-We define the following notions (where in the following [R] is a ring and [n]
-is an integer)
+In this file, we suppose that \(\mathbf{R}\) is a ring and \(n\) is a positive
+integer.  The goal of this file is to construct the ring
+#\(\mathbf{R}[X]/X^n\)#.
 
-- [{tfps R n}] == the truncated power series ring with coefficient in [R] and
+We define the following notions (where [R : ringType] and [n : nat]):
+
+ - [{tfps R n}] == the truncated power series ring with coefficient in [R] and
                   order of truncation [n] (which is included). So the series
-                  are computed modulo [X^{n+1}].
+                  are computed modulo \(X^{n+1}\).
 
 The base ring [R] needs to be at least a [ringType], but [{tfps R n}] aquire
 more structure if [R] has more: namely [{tfps R n}] is a [unitRing] if [R] is
@@ -28,67 +35,71 @@ as well. [{tfps R n}] is commutative if [R] is.
 
 Basic formulary:
 
-- [\X]         == the series [X] in [{tfps R n}] where n is inferred.
-- [\Xo(n)]     == the series [X] in [{tfps R n}].
+- [\X]         == the series \(X\) in [{tfps R n}] where n is inferred.
+- [\Xo(n)]     == the series \(X\) in [{tfps R n}].
 - [expt n]     == the truncated exponential series in [{tfps R n}].
-- [logt n]     == the truncated logarithm [-log(1 - X)] series in [{tfps R n}].
-- [exp f]      == the truncated series [exp f].
-- [log g]      == the truncated series [log f].
-- [f ^^ r] == [expr_tfps r f] == the truncated series [exp (r log f)].
+- [logt n]     == the truncated logarithm \(-\log(1 - X)\) series in
+                  [{tfps R n}].
+- [exp f]      == the truncated series \(\exp(f)\).
+- [log g]      == the truncated series \(\log(f)\).
+- [f ^^ r]     == [expr_tfps r f] == the truncated series \(\exp(r\log(f))\).
 - [\sqrt f]    == the truncated square root series of [f].
 
 Construction of power series:
 
 - [x %:S] == [tfpsC r] == the constant power series.
-- [[tfps s <= n => F]] == the power series [\sum_(i < n.+1) (F i) X^i].
-- [[tfps s => F]] == the power series [\sum_(i < n.+1) (F i) X^i] where [n] is
-                  inferred from the context.
-- [trXn p]     == the polynomial [p] truncated at order [n] where [n] is
-                  inferred from the context.
+- [[tfps s <= n => F]] == the power series #\(\sum_{i=0}^n F(i) X^i\)#.
+- [[tfps s => F]] == the power series #\(\sum_{i=0}^n F(i) X^i\)# where [n]
+                  is inferred from the context.
+- [trXn p]     == the polynomial [p] truncated at order [n] where [n]
+                  is inferred from the context.
 - [trXnt n f]  == the power series [f] truncated at order [n].
-- [Tfps_of Pf] == the truncated power series associated to the polynomial [f]
-                  where [Pf] is a proof that [size f <= n.+1].
+- [Tfps_of Pf] == the truncated power series associated to the polynomial
+                  [f] where [Pf] is a proof that [size f <= n.+1].
 
 Dealing with coefficients of power series:
 
-- [f`_i]          == the [i]-th coefficient of [f] (reused from polynomial
-                  thanks to the coercion [{tfps R n} >-> {poly R}].
-- [map_tfps F f]  == the power series obtained by mapping [F] to all the
+- [f`_i]       == the [i]-th coefficient #\([X^i]f\)# of [f] (reused from
+                  polynomial thanks to the coercion [{tfps R n} >-> {poly R}].
+- [map_tfps F f]  == the power series obtained by applying [F] to all the
                   coefficient of [f] where [F : R -> S] is a ring morphism.
 - [convr_tfps f]  == [f] converted to the opposite ring [R^c]
 - [iconvr_tfps f] == [f] converted from the opposite ring [R^c]
 
-- [f \in coeft0_eq0] == the ideal of [f] such that [f`_0 == 0].
-- [f \in coeft0_eq1] == the ideal of [f] such that [f`_0 == 1].
+- [f \in coeft0_eq0] == the ideal of [f] such that #\([X^0]f = 0\)# that is
+                    [f`_0 == 0].
+- [f \in coeft0_eq1] == the ideal of [f] such that #\([X^0]f = 1\)# that is
+                    [f`_0 == 1].
 
 Standard operation on power series:
 
-- [tmulX f]    == the series [X * f] in [{tfps R n.+1}].
-- [tdivX f]    == the series [(f - f``_0) / X] in [{tfps R n.-1}].
+- [tmulX f] == the series \(X\,f\) in [{tfps R n.+1}].
+- [tdivX f] == the series #\( (f - [X^0]f)/X \)# in [{tfps R n.-1}].
 
-- [f^`()] == [deriv_tfps f] (in [tfps_scope]) the derivative of [f] in the
+- [f^`()]   == [deriv_tfps f] (in [tfps_scope]) the derivative of [f] in the
                   ring [{tfps R n.-1}].
-- [prim p]     == the primitive [p] in the ring [{poly R}].
-- [\int p] == [prim_tfps p] (in [tfps_scope]) the primitive [p] in
-                  the ring [{tfps R n.+1}].
+- [prim p]  == the primitive [p] in the ring [{poly R}].
+- [\int p]  == [prim_tfps p] (in [tfps_scope]) the primitive [p] in the ring
+                  [{tfps R n.+1}].
 
 Composition of truncated power series and Lagrange inversion:
 
-- [comp_tfps f g] == [g \oT f] (in [tfps_scope]) == the compose series
-                  of [f] and [g] where [f \in coeft0_eq0].
-- [lagrfix g]  == the Lagrange fix point [f] in [{tfps R n.+1}] of the
-                  iteration [f = X * (g o f)] or more precisely
-                  [f = tmulX (g \oT trXnt n f)].
+- [comp_tfps f g] == [g \oT f] (in [tfps_scope]) == the compose series of [f]
+                  and [g] where [f \in coeft0_eq0].
+- [lagrfix g]  == the Lagrange fix point [f] in [{tfps R n.+1}] of the iteration
+                  \(f \to X\,(g \circ f)\) or more precisely
+                  [f => tmulX (g \oT trXnt n f)].
 
 - [lagrunit f] == [f] is inversible for the composition of series, that is
                   [`f_0` == 0] and [tdivX f] in a multiplicative unit.
-- [lagrinv f]  == the inverse of [f] the for composition of series. It is given
-                  and the Lagrange fixpoint of [(tdivX f)^-1].
+- [lagrinv f]  == the inverse of [f] the for composition of series. It is
+                  given and the Lagrange fixpoint of [(tdivX f)^-1].
 
-Note: we cannot declare the associated group because it is infinite.
+Note: we cannot declare the group [(coeft0_eq0, \oT, lagrinv)] because it
+is infinite, and MathComp currently formalize only finite groups.
 
-We prove the [Lagrange_Bürmann] theorem giving the coefficent of the
-Lagrange fixpoint and its compose series.
+We prove the [Lagrange_Bürmann] theorem giving the coefficent of the Lagrange
+fixpoint and its compose series.
 *******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect.

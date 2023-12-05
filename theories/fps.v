@@ -1,4 +1,4 @@
-(** Formal power series *)
+(** * Combi.fps : Formal power series *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -13,26 +13,38 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
 (** * Formal power series
 
-We define the following notions (where in the following [R] is a ring and [n]
-is an integer)
+In this file, we suppose that \(\mathbf{R}\).  The goal of this file is to
+construct the ring #\(\mathbf{R}[[X]]\)#. We construct it as the inverse
+limit of the sequence of truncated power series:
 
-- [{fps R}]    == the power series ring with coefficient in [R].
+#
+\[\dots \mapsto \mathbf{R}[X]/X^{n+1} \mapsto \mathbf{R}[X]/X^n
+\mapsto\dots\mapsto \mathbf{R}[X]/X^2 \mapsto \mathbf{R}[X]/X = \mathbf{R}\,.
+\]
+#
 
-The base ring [R] needs to be at least a [ringType], but [{fps R}] aquire
-more structure if [R] has more: namely [{fps R}] is respectively a
-[unitRing], commutative ring, an integral domain, whenever [R] is.
+We define the following notions (where [R : ringType] and [n : nat]):
+
+- [{fps R}] == the power series ring with coefficient in [R].
+
+The base ring [R] needs to be at least a [ringType], but [{fps R}] aquire more
+structure if [R] has more: namely [{fps R}] is respectively a [unitRing],
+commutative ring, an integral domain, whenever [R] is.
 
 Basic formulary:
 
-- [''X]        == the series [X] in [{fps R}]
-- [''X^ n]     == the series [X^n] in [{fps R}].
+- [\X]         == the series \(X\) in [{fps R n}].
 - [exps n]     == the exponential series in [{fps R}].
-- [logs n]     == the logarithm [-log(1 - X)] series in [{fps R}].
-- [exp f]      == the series [exp f].
-- [log g]      == the series [log f].
-- [f ^^ r] == [expr_fps r f] == the series [exp (r log f)].
+- [logs n]     == the pseudo logarithm \(-\log(1 - X)\) series in [{fps R}].
+- [exp f]      == the series \(\exp(f)\).
+- [log g]      == the series \(\log(f)\).
+- [f ^^ r] = [expr_fps r f] == the series \(\exp(r\log(f))\).
 - [\sqrt f]    == the square root series of [f].
 
 Construction of power series:
@@ -42,40 +54,46 @@ Construction of power series:
 
 Dealing with coefficients of power series:
 
-- [f``_i] == [coef_series s i] == the [i]-th coefficient of [f].
+- [f``_i] == [coef_series s i] == the [i]-th coefficient #\([X^i]f\)# of [f].
 - [slead s]    == the lower non zero coefficient of [f] or [0] if [f == 0].
-- [valuat s]   == the degree of the lower non zero coefficient of [f].
-- [map_fps F f] == the power series obtained by mapping [F] to all the
+- [valuat s]   == the degree of the lower non zero coefficient of [f] as a
+                  term of type [natbar], or [Inf] if [f] is zero.
+
+-  [map_fps F f] == the power series obtained by applying [F] on all the
                   coefficient of [f] where [F : R -> S] is a ring morphism.
 
-- [f \in coefs0_eq0] == the ideal of [f] such that [f`_0 == 0].
-- [f \in coefs0_eq1] == the ideal of [f] such that [f`_0 == 1].
+- [f \in coefs0_eq0] == the ideal of [f] such that #\([X^0]f = 0\)# that is
+                    [f`_0 == 0].
+- [f \in coefs0_eq1] == the ideal of [f] such that #\([X^0]f = 1\)# that is
+                    [f`_0 == 1].
 
 Standard operation on power series:
 
-- [sdivX f]    == the series [(f - f``_0) / X].
-
-- [f^``()] == [deriv_fps f] (in [fps_scope]) the derivative of [f] in the
-                  ring [{fps R}].
-- [\int p] == [prim_fps p] (in [fps_scope]) the primitive [p] in
-                  the ring [{fps R}].
+- [sdivX f]   == the series #\( (f - [X^0]f)/X \)# in [{tfps R n.-1}].
+- [f^``()]    == [deriv_fps f] (in [fps_scope]) the derivative of [f] in the
+                 ring [{fps R}].
+- [\int p]    == [prim_fps p] (in [fps_scope]) the primitive [p] in the
+                 ring [{fps R}].
 
 Composition of truncated power series and Lagrange inversion:
 
-- [comp_fps f g] == [g \oS f] (in [fps_scope]) == the compose series
-                  of [f] and [g] where [f \in coef0_eq0].
-- [lagrfix g]  == the Lagrange fix point [f] in [{fps R}] of the
-                  iteration [f = ''X (g \oS f)].
+- [comp_fps f g] == [g \oS f] (in [fps_scope]) == the compose series of [f]
+                 and [g] where [f \in coefs0_eq0].
+- [lagrfix g] == the Lagrange fix point [f] in [{fps R}] of the iteration
+                 \(f \to X\,(g \circ f)\) or more precisely
+                 [f => ''X * (g \oS f)].
 
 - [lagrunit f] == [f] is inversible for the composition of series, that is
-                  [`f_0` == 0] and [tdivX f] in a multiplicative unit.
-- [lagrinv f]  == the inverse of [f] the for composition of series. It is given
-                  and the Lagrange fixpoint of [(tdivX f)^-1].
+                 [`f_0` == 0] and [tdivX f] in a multiplicative unit.
+- [lagrinv f] == the inverse of [f] the for composition of
+                 series. It is given and the Lagrange fixpoint of
+                 [(sdivX f)^-1].
 
-Note: we cannot declare the associated group because it is infinite.
+Note: we cannot declare the group [(coefs0_eq0, \oS, lagrinv)] because it
+is infinite, and MathComp currently formalize only finite groups.
 
-We prove the [Lagrange_Bürmann] theorem giving the coefficent of the
-Lagrange fixpoint and its compose series.
+We prove the [Lagrange_Bürmann] theorem giving the coefficent of the Lagrange
+fixpoint and its compose series.
 *******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
