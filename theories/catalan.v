@@ -1,4 +1,4 @@
-(** Catalan number via generating functions (truncated power series version) *)
+(** Combi.catalan : Catalan numbers (truncated version) *)
 (******************************************************************************)
 (*       Copyright (C) 2019 Florent Hivert <florent.hivert@lri.fr>            *)
 (*                                                                            *)
@@ -13,7 +13,19 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
-(** * Catalan numbers
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
+(** * Catalan number via generating functions (truncated power series version)
+
+We prove using three different techniques that the Catalan number are equal to
+[\frac{\binom{2n, n}}{n+1}] that is in math comp ['C(i.*2, i) %/ i.+1].
+Precisely, we suppose that [C : nat -> nat] verify [C 0 = 1] and
+[C (n+1) = \sum_{i=0}^n (C i) * (C (n-i))], and prove that [C i] is equal to
+the formula above. The only definition here is
+
+- [FC n] : {tfps rat n} == the truncated generating series of the [C i].
 *******************************************************************************)
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import fintype div bigop ssralg poly binomial rat ssrnum.
@@ -26,6 +38,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 
+(** ** The generating series of Catalan numbers *)
 Section Catalan.
 
 Variable (C : nat -> nat).
@@ -73,7 +86,7 @@ Qed.
 End GenSeries.
 
 
-(** Extraction of the coefficient using square root and Newton's formula *)
+(** ** Extraction of the coefficient using square root and Newton's formula *)
 Section AlgebraicSolution.
 
 Local Open Scope ring_scope.
@@ -165,7 +178,7 @@ Qed.
 End AlgebraicSolution.
 
 
-(** Extraction of the coefficient using Lagrange inversion formula *)
+(** ** Extraction of the coefficient using Lagrange inversion formula *)
 Section LagrangeSolution.
 
 Local Open Scope ring_scope.
@@ -221,7 +234,7 @@ Qed.
 End LagrangeSolution.
 
 
-(** Extraction of the coefficient using Holonomic differential equation *)
+(** ** Extraction of the coefficient using Holonomic differential equation *)
 Section HolonomicSolution.
 
 Local Open Scope ring_scope.

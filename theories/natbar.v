@@ -1,4 +1,4 @@
-(** Completed natural numbers *)
+(** * Combi.natbar : Completion of the set natural numbers *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -13,7 +13,7 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
-(** * Completed natural numbers
+(** * Completion of the set of natural numbers
 
 - [natbar]   == the set of natural number plus the infinity
 - [Nat n]    == the natural number [n] as a [natbar]
@@ -34,7 +34,7 @@ Unset Printing Implicit Defensive.
 Import Order.Syntax.
 Import Order.TTheory.
 
-(** * Basic definition *)
+(** ** Basic definition *)
 (* Clone of option nat to avoid the very confusing chain of coercions *)
 (*   option -> bool -> nat                                            *)
 Section NatBar.
@@ -61,6 +61,7 @@ Lemma Nat_inj : injective Nat. Proof. by move=> m n []. Qed.
 Lemma Nat_eqE m n : (Nat m == Nat n) = (m == n).
 Proof. by apply/eqP/eqP => [/Nat_inj|<-]. Qed.
 
+(** ** Algebraic operations *)
 Definition addbar u v : natbar :=
   match u, v with
   | Nat m, Nat n => Nat (m + n)
@@ -100,7 +101,7 @@ Proof. by case: u v => [m|] [n|]. Qed.
 HB.instance Definition _ := Monoid.isComLaw.Build
                               natbar (Nat 0) addbar addbarA addbarC add0bar.
 
-(** Valuation ordering *)
+(** ** Ordering *)
 Definition lebar u v :=
   match u, v with
   | _, Inf => true
