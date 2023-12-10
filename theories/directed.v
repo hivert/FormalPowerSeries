@@ -1,3 +1,4 @@
+(** * Combi.directed : Directed sets *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -12,6 +13,13 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
+(** * Directed sets. A set \(S\) is directed if it is ordered and if forall
+\(x, y\in S\) there is a \(z\in S\) such that \(x\leq z\) and \(y\leq z\).
+*******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
@@ -31,7 +39,7 @@ Unset Printing Implicit Defensive.
 Definition directed (T : Type) (R : T -> T -> bool) :=
   forall x y : T, { z | R x z & R y z }.
 
-(* TODO : I'm not using anti-symmetry, i.e.: directed sets can be preorders *)
+(** TODO : I'm not using anti-symmetry, i.e.: directed sets can be preorders *)
 HB.mixin Record Directed (d : unit) T of Order.POrder d T := {
   directedP : directed (T := T) <=%O
 }.
@@ -108,4 +116,3 @@ by have [_] := H t Pt; apply; first apply: le_ij.
 Qed.
 
 End UpSets.
-
