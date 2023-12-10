@@ -20,11 +20,23 @@
 (** * The ring of p-adic integers
 
 We define the following:
-- [Zmn m n]      == the morphism from \(Z/nZ\) to \(Z/mZ\) assuming [m] divide [n].
-- [padic_invsys] == the \(p\)-adic inverse system.
-- [padic_int Pf] == the \(p\)-adic integers ring [Zp] where [Pf] is a proof that
-                    [p] is a prime number. It is equiped with a [idomainType]
-                    and [comUnitRingInvLimType padic_invsys] structure.
+- [Zmn m n]    == the morphism from \(\mathbb{Z}/n\mathbb{Z}\) to
+                  \(\mathbb{Z}/m\mathbb{Z}\) assuming [m] divide [n].
+
+In what follows we assume that [p] is a prime number with [p_pr : prime p].
+- [padic_bond p_pr (H :i <= j)] the morphism \(\mathbb{Z}/p^j\mathbb{Z}\)
+                  to \(\mathbb{Z}/p^i\mathbb{Z}\).
+- [padic_invsys p_pr] == the \(p\)-adic inverse system:
+#
+\[\dots \mapsto \mathbb{Z}/p^{n+1}\mathbb{Z} \mapsto \mathbb{Z}/p^{n}\mathbb{Z}
+\mapsto\dots\mapsto  \mathbb{Z}/p^2\mathbb{Z} \mapsto \mathbb{Z}/p\mathbb{Z}\,.
+\]
+#
+
+- [padic_int p_pr] == the \(p\)-adic integers ring [Zp] constructed as the
+                  inverse limit of [padic_invsys p_pr]. It is equiped with
+                  [idomainType] and [comUnitRingInvLimType (padic_invsys p_pr)]
+                  canonical structures.
 *******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.

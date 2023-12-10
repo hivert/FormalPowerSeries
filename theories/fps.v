@@ -50,7 +50,7 @@ Basic formulary:
 Construction of power series:
 
 - [x %:S] == [tfpsC r] == the constant power series.
-- [\fps F i .X^i]] == the power series [\sum_(i < n.+1) (F i) X^i].
+- [\fps F i .X^i] == the power series [\sum_(i < n.+1) (F i) X^i].
 
 Dealing with coefficients of power series:
 
