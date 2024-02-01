@@ -5,8 +5,8 @@
 ## https://nixos.org/manual/nixpkgs/stable/#sec-language-coq
 
 { lib, mkCoqDerivation, which, coq
-  , mathcomp-ssreflect, mathcomp-algebra, mathcomp-classical,
-    multinomials, hierarchy-builder
+  , hierarchy-builder
+  , mathcomp-ssreflect, mathcomp-algebra, mathcomp-classical
   ## declare extra dependencies here, to be used in propagateBuildInputs e.g.
   # , mathcomp, coq-elpi
   , version ? null }:
@@ -43,8 +43,8 @@ with lib; mkCoqDerivation {
   ## - Coq packages (require them at the beginning of the file)
   ## - OCaml packages (use `coq.ocamlPackages.xxx`, no need to require them at the beginning of the file)
   propagatedBuildInputs =
-    [ mathcomp-ssreflect mathcomp-algebra mathcomp-classical
-      multinomials hierarchy-builder ];
+    [ hierarchy-builder
+      mathcomp-ssreflect mathcomp-algebra mathcomp-classical ];
 
   ## Does the package contain OCaml code?
   # mlPlugin = false;
