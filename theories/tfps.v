@@ -412,7 +412,7 @@ Lemma poly_trXn_quotP p q :
   reflect
     (forall i, (i <= n)%N -> p`_i = q`_i)
     (p == q %[mod {tfps R n}])%qT.
-Proof. by rewrite !unlock /pi_phant; apply (iffP eqP); rewrite trXnP. Qed.
+Proof. by rewrite !unlock; apply (iffP eqP); rewrite trXnP. Qed.
 
 
 End CoefTFPS.
