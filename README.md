@@ -53,9 +53,9 @@ All these files are still largely experimental
 
 To compile it I'm using the following opam packages:
 ```
-coq-mathcomp-ssreflect    1.12.0
-coq-mathcomp-algebra      1.12.0
-coq-mathcomp-analysis     0.3.8
-coq-mathcomp-finmap       1.5.1
+coq-hierarchy-builder     1.7.0
+coq-mathcomp-ssreflect    2.2.0
+coq-mathcomp-algebra      2.2.0
+coq-mathcomp-classical    1.0.0
 ```
 
