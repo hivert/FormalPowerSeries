@@ -1,0 +1,4 @@
+COQDOCFLAGS += --lib-subtitles -utf8
+
+TAGS: $(VFILES)
+	coqtags $(VFILES)

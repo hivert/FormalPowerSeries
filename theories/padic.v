@@ -1,3 +1,4 @@
+(** * Combi.padic : padic integer *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -12,6 +13,32 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
+(** * The ring of p-adic integers
+
+We define the following:
+- [Zmn m n]    == the morphism from \(\mathbb{Z}/n\mathbb{Z}\) to
+                  \(\mathbb{Z}/m\mathbb{Z}\) assuming [m] divide [n].
+
+In what follows we assume that [p] is a prime number with [p_pr : prime p].
+- [padic_bond p_pr (H :i <= j)] the morphism \(\mathbb{Z}/p^j\mathbb{Z}\)
+                  to \(\mathbb{Z}/p^i\mathbb{Z}\).
+- [padic_invsys p_pr] == the \(p\)-adic inverse system:
+#
+\[\dots \mapsto \mathbb{Z}/p^{n+1}\mathbb{Z} \mapsto \mathbb{Z}/p^{n}\mathbb{Z}
+\mapsto\dots\mapsto  \mathbb{Z}/p^2\mathbb{Z} \mapsto \mathbb{Z}/p\mathbb{Z}\,.
+\]
+#
+
+- [padic_int p_pr] == the \(p\)-adic integers ring [Zp] constructed as the
+                  inverse limit of [padic_invsys p_pr]. It is equiped with
+                  [idomainType] and [comUnitRingInvLimType (padic_invsys p_pr)]
+                  canonical structures.
+*******************************************************************************)
+From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
@@ -28,6 +55,7 @@ Import Order.TTheory.
 Open Scope ring_scope.
 Import GRing.Theory.
 
+(** ** The p-adic inverse system *)
 Section DivCompl.
 Open Scope nat_scope.
 
@@ -48,13 +76,20 @@ Definition Zmn m n : 'Z_n -> 'Z_m := fun i => inZp i.
 Variables m n p : nat.
 Hypothesis (mgt1 : m > 1) (ngt1 : n > 1).
 Hypothesis (mdivn : m %| n).
-Lemma Zmn_is_rmorphism : rmorphism (@Zmn m n).
+
+Lemma Zmn_is_additive : additive (@Zmn m n).
 Proof.
-repeat split=> [[i Hi] [j Hj]|]; rewrite /= /Zmn /inZp;
-    apply val_inj; move: Hi Hj; rewrite /= !Zp_cast // => Hi Hj.
-- rewrite !modnDml !modnDmr modn_dvdm //.
-  by apply/eqP; rewrite eqn_modDl modB //; apply: ltnW.
-- by rewrite modn_dvdm // modnMml modnMmr.
+move=> /= [i Hi] [j Hj]; rewrite /= /Zmn /inZp.
+apply val_inj; move: Hi Hj; rewrite /= !Zp_cast // => Hi Hj.
+rewrite !modnDml !modnDmr modn_dvdm //.
+by apply/eqP; rewrite eqn_modDl modB //; apply: ltnW.
+Qed.
+
+Lemma Zmn_is_multiplicative : multiplicative (@Zmn m n).
+Proof.
+split => [[i Hi] [j Hj]|]; rewrite /= /Zmn /inZp //.
+apply val_inj; move: Hi Hj; rewrite /= !Zp_cast // => Hi Hj.
+by rewrite modn_dvdm // modnMml modnMmr.
 Qed.
 
 Lemma comp_Zmn : @Zmn m n \o @Zmn n p =1 @Zmn m p.
@@ -99,48 +134,33 @@ rewrite leEnat -ltnS => Hij;
 by rewrite -(subnK Hij) expnD dvdn_mull.
 Qed.
 
-Program Definition padic_invsys :=
+Fact padic_bond_id i (Hii : (i <= i)%O) : padic_bond p_pr Hii =1 id.
+Proof. by move=> x; apply valZpK. Qed.
+Fact padic_bond_trans i j k (Hij : (i <= j)%O) (Hjk : (j <= k)%O) :
+  padic_bond p_pr Hij \o padic_bond p_pr Hjk
+  =1 padic_bond p_pr (le_trans Hij Hjk).
+Proof. exact: comp_Zmn (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+Definition padic_invsys :=
   InvSys (bonding := fun (i j : nat) (H : (i <= j)%O) => padic_bond p_pr H)
-         0%N _ _.
-Next Obligation. by move=> x; apply valZpK. Qed.
-Next Obligation. exact: comp_Zmn (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+         0%N padic_bond_id padic_bond_trans.
 
 Variables (i j : nat) (H : (i <= j)%O).
-Lemma bond_is_rmorphism : rmorphism (padic_bond p_pr H).
-Proof. exact: Zmn_is_rmorphism (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
-Canonical bond_additive := Additive bond_is_rmorphism.
-Canonical bond_rmorphism := RMorphism bond_is_rmorphism.
+
+Fact bond_is_additive : additive (padic_bond p_pr H).
+Proof. exact: Zmn_is_additive (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+HB.instance Definition _ :=
+  GRing.isAdditive.Build (Z j) (Z i) _  bond_is_additive.
+
+Fact bond_is_multiplicative : multiplicative (padic_bond p_pr H).
+Proof. exact: Zmn_is_multiplicative (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build (Z j) (Z i) _  bond_is_multiplicative.
 
 End PadicInvSys.
 
 
-Section Defs.
-
-Variables (p : nat) (p_pr : prime p).
-
-Definition padic_int := {invlim padic_invsys p_pr}.
-Canonical padic_int_eqType := EqType padic_int gen_eqMixin.
-Canonical padic_int_choiceType := ChoiceType padic_int gen_choiceMixin.
-Canonical padic_int_invlimType :=
-  InvLimType padic_int (invlim_Mixin (padic_invsys p_pr)).
-Canonical padic_int_zmodType :=
-  Eval hnf in ZmodType padic_int [zmodMixin of padic_int by <-].
-Canonical padic_int_zmodInvLimType :=
-  Eval hnf in ZmodInvLimType padic_int [zmodInvLimMixin of padic_int by <-].
-Canonical padic_int_ringType :=
-  Eval hnf in RingType padic_int [ringMixin of padic_int by <-].
-Canonical padic_int_ringInvLimType :=
-  Eval hnf in RingInvLimType padic_int [ringInvLimMixin of padic_int by <-].
-Canonical padic_int_comRingType :=
-  Eval hnf in ComRingType padic_int [comRingMixin of padic_int by <-].
-Canonical padic_int_comRingInvLimType :=
-  Eval hnf in ComRingInvLimType padic_int.
-Canonical padic_int_unitRingType :=
-  Eval hnf in UnitRingType padic_int [unitRingMixin of padic_int by <-].
-Canonical padic_int_comUnitRingType := [comUnitRingType of padic_int].
-
-End Defs.
-
+(** ** The p-adic integers integral domain *)
+Definition padic_int (p : nat) (p_pr : prime p) := {invlim padic_invsys p_pr}.
 
 Section PadicTheory.
 
@@ -149,7 +169,7 @@ Implicit Type x y : padic_int p_pr.
 
 Lemma padic_unit x : (x \is a GRing.unit) = ('pi_0%N x != 0).
 Proof.
-apply/forallbP/idP => [/(_ 0%N) | /= Hx i].
+apply/asboolP/idP => [/(_ 0%N) | /= Hx i].
 - by apply/memPn: ('pi_0%N x); rewrite unitr0.
 - have:= leq0n i; rewrite -leEnat => Hi.
   move: (ilprojE x Hi) Hx; rewrite {Hi} /padic_bond /Zmn => <-.
@@ -187,8 +207,10 @@ move: xymod; rewrite -/(dvdn _ _) pfactor_dvdn // lognM //.
 move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
 by apply contraLR; rewrite -!leqNgt; exact: leq_add.
 Qed.
-Canonical padic_int_idomainType :=
-  Eval hnf in IdomainType (padic_int p_pr) padic_mul_eq0.
+
+HB.instance Definition _ := GRing.ComUnitRing.on (padic_int p_pr).
+HB.instance Definition _ :=
+  GRing.ComUnitRing_isIntegral.Build (padic_int p_pr) padic_mul_eq0.
 
 End PadicTheory.
 

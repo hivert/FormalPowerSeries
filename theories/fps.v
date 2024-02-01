@@ -1,4 +1,4 @@
-(** Formal power series *)
+(** * Combi.fps : Formal power series *)
 (******************************************************************************)
 (*       Copyright (C) 2019-2021 Florent Hivert <florent.hivert@lri.fr>       *)
 (*                                                                            *)
@@ -13,6 +13,89 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
+(** * Formal power series
+
+In this file, we suppose that \(\mathbf{R}\).  The goal of this file is to
+construct the ring #\(\mathbf{R}[[X]]\)#. We construct it as the inverse
+limit of the sequence of truncated power series:
+
+#
+\[\dots \mapsto \mathbf{R}[X]/X^{n+1} \mapsto \mathbf{R}[X]/X^n
+\mapsto\dots\mapsto \mathbf{R}[X]/X^2 \mapsto \mathbf{R}[X]/X = \mathbf{R}\,.
+\]
+#
+
+We define the following notions (where [R : ringType] and [n : nat]):
+
+- [{fps R}] == the power series ring with coefficient in [R].
+
+The base ring [R] needs to be at least a [ringType], but [{fps R}] aquire more
+structure if [R] has more: namely [{fps R}] is respectively a [unitRing],
+commutative ring, an integral domain, whenever [R] is.
+
+Basic formulary:
+
+- [\X]         == the series \(X\) in [{fps R n}].
+- [exps n]     == the exponential series in [{fps R}].
+- [logs n]     == the pseudo logarithm \(-\log(1 - X)\) series in [{fps R}].
+- [exp f]      == the series \(\exp(f)\).
+- [log g]      == the series \(\log(f)\).
+- [f ^^ r] = [expr_fps r f] == the series \(\exp(r\log(f))\).
+- [\sqrt f]    == the square root series of [f].
+
+Construction of power series:
+
+- [x %:S] == [tfpsC r] == the constant power series.
+- [\fps F i .X^i] == the power series [\sum_(i < n.+1) (F i) X^i].
+
+Dealing with coefficients of power series:
+
+- [f``_i] == [coef_series s i] == the [i]-th coefficient #\([X^i]f\)# of [f].
+- [slead s]    == the lower non zero coefficient of [f] or [0] if [f == 0].
+- [valuat s]   == the degree of the lower non zero coefficient of [f] as a
+                  term of type [natbar], or [Inf] if [f] is zero.
+
+-  [map_fps F f] == the power series obtained by applying [F] on all the
+                  coefficient of [f] where [F : R -> S] is a ring morphism.
+
+- [f \in coefs0_eq0] == the ideal of [f] such that #\([X^0]f = 0\)# that is
+                    [f`_0 == 0].
+- [f \in coefs0_eq1] == the ideal of [f] such that #\([X^0]f = 1\)# that is
+                    [f`_0 == 1].
+
+Standard operation on power series:
+
+- [sdivX f]   == the series #\( (f - [X^0]f)/X \)# in [{tfps R n.-1}].
+- [f^``()]    == [deriv_fps f] (in [fps_scope]) the derivative of [f] in the
+                 ring [{fps R}].
+- [\int p]    == [prim_fps p] (in [fps_scope]) the primitive [p] in the
+                 ring [{fps R}].
+
+Composition of truncated power series and Lagrange inversion:
+
+- [comp_fps f g] == [g \oS f] (in [fps_scope]) == the compose series of [f]
+                 and [g] where [f \in coefs0_eq0].
+- [lagrfix g] == the Lagrange fix point [f] in [{fps R}] of the iteration
+                 \(f \to X\,(g \circ f)\) or more precisely
+                 [f => ''X * (g \oS f)].
+
+- [lagrunit f] == [f] is inversible for the composition of series, that is
+                 [`f_0` == 0] and [tdivX f] in a multiplicative unit.
+- [lagrinv f] == the inverse of [f] the for composition of
+                 series. It is given and the Lagrange fixpoint of
+                 [(sdivX f)^-1].
+
+Note: we cannot declare the group [(coefs0_eq0, \oS, lagrinv)] because it
+is infinite, and MathComp currently formalize only finite groups.
+
+We prove the [Lagrange_Bürmann] theorem giving the coefficent of the Lagrange
+fixpoint and its compose series.
+*******************************************************************************)
+From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
@@ -45,10 +128,19 @@ Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
 Reserved Notation "f \oS g" (at level 50).
 
 
+
+(* I'd rather not add seriesfun as a coercion here !
+   It is redundant with the notation p``_i which get very confusing *)
+Record fpseries (R : ringType) := FPSeries { seriesfun : nat -> R }.
+Notation "{ 'fps' R }" := (fpseries R).
+
+HB.instance Definition _ R := gen_eqMixin {fps R}.
+HB.instance Definition _ R := gen_choiceMixin {fps R}.
+
+
 Section Defs.
 
 Variable R : ringType.
-
 
 Fact fps_bond_key : unit. Proof. by []. Qed.
 Definition fps_bond :=
@@ -62,21 +154,22 @@ Variables (i j : nat) (le_ij : (i <= j)%O).
 Lemma fps_bondE f : fps_bond le_ij f = trXnt i f.
 Proof. by rewrite unlock. Qed.
 
-Lemma bond_is_rmorphism : rmorphism (fps_bond le_ij).
-Proof.
-rewrite unlock; split; first exact: trXnt_is_linear.
-by apply trXnt_is_multiplicative; rewrite -leEnat.
-Qed.
-Canonical bond_additive  := Eval hnf in Additive bond_is_rmorphism.
-Canonical bond_rmorphism := Eval hnf in RMorphism bond_is_rmorphism.
+Fact bond_is_additive : additive (fps_bond le_ij).
+Proof. by rewrite unlock => x y; rewrite raddfB. Qed.
+HB.instance Definition _ :=
+  GRing.isAdditive.Build {tfps R j} {tfps R i} _ bond_is_additive.
 
-Lemma bond_is_linear : linear (fps_bond le_ij).
+Fact bond_is_multiplicative : multiplicative (fps_bond le_ij).
+Proof. by rewrite unlock; exact: trXnt_is_multiplicative. Qed.
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build {tfps R j} {tfps R i} _ bond_is_multiplicative.
+
+Fact bond_is_linear : linear (fps_bond le_ij).
 Proof. by rewrite unlock; exact: trXnt_is_linear. Qed.
-Canonical bond_linear     := Eval hnf in AddLinear bond_is_linear.
-Canonical bond_lrmorphism := Eval hnf in [lrmorphism of (fps_bond le_ij)].
+HB.instance Definition _ :=
+  GRing.isLinear.Build R {tfps R j} {tfps R i} _ _ bond_is_linear.
 
 End Canonical.
-
 
 Program Definition fps_invsys :=
   InvSys (bonding := fun (i j : nat) (le_ij : (i <= j)%O) => fps_bond le_ij)
@@ -87,30 +180,16 @@ by move=> f /=; rewrite unlock; apply: trXnt_trXnt; rewrite -leEnat.
 Qed.
 
 
-(* I'd rather not add a coercion here ! It is redundant with the
-   notation p``_i which is very confusing *)
-Record fpseries := FPSeries { seriesfun : nat -> R }.
-
-Canonical fpseries_eqType := Eval hnf in EqType fpseries gen_eqMixin.
-Canonical fpseries_choiceType :=
-  Eval hnf in ChoiceType fpseries gen_choiceMixin.
-
-Lemma seriesfun_inj : injective seriesfun.
+Lemma seriesfun_inj : injective (@seriesfun R).
 Proof. by move=> [f1] [f2] /= ->. Qed.
 
-Definition fpseries_of of phant R := fpseries.
-Identity Coercion type_fpseries_of : fpseries_of >-> fpseries.
 
-Definition coef_series_def (s : fpseries_of (Phant R)) i := seriesfun s i.
+Definition coef_series_def s i := @seriesfun R s i.
 Fact coef_series_key : unit. Proof. by []. Qed.
 Definition coef_series := locked_with coef_series_key coef_series_def.
 Canonical coef_series_unlockable :=
   Eval hnf in [unlockable fun coef_series].
-Definition coefps_head h i (s : fpseries_of (Phant R)) :=
-  let: tt := h in coef_series s i.
 
-Local Notation "{ 'fps' R }" := (fpseries_of (Phant R)).
-Local Notation coefs i := (coefps_head tt i).
 Local Notation "s ``_ i" := (coef_series s i).
 
 Lemma coefs_FPSeries (f : nat -> R) i : (FPSeries f)``_i = f i.
@@ -159,46 +238,21 @@ Qed.
 
 End UniversalProperty.
 
-(** Putting fps_bond below break inference for further canonical structures *)
-Program Definition fps_invlimMixin :=
-  @InvLimMixin _ _ _ _ (*fps_bond*) fps_invsys {fps R} fpsproj fpsind _ _ _.
-Next Obligation. by move=> i j le_ij x; apply: fpsprojP. Qed.
-Next Obligation. by move=> x /=; rewrite fpsindP. Qed.
-Next Obligation. by move=> x; apply: (fpsindE Hcone). Qed.
-Canonical fps_invlimType :=
-  Eval hnf in InvLimType {fps R} fps_invlimMixin.
-
-Canonical fps_zmodType :=
-  Eval hnf in ZmodType {fps R} [zmodMixin of {fps R} by <-].
-Canonical fps_zmodInvLimType :=
-  Eval hnf in ZmodInvLimType {fps R} [zmodInvLimMixin of {fps R} by <-].
-Canonical fps_ringType :=
-  Eval hnf in RingType {fps R} [ringMixin of {fps R} by <-].
-Canonical fps_ringInvLimType :=
-  Eval hnf in RingInvLimType {fps R} [ringInvLimMixin of {fps R} by <-].
-Canonical fps_lmodType :=
-  Eval hnf in LmodType R {fps R} [lmodMixin of {fps R} by <-].
-Canonical fps_lmodInvLimType :=
-  Eval hnf in LmodInvLimType R {fps R} [lmodInvLimMixin of {fps R} by <-].
-Canonical fps_lalgType :=
-  Eval hnf in LalgType R {fps R} [lalgMixin of {fps R} by <-].
-Canonical fps_lalgInvLimType :=
-  Eval hnf in LalgInvLimType R {fps R}.
+HB.instance Definition _ :=
+  isInvLim.Build _ _ _ _ fps_invsys {fps R} fpsprojP fpsindP fpsindE.
+HB.instance Definition _ :=
+  InvLim_isLalgInvLim.Build R _ _ _ _ fps_invsys {fps R}.
 
 End Defs.
 
 (* We need to break off the section here to let the argument scope *)
 (* directives take effect.                                         *)
-Bind Scope ring_scope with fpseries_of.
 Bind Scope ring_scope with fpseries.
 
 Arguments seriesfun {R} f%R.
 Arguments seriesfun_inj {R} [s1%R s2%R] : rename.
-Arguments coefps_head {R} h i%N s%R.
 Arguments coef_series {R} s%R i%N.
 
-Notation "{ 'fps' T }" := (fpseries_of (Phant T)).
-Notation coefs i := (coefps_head tt i).
 Notation "s ``_ i" := (coef_series s i).
 Notation "\fps E .X^ i" := (FPSeries (fun i : nat => E)).
 
@@ -230,7 +284,7 @@ Proof. exact: rmorph1. Qed.
 Lemma projM i : {morph 'pi[{fps R}]_i : x y  / x * y}.
 Proof. exact: rmorphM. Qed.
 Lemma projX i n : {morph 'pi[{fps R}]_i : p / p ^+ n}.
-Proof. exact: rmorphX. Qed.
+Proof. exact: rmorphXn. Qed.
 Lemma proj_prod k I (r : seq I) (s : pred I) (F : I -> {fps R}) :
   'pi_k (\prod_(i <- r | s i) F i) = \prod_(i <- r | s i) 'pi_k (F i).
 Proof. exact: rmorph_prod. Qed.
@@ -251,9 +305,6 @@ rewrite -leEnat => H s.
 by rewrite coefs_projE -(ilprojE s H) /= fps_bondE coef_trXnt leqnn.
 Qed.
 
-Lemma coefsE i s : coefs i s = s``_i.
-Proof. by []. Qed.
-
 Lemma coefs0 i : (0 : {fps R })``_i = 0.
 Proof. by rewrite coefs_projE proj_simp coef0. Qed.
 
@@ -266,25 +317,28 @@ split => [Hco|-> //]; apply/fpsprojE => /= i; apply/tfpsP => j le_ji.
 by rewrite !(coeft_proj le_ji) Hco.
 Qed.
 
+Definition coefs_head h i (s : {fps R}) :=
+  let: tt := h in coef_series s i.
+Local Notation coefs i := (coefs_head tt i).
 
-Lemma coefs_is_additive i : additive (@coefps_head R tt i).
-Proof. by move=> s t; rewrite !coefsE !coefs_projE projB coefB. Qed.
-Canonical coefs_additive i : {additive {fps R} -> R} :=
-  Eval hnf in Additive (coefs_is_additive i).
+Fact coefs_is_additive i : additive (coefs i).
+Proof. by move=> s t; rewrite /= !coefs_projE projB coefB. Qed.
+HB.instance Definition _ i :=
+  GRing.isAdditive.Build {fps R} R _ (coefs_is_additive i).
 
 Lemma coefsD s t i : (s + t)``_i = s``_i + t``_i.
-Proof. exact: (raddfD (coefs_additive i)). Qed.
+Proof. exact: (raddfD (coefs i)). Qed.
 Lemma coefsN s i : (- s)``_i = - (s``_i).
-Proof. exact: (raddfN (coefs_additive i)). Qed.
+Proof. exact: (raddfN (coefs i)). Qed.
 Lemma coefsB s t i : (s - t)``_i = s``_i - t``_i.
-Proof. exact: (raddfB (coefs_additive i)). Qed.
+Proof. exact: (raddfB (coefs i)). Qed.
 Lemma coefsMn s n i : (s *+ n)``_i = (s``_i) *+ n.
-Proof. exact: (raddfMn (coefs_additive i)). Qed.
+Proof. exact: (raddfMn (coefs i)). Qed.
 Lemma coefsMNn s n i : (s *- n)``_i = (s``_i) *- n.
 Proof. by rewrite coefsN coefsMn. Qed.
 Lemma coefs_sum I (r : seq I) (s : pred I) (F : I -> {fps R}) k :
   (\sum_(i <- r | s i) F i)``_k = \sum_(i <- r | s i) (F i)``_k.
-Proof. exact: (raddf_sum (coefs_additive k)). Qed.
+Proof. exact: (raddf_sum (coefs k)). Qed.
 
 
 Fact compat_fpsC : cone (fps_invsys R) (@tfpsC R).
@@ -298,12 +352,10 @@ Proof. exact: piindE. Qed.
 Lemma coefsC c i : c%:S``_i = (if i == 0%N then c else 0).
 Proof. by rewrite coefs_projE piindE coeftC. Qed.
 
-Fact fpsC_is_additive : additive fpsC.
-Proof. exact: (raddfB (ilind_additive _ compat_fpsC)). Qed.
-Canonical fpsC_additive := Eval hnf in Additive fpsC_is_additive.
-Fact fpsC_is_multiplicative : multiplicative fpsC.
-Proof. exact: ilind_is_multiplicative _ compat_fpsC. Qed.
-Canonical fpsC_rmorphism := AddRMorphism fpsC_is_multiplicative.
+HB.instance Definition _ :=
+  GRing.isAdditive.Build _ _ fpsC (ilind_is_additive _ compat_fpsC).
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build _ _ fpsC (ilind_is_multiplicative _ compat_fpsC).
 
 Lemma fpsCK : cancel fpsC (coefs 0%N).
 Proof. by move=> c; rewrite /= coefsC. Qed.
@@ -331,7 +383,7 @@ Proof. exact: rmorph1. Qed.
 Lemma fpsCM : {morph fpsC : a b / a * b}.
 Proof. exact: rmorphM. Qed.
 Lemma fpsCX n : {morph fpsC : c / c ^+ n}.
-Proof. exact: rmorphX. Qed.
+Proof. exact: rmorphXn. Qed.
 Lemma fpsC_prod I (r : seq I) (s : pred I) (F : I -> R) :
   (\prod_(i <- r | s i) F i)%:S = \prod_(i <- r | s i) (F i)%:S.
 Proof. exact: rmorph_prod. Qed.
@@ -341,7 +393,7 @@ Proof. rewrite -fpsC0; apply/inj_eq/fpsC_inj. Qed.
 Lemma fpsC_eq1 (c : R) : (c%:S == 1 :> {fps R}) = (c == 1).
 Proof. rewrite -fpsC1; apply/inj_eq/fpsC_inj. Qed.
 
-Lemma compat_poly : cone (fps_invsys R) (@trXn R).
+Fact compat_poly : cone (fps_invsys R) (@trXn R).
 Proof. by  move=> i j le_ij p; rewrite /= fps_bondE /trXnt /= trXn_trXn. Qed.
 Definition fps_poly : {poly R} -> {fps R} := 'ind compat_poly.
 
@@ -361,15 +413,15 @@ move=> p q /(congr1 ('pi_(maxn (size p) (size q))))/(congr1 tfps).
 by rewrite !fps_polyK // (leq_trans _ (leqnSn _)) // ?leq_maxr ?leq_maxl.
 Qed.
 
-Fact fps_poly_is_linear : linear fps_poly.
-Proof. exact: (linearP (ilind_linear _ compat_poly)). Qed.
-Canonical fps_poly_additive := Eval hnf in Additive fps_poly_is_linear.
-Canonical fps_poly_linear := Eval hnf in Linear fps_poly_is_linear.
-Fact fps_poly_is_multiplicative : multiplicative fps_poly.
-Proof. exact: ilind_is_multiplicative _ compat_poly. Qed.
-Canonical fps_poly_rmorphism :=
-  Eval hnf in AddRMorphism fps_poly_is_multiplicative.
-Canonical fps_poly_lrmorphism := [lrmorphism of fps_poly].
+HB.instance Definition _ :=
+  GRing.isAdditive.Build
+    _ _ fps_poly (ilind_is_additive _ compat_poly).
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build
+    _ _ fps_poly (ilind_is_multiplicative _ compat_poly).
+HB.instance Definition _ :=
+  GRing.isLinear.Build
+    R _ _ _ fps_poly (ilind_is_linear _ compat_poly).
 
 Lemma fps_poly0 : fps_poly 0 = 0.
 Proof. exact: raddf0. Qed.
@@ -388,7 +440,7 @@ Lemma fps_poly_sum I (r : seq I) (s : pred I) (F : I -> {poly R}) :
 Proof. exact: raddf_sum. Qed.
 
 Lemma fps_polyX n : {morph fps_poly : p / p ^+ n}.
-Proof. exact: rmorphX. Qed.
+Proof. exact: rmorphXn. Qed.
 Lemma fps_poly1 : fps_poly 1 = 1.
 Proof. exact: rmorph1. Qed.
 Lemma fps_polyM : {morph fps_poly : x y  / x * y}.
@@ -427,15 +479,16 @@ Proof.
 split=> [s t|] /=; last by rewrite coefs1.
 by rewrite coefsM big_ord_recl big_ord0 addr0 /= subnn.
 Qed.
-Canonical coefs0_rmorphism := Eval hnf in AddRMorphism coefs0_multiplicative.
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build _ _ _ coefs0_multiplicative.
 
 Lemma coefs0M s t : (s * t)``_0 = s``_0 * t``_0.
-Proof. exact: (rmorphM coefs0_rmorphism). Qed.
+Proof. exact: (rmorphM (coefs 0)). Qed.
 Lemma coefs0X s i : (s ^+ i)``_0 = s``_0 ^+ i.
-Proof. exact: (rmorphX coefs0_rmorphism). Qed.
+Proof. exact: (rmorphXn (coefs 0)). Qed.
 Lemma coef0_prod I (r : seq I) (s : pred I) (F : I -> {fps R}) :
   (\prod_(i <- r | s i) F i)``_0 = \prod_(i <- r | s i) (F i)``_0.
-Proof. exact: (rmorph_prod coefs0_rmorphism). Qed.
+Proof. exact: (rmorph_prod (coefs 0)). Qed.
 
 Lemma mul_fpsC a s : a%:S * s = a *: s.
 Proof.
@@ -449,11 +502,10 @@ Proof. by rewrite !coefs_projE linearZ coefZ. Qed.
 Lemma alg_fpsC a : a%:A = a%:S :> {fps R}.
 Proof. by rewrite -mul_fpsC mulr1. Qed.
 
-Canonical coefps_linear i : {scalar {fps R}} :=
-  Eval hnf in AddLinear
-                ((fun a => (coefsZ a) ^~ i) : scalable_for *%R (coefs i)).
-Canonical coefp0_lrmorphism :=
-  Eval hnf in [lrmorphism of coefs 0].
+Fact coefs_is_scalable i : scalable_for *%R (coefs i).
+Proof. move=> r x; exact: coefsZ. Qed.
+HB.instance Definition _ i :=
+  GRing.isScalable.Build R {fps R} _ _ _ (coefs_is_scalable i).
 
 Lemma proj0CE f : 'pi[{fps R}]_0%N f = (f``_0%N)%:S%tfps.
 Proof.
@@ -526,7 +578,7 @@ Lemma fps_polyXE (R : ringType) : ''X = 'X :> {fps R}.
 Proof. by unlock. Qed.
 
 Lemma fps_polyXnE (R : ringType) n : ''X^n = 'X^n :> {fps R}.
-Proof. by unlock; rewrite -rmorphX. Qed.
+Proof. by unlock; rewrite -rmorphXn. Qed.
 
 Lemma very_confusing (R : ringType) :
   1 + 'X + 'X^2%N = 1 + ''X + ''X^2%N :> {fps R}.
@@ -541,8 +593,8 @@ Section FpsUnitRing.
 Variable R : unitRingType.
 Implicit Type f : {fps R}.
 
-Canonical fps_unitRingType :=
-  Eval hnf in UnitRingType {fps R} [unitRingMixin of {fps R} by <-].
+HB.instance Definition _ :=
+  InvLim_isUnitRingInvLim.Build _ _ _ _ _ {fps R}.
 
 Lemma unit_fpsE f : (f \is a GRing.unit) = (f``_0 \is a GRing.unit).
 Proof.
@@ -608,10 +660,8 @@ Section FpsComRing.
 
 Variable R : comRingType.
 
-Canonical fps_comRingType :=
-  Eval hnf in ComRingType {fps R} [comRingMixin of {fps R} by <-].
-Canonical fps_algType :=
-  Eval hnf in AlgType R {fps R} [algMixin of {fps R} by <-].
+HB.instance Definition _ :=
+  InvLim_isComRingInvLim.Build _ _ _ _ _ {fps R}.
 
 Lemma test1 i : 'pi_i (1 : {fps R}) = 1.
 Proof. exact: rmorph1. Qed.
@@ -626,10 +676,9 @@ Section FpsComUnitRing.
 
 Variable R : comUnitRingType.
 
-Canonical fps_comUnitRingType := Eval hnf in [comUnitRingType of {fps R}].
-Canonical fps_unitalgType :=     Eval hnf in [unitAlgType R of {fps R}].
-Canonical fps_comAlgType :=      Eval hnf in [comAlgType R of {fps R}].
-Canonical fps_comUnitAlgType :=  Eval hnf in [comUnitAlgType R of {fps R}].
+(* Regenerate the instances *)
+HB.instance Definition _ :=
+  InvLim_isComRingInvLim.Build _ _ _ _ _ {fps R}.
 
 End FpsComUnitRing.
 
@@ -704,7 +753,7 @@ case: valuatXnP => [v t Ht|]->{s}; apply (iffP idP) => //=.
 - rewrite leEnatbar => nlev.
   exists (''X ^+ (v - n) * t); rewrite mulrA.
   by rewrite -exprD subnKC //.
-- rewrite leEnatbar => [] [s] /(congr1 (coefs v)) /=.
+- rewrite leEnatbar => [] [s] /(congr1 (coef_series ^~ v)).
   by apply contra_eqT; rewrite -ltnNge !coef_fpsXnM /= ltnn subnn => ->.
 - by move=> _; exists 0; rewrite mulr0.
 Qed.
@@ -836,9 +885,8 @@ Proof. exact: (big_morph _ sleadM slead1). Qed.
 Fact series_idomainAxiom s t :
   s * t = 0 -> (s == 0 :> {fps R}) || (t == 0 :> {fps R}).
 Proof. by move/eqP; rewrite !valuatInfE valuatM addbar_eqI. Qed.
-
-Canonical series_idomainType :=
-  Eval hnf in IdomainType {fps R} series_idomainAxiom.
+HB.instance Definition _ :=
+  GRing.ComUnitRing_isIntegral.Build {fps R} series_idomainAxiom.
 
 End FPSIDomain.
 Arguments valuatM {R}.
@@ -868,30 +916,30 @@ Proof. by move=> g i j le_ij /=; rewrite -!proj_map_fps /= ilprojE. Qed.
 
 Lemma map_fps_indE : map_fps = 'ind compat_map_fps.
 Proof.
-by apply: funext => g; apply: ind_uniq => i {}g /=; apply: proj_map_fps.
+by apply: funext => g; apply: ilind_uniq => i {}g /=; apply: proj_map_fps.
 Qed.
 
 Fact map_fps_is_additive : additive map_fps.
 Proof. by rewrite map_fps_indE => f g; rewrite rmorphB. Qed.
-Canonical map_fps_additive :=
-  Eval hnf in Additive map_fps_is_additive.
+HB.instance Definition _ i :=
+  GRing.isAdditive.Build {fps K} {fps L} _ map_fps_is_additive.
 
-Lemma map_fpsZ (c : K) g : map_fps (c *: g) = (F c) *: (map_fps g).
+Fact map_fpsZ : scalable_for (F \; *:%R) map_fps.
 Proof.
+move=> c g.
 by apply/invlimE => i; rewrite !(linearZ, proj_map_fps) /= proj_map_fps.
 Qed.
-Canonical map_fps_linear :=
-  Eval hnf in AddLinear (map_fpsZ : scalable_for (F \; *:%R) map_fps).
+HB.instance Definition _ :=
+  GRing.isScalable.Build _ {fps K} {fps L} _ _ map_fpsZ.
 
 Fact map_fps_is_multiplicative : multiplicative map_fps.
 Proof.
 rewrite map_fps_indE.
 by split; [move=> f g; rewrite rmorphM | rewrite rmorph1].
 Qed.
-Canonical map_fps_rmorphism :=
-  Eval hnf in AddRMorphism map_fps_is_multiplicative.
-Canonical map_fps_lrmorphism :=
-  Eval hnf in [lrmorphism of map_fps].
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build {fps K} {fps L} _ map_fps_is_multiplicative.
+
 
 (* Tests *)
 Example test_map_tfps0 : map_fps 0 = 0.
@@ -900,6 +948,10 @@ Proof. by rewrite linear0. Qed.
 Example test_map_tfpsD g h :
   map_fps (g + h) = (map_fps g) + (map_fps h).
 Proof. by rewrite linearD. Qed.
+
+Example test_map_tfpsM g h :
+  map_fps (g * h) = (map_fps g) * (map_fps h).
+Proof. by rewrite rmorphM. Qed.
 
 End MapFPS.
 
@@ -917,8 +969,7 @@ move=> x y eqmap; apply/invlimE => i.
 by apply: (map_tfps_inj (F := F)); rewrite -!proj_map_fps eqmap.
 Qed.
 
-Lemma map_fps_idfun (K : fieldType) :
-  map_fps [rmorphism of (@idfun K)] =1 @idfun {fps K}.
+Lemma map_fps_idfun (K : fieldType) : map_fps (@idfun K) =1 @idfun {fps K}.
 Proof.
 move=> x; apply/invlimE => i.
 by rewrite proj_map_fps map_tfps_idfun.
@@ -972,17 +1023,10 @@ split => [|| a p q ]; rewrite ?coefs0_eq0E ?coefs0 ?coefs1 ?eqxx ?oner_eq0 //.
 move=> /eqP p0_eq0 /eqP q0_eq0.
 by rewrite coefsD q0_eq0 addr0 coefs0M p0_eq0 mulr0.
 Qed.
-
 Fact coefs0_eq0_key : pred_key coefs0_eq0. Proof. by []. Qed.
-
 Canonical coefs0_eq0_keyed := Eval hnf in KeyedPred coefs0_eq0_key.
-Canonical coefs0_eq0_opprPred := Eval hnf in OpprPred coefs0_eq0_idealr.
-Canonical coefs0_eq0_addrPred := Eval hnf in AddrPred coefs0_eq0_idealr.
-Canonical coefs0_eq0_zmodPred := Eval hnf in ZmodPred coefs0_eq0_idealr.
+HB.instance Definition _ := isIdealr.Build {fps R} coefs0_eq0 coefs0_eq0_idealr.
 
-Definition coefs0_eq0_ntideal := idealr_closed_nontrivial coefs0_eq0_idealr.
-Canonical coefs0_eq0_ideal :=
-  Eval hnf in MkIdeal coefs0_eq0_zmodPred coefs0_eq0_ntideal.
 
 Lemma coefs0_eq0Z f c : f \in coefs0_eq0 -> c *: f \in coefs0_eq0.
 Proof. by move=> hf; rewrite -mulr_algl idealMr. Qed.
@@ -1027,7 +1071,9 @@ by rewrite coefs0M; move/eqP ->; move/eqP ->; rewrite mul1r.
 Qed.
 Fact coefs0_eq1_key : pred_key coefs0_eq1. Proof. by []. Qed.
 Canonical coefs0_eq1_keyed := Eval hnf in KeyedPred coefs0_eq1_key.
-Canonical coefs0_eq1_MulrPred := Eval hnf in MulrPred mulr_closed_coefs0_eq1.
+HB.instance Definition _ :=
+  GRing.isMulClosed.Build {fps R} coefs0_eq1 mulr_closed_coefs0_eq1.
+
 
 (* Tests *)
 Example one_in_coefs0_eq1 : 1 \in coefs0_eq1.
@@ -1060,7 +1106,8 @@ Proof.
 move=> f; rewrite !coefs0_eq1E coefs0V; move/eqP ->.
 by rewrite invr1.
 Qed.
-Canonical coefs0_eq1_DivrPred := Eval hnf in DivrPred invr_closed_coefs0_eq1.
+HB.instance Definition _ :=
+  GRing.isInvClosed.Build {fps R} coefs0_eq1 invr_closed_coefs0_eq1.
 
 Lemma coefs0_eq1V f : f \in coefs0_eq1 -> f^-1 \in coefs0_eq1.
 Proof. by move=> hf; rewrite rpredVr. Qed.
@@ -1084,15 +1131,14 @@ Fact coefs0_eq0_prime : prime_idealr_closed (@coefs0_eq0 R).
 Proof.
 by move => x y; rewrite -!topredE /= /coefs0_eq0 coefs0M mulf_eq0.
 Qed.
-Canonical coefs0_eq0_pideal :=
-  Eval hnf in MkPrimeIdeal (coefs0_eq0_ideal R) coefs0_eq0_prime.
+HB.instance Definition _ :=
+  isPrimeIdealrClosed.Build {fps R} coefs0_eq0 coefs0_eq0_prime.
 
 Example coefs0_eq0_prime_test f g :
   f * g \in coefs0_eq0 -> (f \in coefs0_eq0) || (g \in coefs0_eq0).
 Proof. by rewrite prime_idealrM. Qed.
 
 End Coefficient01IDomain.
-
 
 
 Section DivisionByX.
@@ -1122,8 +1168,8 @@ Fact sdivX_is_linear : linear sdivX.
 Proof.
 by move=> c f g; apply/fpsP => i; rewrite !(coefs_simpl, coefs_sdivX).
 Qed.
-Canonical sdivX_additive := Eval hnf in Additive sdivX_is_linear.
-Canonical sdivX_linear := Eval hnf in Linear sdivX_is_linear.
+HB.instance Definition _ :=
+  GRing.isLinear.Build R {fps R} {fps R} _ _ sdivX_is_linear.
 
 
 Implicit Type f : {fps R}.
@@ -1163,7 +1209,6 @@ Qed.
 End MapMulfXDivfX.
 
 
-
 Section Derivative.
 
 Variables (R : ringType).
@@ -1192,17 +1237,13 @@ Qed.
 
 Lemma deriv_fps_indE : deriv_fps = 'ind compat_deriv_fps.
 Proof.
-by apply: funext => g; apply: ind_uniq => i {}g /=; apply: proj_deriv_fps.
+by apply: funext => g; apply: ilind_uniq => i {}g /=; apply: proj_deriv_fps.
 Qed.
 
-Fact deriv_fps_is_additive : additive deriv_fps.
-Proof. by rewrite deriv_fps_indE; apply: raddfB. Qed.
-Canonical deriv_fps_additive :=
-  Eval hnf in Additive deriv_fps_is_additive.
 Fact deriv_fps_is_linear : linear deriv_fps.
 Proof. by rewrite deriv_fps_indE; apply: linearP. Qed.
-Canonical deriv_fps_linear :=
-  Eval hnf in Linear deriv_fps_is_linear.
+HB.instance Definition _ :=
+  GRing.isLinear.Build _ _ _ _ _ deriv_fps_is_linear.
 
 Fact deriv_fps0 : (0 : {fps R})^`()%fps = 0.
 Proof. exact: raddf0. Qed.
@@ -1253,7 +1294,6 @@ by rewrite !(proj_simpl, proj_deriv_fps) -!fps_bondE !ilprojE.
 Qed.
 
 End MoreDerivative.
-
 
 
 Section DerivativeComRing.
@@ -1357,8 +1397,8 @@ move=> /= r f g; apply fpsP => i.
 rewrite !(coefsD, coefsZ, coefs_FPSeries) !mulrA -mulrDl.
 by rewrite mulrnAr -mulrnDl.
 Qed.
-Canonical prim_fps_additive := Eval hnf in Additive prim_fps_is_linear.
-Canonical prim_fps_linear := Eval hnf in Linear prim_fps_is_linear.
+HB.instance Definition _ :=
+  GRing.isLinear.Build _ _ _ _ _ prim_fps_is_linear.
 
 (* tests *)
 Example prim_fps0 : prim_fps 0 = 0.
@@ -1380,7 +1420,7 @@ Lemma prim_fpsK : cancel (@prim_fps R) (@deriv_fps R).
 Proof.
 move=> p; apply/fpsP => n.
 rewrite coef_deriv_fps coef_prim_fps /=.
-by rewrite -mulr_natr divrK.
+by rewrite -[LHS]mulr_natr divrK.
 Qed.
 
 Lemma deriv_tfpsK :
@@ -1390,7 +1430,7 @@ move=> f; rewrite coefs0_eq0E => /eqP f0_eq0.
 apply/fpsP => i.
 rewrite coef_prim_fps coef_deriv_fps.
 case: i => [|i] /=; first by rewrite f0_eq0.
-by rewrite -mulr_natr mulrK.
+by rewrite -[X in X / _ = _]mulr_natr mulrK.
 Qed.
 
 End PrimitiveUnitRing.
@@ -1401,14 +1441,13 @@ Section Composition.
 Variables (R : ringType).
 Implicit Types (f g : {fps R}).
 
-Lemma compat_comp_fps g :
+Fact compat_comp_fps g :
   cone (fps_invsys R)
        (fun i => (comp_tfps ('pi_i g)) \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_comp -?leEnat // -!fps_bondE !ilprojE.
 Qed.
-
 Definition comp_fps g : {fps R} -> {fps R} := 'ind (compat_comp_fps g).
 
 Local Notation "f \oS g" := (comp_fps g f).
@@ -1467,8 +1506,8 @@ Qed.
 
 Fact comp_fps_is_linear g : linear (comp_fps g).
 Proof. exact: ilind_is_linear _ (compat_comp_fps g). Qed.
-Canonical comp_fps_additive g := Eval hnf in Additive (comp_fps_is_linear g).
-Canonical comp_fps_linear g := Eval hnf in Linear (comp_fps_is_linear g).
+HB.instance Definition _ g :=
+  GRing.isLinear.Build _ _ _ _ (comp_fps g) (comp_fps_is_linear g).
 
 Lemma comp_fps1 f : 1 \oS f = 1.
 Proof. by apply invlimE => i; rewrite proj_comp_fps proj1 comp_tfps1. Qed.
@@ -1494,7 +1533,7 @@ Qed.
 Lemma comp_fpsXn n : {in coefs0_eq0, forall f, ''X ^+ n \oS f = f ^+ n}.
 Proof.
 move=> f /proj_coefs0_eq0 f0eq0; apply invlimE => i.
-by rewrite proj_comp_fps proj_fpsXn comp_tfpsXn // rmorphX.
+by rewrite proj_comp_fps proj_fpsXn comp_tfpsXn // rmorphXn.
 Qed.
 
 End Composition.
@@ -1523,11 +1562,9 @@ Local Open Scope fps_scope.
 
 Fact comp_fps_is_multiplicative f : multiplicative (comp_fps f).
 Proof. exact: ilind_is_multiplicative _ (compat_comp_fps f). Qed.
-Canonical comp_fps_rmorphism f :=
-  Eval hnf in AddRMorphism (comp_fps_is_multiplicative f).
-Canonical comp_fps_lrmorphism f :=
-  Eval hnf in [lrmorphism of (comp_fps f)].
-
+HB.instance Definition _ g :=
+  GRing.isMultiplicative.Build
+    _ _ (comp_fps g) (comp_fps_is_multiplicative g).
 
 Lemma comp_fpsA f g h : f \oS (g \oS h) = (f \oS g) \oS h.
 Proof. by apply invlimE => i; rewrite !proj_comp_fps comp_tfpsA. Qed.
@@ -1555,7 +1592,7 @@ Section Lagrange.
 Variables R : comUnitRingType.
 Implicit Type (f g : {fps R}).
 
-Lemma compat_lagrfix :
+Fact compat_lagrfix :
   cone (fps_invsys R)
        (fun i => if i is i'.+1
                  then (@lagrfix R i') \o 'pi[{fps R}]_i'
@@ -1569,7 +1606,6 @@ case: i j => [|i] [|j] //; first by rewrite trXnt0.
 rewrite ltnS => le_ij.
 by rewrite trXnt_lagrfix // -!fps_bondE !ilprojE.
 Qed.
-
 Definition lagrfix : {fps R} -> {fps R} := 'ind compat_lagrfix.
 
 Lemma proj0_lagrfix f : 'pi_0%N (lagrfix f) = 0.
@@ -1604,7 +1640,7 @@ Lemma lagrfix_inv f g :
   f = ''X * (g \oS f) -> (''X * g^-1) \oS f = ''X.
 Proof.
 move=> gU f0eq0 feq; rewrite feq.
-rewrite rmorphM /= rmorphV //= comp_fpsX ?coefs0_eq0E ?coef_fpsXM // -{2}feq.
+rewrite rmorphM /= (rmorphV _ gU) comp_fpsX ?coefs0_eq0E ?coef_fpsXM // -{2}feq.
 by rewrite mulrK // comp_fps_unitE.
 Qed.
 
@@ -1735,7 +1771,7 @@ Theorem coefs_lagrfix g i :
 Proof.
 move/Lagrange_Bürmann_exp => /(_ i.+1 _ (ltn0Sn _)).
 rewrite subSS subn0 mulr1n expr1 => <-.
-by rewrite -mulr_natr mulrK.
+by rewrite -[X in X / _]mulr_natr mulrK.
 Qed.
 
 Theorem Lagrange_Bürmann g h i :
@@ -1814,7 +1850,7 @@ move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_exp -?leEnat // -!fps_bondE !ilprojE.
 Qed.
 Lemma exp_indE : exp = 'ind compat_exp.
-Proof. by apply: funext=> g; apply: ind_uniq=> i {}g /=; apply: proj_exp. Qed.
+Proof. by apply: funext=> g; apply: ilind_uniq=> i {}g /=; apply: proj_exp. Qed.
 
 Lemma compat_log :
   cone (fps_invsys R) (fun i => tfps.log \o 'pi[{fps R}]_i).
@@ -1823,7 +1859,7 @@ move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_log -?leEnat // -!fps_bondE !ilprojE.
 Qed.
 Lemma log_indE : log = 'ind compat_log.
-Proof. by apply: funext=> g; apply: ind_uniq=> i {}g /=; apply: proj_log. Qed.
+Proof. by apply: funext=> g; apply: ilind_uniq=> i {}g /=; apply: proj_log. Qed.
 
 
 Lemma coefs0_exps : exps``_0 = 1.
@@ -1928,7 +1964,7 @@ by case: m Hm.
 move=> Hm /= f fU; apply invlimE => i.
 rewrite rmorphMNn rmorphM /= !proj_deriv_fps.
 (** Why the canonical doesn't work with rmorphV ??? *)
-rewrite -!exprVn !rmorphX /= !(rmorphV [rmorphism of 'pi[{fps R}]_ _] fU) /=.
+rewrite -!exprVn !rmorphXn /= !(rmorphV [rmorphism of 'pi[{fps R}]_ _] fU) /=.
 rewrite !exprVn derivXn_tfps //=; last by move: fU => /proj_unit_fps/(_ i.+1).
 by rewrite -fps_bondE ilprojE. *)
 Qed.
@@ -1939,7 +1975,7 @@ move=> dev0; exists (f``_0).
 apply/fpsP => [] [|i]; rewrite coefsC //.
 apply: (mulIr (nat_unit i)); rewrite mul0r.
 move: dev0 => /(congr1 (fun x : {fps _ } => x``_i)).
-by rewrite coef_deriv_fps coefs0 -mulr_natr.
+by rewrite coef_deriv_fps coefs0 mulr_natr.
 Qed.
 
 Lemma deriv_fps_eq0 f : f^`()%fps = 0 -> f``_0 = 0 -> f = 0.
@@ -2058,8 +2094,9 @@ Section ExprFPS.
 Variable f : {fps R}.
 Hypothesis f0_eq1 : f \in coefs0_eq1.
 
-Let log_coefs0_eq0Z c : c *: log f \in coefs0_eq0.
+Local Lemma log_coefs0_eq0Z c : c *: log f \in coefs0_eq0.
 Proof. by rewrite coefs0_eq0Z // log_in_coefs0_eq0. Qed.
+Let tmp_log_coefs0_eq0Z := log_coefs0_eq0Z.
 
 Lemma coefs0_eq1_expr c : f ^^ c \in coefs0_eq1.
 Proof. by rewrite /expr_tfps exp_in_coefs0_eq1. Qed.

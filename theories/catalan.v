@@ -1,4 +1,4 @@
-(** Catalan number via generating functions *)
+(** Combi.catalan : Catalan numbers (truncated version) *)
 (******************************************************************************)
 (*       Copyright (C) 2019 Florent Hivert <florent.hivert@lri.fr>            *)
 (*                                                                            *)
@@ -13,6 +13,20 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+(** #
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ # *)
+(** * Catalan number via generating functions (truncated power series version)
+
+We prove using three different techniques that the Catalan number are equal to
+[\frac{\binom{2n, n}}{n+1}] that is in math comp ['C(i.*2, i) %/ i.+1].
+Precisely, we suppose that [C : nat -> nat] verify [C 0 = 1] and
+[C (n+1) = \sum_{i=0}^n (C i) * (C (n-i))], and prove that [C i] is equal to
+the formula above. The only definition here is
+
+- [FC n] : {tfps rat n} == the truncated generating series of the [C i].
+*******************************************************************************)
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import fintype div bigop ssralg poly binomial rat ssrnum.
 
@@ -24,6 +38,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 
+(** ** The generating series of Catalan numbers *)
 Section Catalan.
 
 Variable (C : nat -> nat).
@@ -40,11 +55,10 @@ Example C5 : C 5 = 42. Proof. by rewrite !Csimpl. Qed.
 
 Import GRing.Theory.
 
-Local Definition Rat := [fieldType of rat].
-Local Definition char_Rat := Num.Theory.char_num [numDomainType of Rat].
-Local Definition nat_unit := nat_unit_field char_Rat.
-Local Definition fact_unit := fact_unit char_Rat.
-Hint Resolve char_Rat nat_unit : core.
+Local Definition char_rat := Num.Theory.char_num rat.
+Local Definition nat_unit := nat_unit_field char_rat.
+Local Definition fact_unit := fact_unit char_rat.
+Hint Resolve char_rat nat_unit : core.
 
 Section GenSeries.
 
@@ -52,7 +66,7 @@ Local Open Scope ring_scope.
 Local Open Scope tfps_scope.
 
 Variable n : nat.
-Definition FC : {tfps Rat n} := [tfps i => (C i)%:R].
+Definition FC : {tfps rat n} := [tfps i => (C i)%:R].
 
 Lemma FC_in_coef0_eq1 : FC \in coeft0_eq1.
 Proof. by rewrite coeft0_eq1E coef_tfps_of_fun C0. Qed.
@@ -72,19 +86,19 @@ Qed.
 End GenSeries.
 
 
-(** Extraction of the coefficient using square root and Newton's formula *)
+(** ** Extraction of the coefficient using square root and Newton's formula *)
 Section AlgebraicSolution.
 
 Local Open Scope ring_scope.
 Local Open Scope tfps_scope.
 
-Lemma mulr_nat n i (f : {tfps Rat n}) : i%:R *: f = i%:R * f.
+Lemma mulr_nat n i (f : {tfps rat n}) : i%:R *: f = i%:R * f.
 Proof. by rewrite scaler_nat -[f *+ i]mulr_natr mulrC. Qed.
 
 Theorem FC_algebraic_solution n :
   \X * FC n = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
 Proof.
-have co1 : 1 - 4%:R *: \X \in @coeft0_eq1 Rat n.
+have co1 : 1 - 4%:R *: \X \in @coeft0_eq1 rat n.
   by rewrite mulr_nat coeft0_eq1E coefD mulrC coefN coef_tfpsXM coef1 subr0.
 have: (2%:R *: \X * FC n - 1) ^+ 2 = 1 - 4%:R *: \X.
   apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
@@ -92,13 +106,13 @@ have: (2%:R *: \X * FC n - 1) ^+ 2 = 1 - 4%:R *: \X.
   rewrite -{1}(mulr1 (4%:R * _)) -[X in _ + X + _]mulrA -mulrDr.
   rewrite -FC_algebraic_eq.
   by rewrite -[_ *+ 2]mulr_natl !mulrA -natrM subrr.
-move/(sqrtE char_Rat) => /(_ co1) [HeqP | HeqN].
+move/(sqrtE char_rat) => /(_ co1) [HeqP | HeqN].
   exfalso; move: HeqP => /(congr1 (fun x : {tfps _ _ } => x`_0)).
-  rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_tfpsXM coef1.
-  rewrite (eqP (coeft0_eq1_expr _ _)) /= => /eqP.
+  rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_tfpsXM coef1 /=.
+  rewrite (eqP (coeft0_eq1_expr _ _)) => /eqP.
   rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
-  by have:= char_Rat 2; rewrite !inE Habs /= eq_refl.
-have neq20 : 2%:R != 0 :> Rat by rewrite Num.Theory.pnatr_eq0.
+  by have:= char_rat 2; rewrite !inE Habs /= eq_refl.
+have neq20 : 2%:R != 0 :> rat by rewrite Num.Theory.pnatr_eq0.
 apply (scalerI neq20); rewrite scalerA divff // scale1r -HeqN.
 by rewrite addrC subrK scalerAl.
 Qed.
@@ -110,7 +124,7 @@ have:= congr1 (fun x : {tfps _ _ } => x`_i.+1) (FC_algebraic_solution n).
 rewrite coef_tfpsXM Hi ![X in (X = _)]/= => ->.
 rewrite coefZ coefB coef1 sub0r -scaleNr coef_expr1cX ?{}Hi //.
 rewrite mulrN mulrA -mulNr; congr (_ / (i.+1)`!%:R).
-rewrite -[4]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
+rewrite -[4%N]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
 rewrite exprMn -mulrA.
 have -> : (1 *- 2)^+ i.+1 = \prod_(i0 < i.+1) (1 *- 2) :> rat.
   by rewrite prodr_const /= card_ord.
@@ -130,10 +144,10 @@ congr (_ * _); rewrite {F} mulrC invfM // !mulrA; congr (_ * _).
 rewrite mul2n -{2}[i.*2.+1]addn1 [X in X / _]mulrC -mulrA; congr (_ * _).
 rewrite -[i.*2.+2]addn1 addSnnS -mul2n -[X in (_ + X)%N]muln1.
 rewrite -mulnDr addn1 natrM mulfK //.
-by have /charf0P -> := char_Rat.
+by have /charf0P -> := char_rat.
 Qed.
 
-Theorem Cat_rat i : (C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> Rat.
+Theorem Cat_rat i : (C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> rat.
 Proof. by rewrite -(coefFC (ltnSn i)) coef_tfps_of_fun (ltnW _). Qed.
 
 Local Close Scope ring_scope.
@@ -164,13 +178,13 @@ Qed.
 End AlgebraicSolution.
 
 
-(** Extraction of the coefficient using Lagrange inversion formula *)
+(** ** Extraction of the coefficient using Lagrange inversion formula *)
 Section LagrangeSolution.
 
 Local Open Scope ring_scope.
 Local Open Scope tfps_scope.
 
-Lemma one_plusX_2_unit n :((1 + \X) ^+ 2 : {tfps Rat n}) \is a GRing.unit.
+Lemma one_plusX_2_unit n :((1 + \X) ^+ 2 : {tfps rat n}) \is a GRing.unit.
 Proof.
 rewrite unit_tfpsE coeft0M coeftD coeft1.
 by rewrite coef_tfpsX mulr0 addr0 mulr1.
@@ -180,10 +194,10 @@ Proposition FC_fixpoint_eq n : (FC n.+1 - 1) = lagrfix ((1 + \X) ^+ 2).
 Proof.
 apply: (lagrfix_uniq (one_plusX_2_unit _)).
 rewrite {1}FC_algebraic_eq -addrA addrC subrK.
-rewrite rmorphX rmorphD /= comp_tfps1 comp_tfpsX //; first last.
+rewrite rmorphXn rmorphD /= comp_tfps1 comp_tfpsX //; first last.
   rewrite coeft0_eq0E coef_trXn coeftB coeft1.
   by rewrite coef_tfps_of_fun /= C0 subrr.
-rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphX /=.
+rewrite -(trXnt1 _ n.+1) raddfB /= addrC subrK -rmorphXn /=.
 apply/tfpsP => i le_in1.
 rewrite coef_tfpsXM coeft_tmulX coef_trXnt.
 by case: i le_in1.
@@ -192,8 +206,8 @@ Qed.
 Theorem CatM_Lagrange i : (i.+1 * (C i))%N = 'C(i.*2, i).
 Proof.
 case: i => [|i]; first by rewrite C0 mul1n bin0.
-apply/eqP; rewrite -(Num.Theory.eqr_nat [numDomainType of Rat]); rewrite natrM.
-have:= congr1 (fun s : {tfps Rat i.+1} => s`_i.+1) (FC_fixpoint_eq i).
+apply/eqP; rewrite -(Num.Theory.eqr_nat rat); rewrite natrM.
+have:= congr1 (fun s : {tfps rat i.+1} => s`_i.+1) (FC_fixpoint_eq i).
 rewrite coef_tfps coeftD coef_tfps_of_fun ltnSn.
 rewrite coeftN coeft1 subr0 /= => ->.
 rewrite -/(_`_i.+1) (coeft_lagrfix (nat_unit_field _)) ?one_plusX_2_unit //.
@@ -220,7 +234,7 @@ Qed.
 End LagrangeSolution.
 
 
-(** Extraction of the coefficient using Holonomic differential equation *)
+(** ** Extraction of the coefficient using Holonomic differential equation *)
 Section HolonomicSolution.
 
 Local Open Scope ring_scope.
@@ -255,11 +269,11 @@ rewrite mul1r mulrnAl FalgN.
 rewrite !mulrnBl opprB addrA (mulr2n F) (opprD F) addrA.
 rewrite [_ - F]addrC 2!addrA [-F + _]addrC subrr add0r.
 rewrite !mulrBr mulr1 addrA addrC !addrA.
-rewrite opprB mulrBl mul1r mulr_natr -mulrnA -[(2 * 2)%N]/4.
+rewrite opprB mulrBl mul1r mulr_natr -mulrnA -[(2 * 2)%N]/4%N.
 rewrite [\X *+ 4 - 1 + _]addrC addrA subrK addrK.
 rewrite -addrA -mulNr -mulrDl.
 rewrite opprD [-1 + _]addrC addrA subrK -opprD mulNr.
-rewrite -[4]/(2 + 2)%N mulrnDr addrA.
+rewrite -[4%N]/(2 + 2)%N mulrnDr addrA.
 by rewrite [_ *- _ + _]addrC subrK.
 Qed.
 

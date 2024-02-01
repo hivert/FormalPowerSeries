@@ -1,10 +1,10 @@
 -R theories/ Combi
--arg -w
--arg -notation-overridden
--arg -w
--arg -ambiguous-paths
+-arg -w -arg -notation-overridden
+-arg -w -arg -ambiguous-paths
+-arg -w -arg -redundant-canonical-projection
 theories/directed.v
 theories/invlim.v
+theories/dirlim.v
 theories/natbar.v
 # theories/infpoly.v
 theories/padic.v
