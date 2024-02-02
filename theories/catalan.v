@@ -29,6 +29,7 @@ the formula above. The only definition here is
 *******************************************************************************)
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
 From mathcomp Require Import fintype div bigop ssralg poly binomial rat ssrnum.
+From mathcomp Require Import ssrZ zify ring lra.
 
 Require Import tfps auxresults.
 
@@ -74,9 +75,9 @@ Proof. by rewrite coeft0_eq1E coef_tfps_of_fun C0. Qed.
 Proposition FC_algebraic_eq : FC = 1 + \X * FC ^+ 2.
 Proof.
 rewrite /FC; apply/tfpsP => i le_in.
-rewrite coef_tfps_of_fun coefD coef1 coef_tfpsXM le_in.
+rewrite !(coef_tfps_of_fun, coeft_simpl).
 case: i le_in => [|i] lt_in; first by rewrite C0 addr0.
-rewrite add0r CS /= expr2 coef_trXn (ltnW lt_in) coefM natr_sum.
+rewrite add0r CS /= expr2 coef_trXn lt_in (ltnW lt_in) coefM natr_sum.
 apply eq_bigr => [[j]]; rewrite /= ltnS => le_ji _.
 rewrite natrM !coef_poly.
 rewrite (leq_trans (leq_ltn_trans le_ji lt_in) (leqnSn _)).
@@ -99,22 +100,17 @@ Theorem FC_algebraic_solution n :
   \X * FC n = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: \X)).
 Proof.
 have co1 : 1 - 4%:R *: \X \in @coeft0_eq1 rat n.
-  by rewrite mulr_nat coeft0_eq1E coefD mulrC coefN coef_tfpsXM coef1 subr0.
+  by rewrite mulr_nat coeft0_eq1E !coeft_simpl subr0.
 have: (2%:R *: \X * FC n - 1) ^+ 2 = 1 - 4%:R *: \X.
-  apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
-  rewrite mulrA -subr_eq0 opprB [_ - 1]addrC addrA addrK addrC addrA.
-  rewrite -{1}(mulr1 (4%:R * _)) -[X in _ + X + _]mulrA -mulrDr.
-  rewrite -FC_algebraic_eq.
-  by rewrite -[_ *+ 2]mulr_natl !mulrA -natrM subrr.
+  by rewrite !mulr_nat sqrrB1 {2}FC_algebraic_eq; ring.
 move/(sqrtE char_rat) => /(_ co1) [HeqP | HeqN].
   exfalso; move: HeqP => /(congr1 (fun x : {tfps _ _ } => x`_0)).
-  rewrite mulr_nat coefB -mulrA mulrC -mulrA coef_tfpsXM coef1 /=.
+  rewrite mulr_nat; repeat rewrite ?coeft_simpl -?mulrA ?eqxx /=.
   rewrite (eqP (coeft0_eq1_expr _ _)) => /eqP.
-  rewrite -subr_eq0 add0r -oppr_eq0 opprD opprK -mulr2n => /eqP Habs.
-  by have:= char_rat 2; rewrite !inE Habs /= eq_refl.
-have neq20 : 2%:R != 0 :> rat by rewrite Num.Theory.pnatr_eq0.
-apply (scalerI neq20); rewrite scalerA divff // scale1r -HeqN.
-by rewrite addrC subrK scalerAl.
+  rewrite sub0r -subr_eq0 -opprD oppr_eq0.
+  by rewrite (Num.Theory.pnatr_eq0 _ 2%N).
+apply: (scalerI (a := 2)); first by rewrite Num.Theory.pnatr_eq0.
+by rewrite scalerA divff // scale1r -HeqN !mulr_nat; ring.
 Qed.
 
 Theorem coefFC n i : (i < n)%N -> (FC n)`_i = i.*2`!%:R / i`!%:R /i.+1`!%:R.
@@ -122,7 +118,7 @@ Proof.
 move=> Hi.
 have:= congr1 (fun x : {tfps _ _ } => x`_i.+1) (FC_algebraic_solution n).
 rewrite coef_tfpsXM Hi ![X in (X = _)]/= => ->.
-rewrite coefZ coefB coef1 sub0r -scaleNr coef_expr1cX ?{}Hi //.
+rewrite !coeft_simpl sub0r -scaleNr coef_expr1cX ?{}Hi //.
 rewrite mulrN mulrA -mulNr; congr (_ / (i.+1)`!%:R).
 rewrite -[4%N]/(2 * 2)%N mulrnA -mulNrn -[(1 *- 2 *+ 2)]mulr_natl.
 rewrite exprMn -mulrA.
@@ -132,19 +128,11 @@ rewrite -big_split /= big_ord_recl /=.
 rewrite subr0 mulNr divrr // mulN1r 2!mulrN [LHS]opprK.
 rewrite exprS !mulrA [2%:R^-1 * 2%:R]mulVf // mul1r.
 rewrite (eq_bigr (fun j : 'I_i => (2 * j + 1)%:R)) /=; last first.
-  move=> j _; rewrite /bump /=.
-  rewrite mulNr -mulrN opprD addrC opprK addnC natrD 2!mulrDr.
-  rewrite mulrN divff // mulr1 -{2}addn1 {2}natrD addrA addrK.
-  by rewrite natrD natrM.
+  by move=> j _; rewrite /bump /=; field.
 elim: i => [|i IHi]; first by rewrite expr0 big_ord0 double0 fact0 mulr1.
 rewrite big_ord_recr /= exprS -mulrA mulrC mulrA {}IHi.
-rewrite doubleS !factS 3!natrM.
-set F := (i.*2)`!%:R; rewrite [_ * F]mulrC mulrA [_ * F]mulrC -!mulrA.
-congr (_ * _); rewrite {F} mulrC invfM // !mulrA; congr (_ * _).
-rewrite mul2n -{2}[i.*2.+1]addn1 [X in X / _]mulrC -mulrA; congr (_ * _).
-rewrite -[i.*2.+2]addn1 addSnnS -mul2n -[X in (_ + X)%N]muln1.
-rewrite -mulnDr addn1 natrM mulfK //.
-by have /charf0P -> := char_rat.
+rewrite doubleS !factS; rewrite -mul2n; field.
+by rewrite nat1r !Num.Theory.pnatr_eq0 -lt0n fact_gt0 /=.
 Qed.
 
 Theorem Cat_rat i : (C i)%:R = i.*2`!%:R / i`!%:R /i.+1`!%:R :> rat.
@@ -157,8 +145,7 @@ Proof.
 have:= Cat_rat i.
 move/(congr1 (fun x => x * (i.+1)`!%:R * i`!%:R)%R).
 rewrite (divrK (fact_unit i.+1)) (divrK (fact_unit i)) // -!natrM => /eqP.
-rewrite Num.Theory.eqr_nat => /eqP <-.
-by rewrite -[RHS]mulnA [_`! * i`!]mulnC mulnA.
+by rewrite Num.Theory.eqr_nat => /eqP <-; nia.
 Qed.
 
 Theorem CatV i : C i = i.*2`! %/ (i`! * i.+1`!).
@@ -208,17 +195,15 @@ Proof.
 case: i => [|i]; first by rewrite C0 mul1n bin0.
 apply/eqP; rewrite -(Num.Theory.eqr_nat rat); rewrite natrM.
 have:= congr1 (fun s : {tfps rat i.+1} => s`_i.+1) (FC_fixpoint_eq i).
-rewrite coef_tfps coeftD coef_tfps_of_fun ltnSn.
-rewrite coeftN coeft1 subr0 /= => ->.
-rewrite -/(_`_i.+1) (coeft_lagrfix (nat_unit_field _)) ?one_plusX_2_unit //.
+rewrite !coeft_simpl coef_tfps_of_fun ltnSn subr0 /= => ->.
+rewrite -/(_`_i.+1) coeft_lagrfix ?one_plusX_2_unit //.
 rewrite -exprM mul2n addrC exprD1n coeft_sum.
-have Hord : (i < (i.+1).*2.+1)%N.
-  by rewrite ltnS doubleS -addnn -!addnS leq_addr.
+have Hord : (i < (i.+1).*2.+1)%N by nia.
 rewrite (bigD1 (Ordinal Hord)) //= -!/(_`_i.+1).
-rewrite coeftMn coef_tfpsXn // eqxx leqnn /= (_ : 1%:R = 1) //.
+rewrite !coeft_simpl // eqxx leqnn /= (_ : 1%:R = 1) //.
 rewrite big1 ?addr0 => [|[j /= Hj]]; first last.
   rewrite -val_eqE /= => {Hj} /negbTE Hj.
-  by rewrite coeftMn coef_tfpsXn eq_sym Hj andbF mul0rn.
+  by rewrite !coeft_simpl eq_sym Hj andbF mul0rn.
 rewrite ltnS in Hord.
 rewrite -bin_sub // -{2}addnn -addSnnS addnK.
 by rewrite mulrA -natrM mul_bin_left -addnn addnK natrM mulrC mulKr.
@@ -259,22 +244,11 @@ have -> : tmulX F^`() = (F - 1)/(1 - \X *+ 2 * F).
   rewrite trXntM // trXnt_trXnt // trXnt_id trXnt_tfpsX.
   rewrite FalgN [X in _ + tmulX X]mulrC -tmulXM.
   rewrite raddfMn /= [X in (tmulX X) *+ 2]mulrC -tmulXM.
-  rewrite -(subr_eq _ _ (_ _ * \X)).
-  rewrite -mulrnAr -mulrA -{1}(mulr1 (tmulX _)) -mulrBr.
-  by rewrite [_ * \X]mulrC mulrnAl mulrnAr.
+  rewrite -(subr_eq _ _ (_ _ * \X)) => /eqP <-.
+  by apply/eqP; move: (tmulX _) => F'; ring.
 rewrite mulrA -[X in X + _](mulrK X2Fu) -mulrDl -[RHS]divr1.
-apply/eqP; rewrite eq_divr ?unitr1 // mulr1 mul1r.
-rewrite -mulrA [F * _]mulrC [(1 - _ * F) * F]mulrBl -mulrA -expr2.
-rewrite mul1r mulrnAl FalgN.
-rewrite !mulrnBl opprB addrA (mulr2n F) (opprD F) addrA.
-rewrite [_ - F]addrC 2!addrA [-F + _]addrC subrr add0r.
-rewrite !mulrBr mulr1 addrA addrC !addrA.
-rewrite opprB mulrBl mul1r mulr_natr -mulrnA -[(2 * 2)%N]/4%N.
-rewrite [\X *+ 4 - 1 + _]addrC addrA subrK addrK.
-rewrite -addrA -mulNr -mulrDl.
-rewrite opprD [-1 + _]addrC addrA subrK -opprD mulNr.
-rewrite -[4%N]/(2 + 2)%N mulrnDr addrA.
-by rewrite [_ *- _ + _]addrC subrK.
+apply/eqP; rewrite eq_divr ?unitr1 //; apply/eqP.
+by rewrite !mulr2n; ring: FalgN.
 Qed.
 
 Local Close Scope ring_scope.
