@@ -891,6 +891,10 @@ apply/tfpsP => i _.
 by rewrite !mul_tfps_val /= trXn_mull trXn_mulr commr_polyX.
 Qed.
 
+Lemma commr_tfpsXn f k : GRing.comm f (\X ^+ k).
+Proof.
+Proof. exact/commrX/commr_tfpsX. Qed.
+
 Lemma coef_tfpsXM f i :
   (\X * f)`_i = if i == 0%N then 0 else if i <= n then f`_i.-1 else 0.
 Proof. by rewrite !mul_tfps_val /= trXn_mull coef_trXn coefXM; case: i. Qed.
@@ -1131,6 +1135,11 @@ by rewrite !invr_out // unit_tfpsE coef_trXn coefC.
 Qed.
 
 End TruncFPSUnitRing.
+
+Definition coeft_simpl :=
+  (commr_tfpsX, commr_tfpsXn,
+    coeft0, coeftD, coeftN, coeftB, coeftMn, coeftMNn, coeft_sum,
+    coeft1, coeftZ, coef_tfpsX, coef_tfpsXn, coef_tfpsXM, coef_tfpsXnM).
 
 
 Section TruncFPSTheoryUnitRing.

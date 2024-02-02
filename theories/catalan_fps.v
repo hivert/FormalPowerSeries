@@ -96,7 +96,7 @@ Theorem FC_algebraic_solution :
   ''X * FC = 2%:R^-1 *: (1 - \sqrt (1 - 4%:R *: ''X)).
 Proof.
 have co1 : 1 - 4%:R *: ''X \in @coefs0_eq1 rat.
-  by rewrite mulr_nat coefs0_eq1E !coefs_simpl mulrC coef_fpsXM subr0.
+  by rewrite mulr_nat coefs0_eq1E !coefs_simpl subr0.
 have: (2%:R *: ''X * FC - 1) ^+ 2 = 1 - 4%:R *: ''X.
   apply/eqP; rewrite !mulr_nat sqrrB1 !exprMn 2!expr2 -natrM.
   rewrite mulrA -subr_eq0 opprB [_ - 1]addrC addrA addrK addrC addrA.

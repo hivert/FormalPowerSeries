@@ -121,7 +121,6 @@ Reserved Notation "c %:S" (at level 2, format "c %:S").
 Reserved Notation "\fps E .X^ i"
   (at level 36, E at level 36, i at level 50, format "\fps  E  .X^ i").
 Reserved Notation "''X" (at level 0).
-Reserved Notation "'''X^' n" (at level 3, n at level 2, format "'''X^' n").
 Reserved Notation "a ^`` ()" (at level 8, format "a ^`` ()").
 Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
                             format "s ``_ i").
@@ -514,15 +513,14 @@ by rewrite -!coefs_projE coeftC.
 Qed.
 
 Local Notation "''X" := (locked (@fps_poly 'X)).
-Local Notation "'''X^' n" := (''X ^+ n).
 
 Lemma proj_fpsX n : 'pi_n ''X = (\X)%tfps.
 Proof. by rewrite -lock piindE. Qed.
-Lemma proj_fpsXn n i : 'pi_n ''X^i = (\X)%tfps^+i.
+Lemma proj_fpsXn n i : 'pi_n (''X ^+ i) = (\X)%tfps^+i.
 Proof. by rewrite proj_simp proj_fpsX. Qed.
 Lemma coef_fpsX i : (''X ``_i) = (i == 1%N)%:R :> R.
 Proof. by rewrite -lock coefs_fps_poly coefX. Qed.
-Lemma coef_fpsXn n i : (''X^n ``_i) = (i == n)%:R :> R.
+Lemma coef_fpsXn n i : ((''X ^+ n) ``_i) = (i == n)%:R :> R.
 Proof. by rewrite -lock -fps_polyX coefs_fps_poly coefXn. Qed.
 
 Lemma fpsX_eq0 : (''X == 0 :> {fps R}) = false.
@@ -537,7 +535,7 @@ apply/fpsP=> i; rewrite coefsMr coefsM.
 by apply: eq_bigr => j _; rewrite coef_fpsX commr_nat.
 Qed.
 
-Lemma commr_fpsXn n s : GRing.comm s ''X^n.
+Lemma commr_fpsXn n s : GRing.comm s (''X ^+ n).
 Proof. exact/commrX/commr_fpsX. Qed.
 
 Lemma coef_fpsXM f i :
@@ -548,13 +546,13 @@ by rewrite -coefs_projE coeft_proj // leq_pred.
 Qed.
 
 Lemma coef_fpsXnM f k i :
-  (''X^k * f)``_i = if (i < k)%N then 0 else f``_(i - k).
+  ((''X ^+ k) * f)``_i = if (i < k)%N then 0 else f``_(i - k).
 Proof.
 rewrite !coefs_projE !proj_simp proj_fpsX coef_tfpsXnM leqnn.
 by rewrite -coefs_projE coeft_proj // leq_subr.
 Qed.
 
-Lemma expr_cX (c : R) i : (c *: ''X) ^+ i = (c ^+ i) *: ''X^i.
+Lemma expr_cX (c : R) i : (c *: ''X) ^+ i = (c ^+ i) *: (''X ^+ i).
 Proof.
 by apply invlimE => j; rewrite !proj_simp proj_fpsX expr_tfpscX.
 Qed.
@@ -569,7 +567,6 @@ Arguments fpsC {R}.
 Arguments fps_poly {R}.
 Notation "c %:S" := (fpsC c).
 Notation "''X" := (locked (@fps_poly _ 'X)).
-Notation "'''X^' n" := (''X ^+ n).
 
 (* I deactivated the coercion because it is too confusing 
 Coercion fps_poly_coerce (R : ringType) : polynomial R -> {fps R} := fps_poly.
@@ -652,8 +649,9 @@ Definition proj_simpl :=
    proj_fpsX, proj_fpsXn).
 
 Definition coefs_simpl :=
-  (coefs0, coefsD, coefsN, coefsB, coefsMn, coefsMNn, coefs_sum,
-   coefs1, coefsZ,   coef_fpsX, coef_fpsXn).
+  (commr_fpsX, commr_fpsXn,
+    coefs0, coefsD, coefsN, coefsB, coefsMn, coefsMNn, coefs_sum,
+    coefs1, coefsZ, coef_fpsX, coef_fpsXn, coef_fpsXM, coef_fpsXnM).
 
 
 Section FpsComRing.
@@ -727,7 +725,7 @@ move => Hn0 H0; apply: valuatNatE.
 Qed.
 
 Variant valuatXn_spec s : natbar -> Type :=
-  | ValXnNat n t of t``_0 != 0 & s = ''X^n * t : valuatXn_spec s (Nat n)
+  | ValXnNat n t of t``_0 != 0 & s = (''X ^+ n) * t : valuatXn_spec s (Nat n)
   | ValXnInf of s = 0 : valuatXn_spec s Inf.
 
 Lemma valuatXnP s : valuatXn_spec s (valuat s).
