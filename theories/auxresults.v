@@ -212,8 +212,4 @@ have [lt_ka|le_ak] := ltnP k a; first by rewrite (leq_trans lt_ka).
 by have [lt_kb|//] := ifPn; rewrite E_eq0 // le_ak lt_kb.
 Qed.
 
-Lemma deriv_sum (T : Type) (s : seq T) (F : T -> {poly R}) (P : pred T):
-  deriv (\sum_(i <- s | P i) F i) = \sum_(i <- s | P i) deriv (F i).
-Proof. by apply: big_morph; [exact: derivD|exact: deriv0]. Qed.
-
 End AuxiliaryResults.

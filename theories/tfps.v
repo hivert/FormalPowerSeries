@@ -136,24 +136,11 @@ Section MoreBigop.
 
 Local Open Scope nat_scope.
 
-Definition swap (R : Type) (x : R * R) := (x.2, x.1).
-
-Lemma swap_inj (R : Type) : involutive (@swap R).
-Proof. by move => [x1 x2]. Qed.
-
-Variables (R : Type).
-
-Lemma triangular_swap (idx : R) (op : Monoid.com_law idx)
-      (m : nat) (P : 'I_m -> 'I_m -> bool) (F : nat -> nat -> R) :
-  \big[op/idx]_(i < m) \big[op/idx]_(j < m | P i j) F i j =
-  \big[op/idx]_(j < m) \big[op/idx]_(i < m | P i j) F i j.
-Proof. by rewrite !pair_big_dep (reindex_inj (inv_inj (@swap_inj _))). Qed.
-
-Variable (idx : R) (op : Monoid.com_law idx).
+Variables (R : Type) (idx : R) (op : Monoid.com_law idx).
 
 Lemma index_translation (m j : nat) (F : nat -> R) :
   \big[op/idx]_(i < m - j) F i =
-  \big[op/idx]_(k < m | j <= k)  F (k - j).
+  \big[op/idx]_(k < m | j <= k) F (k - j).
 Proof.
 rewrite -(big_mkord predT F) /= (big_mknat _ j m (fun k => F (k - j))).
 rewrite -{2}[j]add0n (big_addn 0 m j _ _).
@@ -164,15 +151,14 @@ Lemma aux_triangular_index_bigop (m : nat) (F : nat -> nat -> R) :
   \big[op/idx]_(i < m) \big[op/idx]_(j < m | i + j < m) F i j =
   \big[op/idx]_(k < m) \big[op/idx]_(l < k.+1) F l (k - l).
 Proof.
-evar (G : 'I_m -> R); rewrite [LHS](eq_bigr G) => [|i _] ; last first.
-- rewrite (eq_bigl (fun j : 'I_m => j < m - i)) => [|j /=].
-  + rewrite big_ord_narrow => [ | _ /= ] ; first exact: leq_subr.
+evar (G : 'I_m -> R); rewrite [LHS](eq_bigr G) => [| i _] ; last first.
+- rewrite (eq_bigl (fun j : 'I_m => j < m - i)) => [| j /=].
+  + rewrite big_ord_narrow => [| _ /=] ; first exact: leq_subr.
     by rewrite index_translation /G.
   + by rewrite ltn_subRL.
-- rewrite /G (triangular_swap _ (fun i k : 'I_m => i <= k)
-                                (fun i k => F i (k - i))).
-  apply: eq_big => [ // | i _].
-  rewrite (eq_bigl (fun i0 : 'I_m => i0 < i.+1)) => [ | j ] ; last first.
+- rewrite /G (exchange_big_dep xpredT) //.
+  apply: eq_big => [// | i _].
+  rewrite (eq_bigl (fun i0 : 'I_m => i0 < i.+1)) => [| j] ; last first.
   + by rewrite -ltnS.
   + by rewrite big_ord_narrow.
 Qed.
@@ -184,16 +170,16 @@ Lemma triangular_index_bigop (m n : nat) (F : nat -> nat -> R) :
 Proof.
 move => leq_nm.
 rewrite -(subnKC leq_nm) big_split_ord /=.
-rewrite [X in op _ X]big1_seq => [|i _]; last first.
-  rewrite big_hasC // ; apply/hasPn => x _.
-  by rewrite -[X in _ < X]addn0 -addnA ltn_add2l ltn0.
-rewrite Monoid.Theory.simpm /= -aux_triangular_index_bigop.
+rewrite [X in op _ X]big1 => [| /= i _]; first last.
+  apply: big_pred0 => x; apply negbTE.
+  by rewrite -leqNgt -addnA leq_addr.
+rewrite Monoid.simpm /= -aux_triangular_index_bigop.
 apply: eq_bigr => i _ ; rewrite subnKC //.
 rewrite (eq_bigl (fun j : 'I_m => (i + j < n) && (j < n))).
   by rewrite big_ord_narrow_cond.
-move=> j; symmetry.
-rewrite andb_idr //; apply: contraLR; rewrite -!leqNgt => leq_nj.
-by rewrite (leq_trans leq_nj) // leq_addl.
+move=> j; apply/esym/andb_idr/contraLR.
+rewrite -!leqNgt => leq_nj.
+exact: (leq_trans leq_nj (leq_addl _ _)).
 Qed.
 
 End MoreBigop.
@@ -207,7 +193,7 @@ Implicit Type p q : {poly R}.
 Lemma poly_cat p n :
   Poly (take n p) + 'X^n * Poly (drop n p) = p.
 Proof.
-apply/polyP=> i; rewrite coefD coefXnM !coef_Poly; case: ltnP => Hi.
+apply/polyP => i; rewrite coefD coefXnM !coef_Poly; case: ltnP => Hi.
   by rewrite nth_take // addr0.
 rewrite nth_drop subnKC // [(take _ _)`_i]nth_default ?add0r //.
 by rewrite size_take -/(minn _ _) (leq_trans (geq_minl _ _) Hi).
@@ -218,21 +204,21 @@ Proof. by rewrite coefM big_ord_recl big_ord0 addr0. Qed.
 
 Lemma leq_size_deriv (p : {poly R}) : (size p^`() <= (size p).-1)%N.
 Proof.
-have [->|pN0] := eqVneq p 0; first by rewrite deriv0 size_poly0.
+have [-> | pN0] := eqVneq p 0; first by rewrite deriv0 size_poly0.
 by rewrite -ltnS prednK // ?lt_size_deriv // size_poly_gt0.
 Qed.
 
 Lemma p_neq0 (p : {poly R}): (exists (x : R), p.[x] != 0) -> p != 0.
 Proof.
-by move => [x px_neq0]; move: px_neq0; apply: contra => /eqP ->; rewrite horner0.
+by move=> [x px_neq0]; move: px_neq0; apply: contra => /eqP ->; rewrite horner0.
 Qed.
 
 Variable (K : idomainType).
 
-Fact polyXP (p : {poly K}) : reflect (p`_0 = 0) ('X %| p).
+Lemma polyXP (p : {poly K}) : reflect (p`_0 = 0) ('X %| p).
 Proof. by rewrite -['X]subr0 -polyC0 -horner_coef0; apply: polyXsubCP. Qed.
 
-Fact coef0_eq_coef0 (p q : {poly K}) :
+Lemma coef0_eq_coef0 (p q : {poly K}) :
   p %= q -> (p`_0 == 0) = (q`_0 == 0).
 Proof.
 move/eqp_dvdr=> p_eqp_q.
@@ -241,14 +227,11 @@ Qed.
 
 Hypothesis char_K_is_zero : [char K] =i pred0.
 
-Fact size_deriv (p : {poly K}) : size (p^`()%R) = (size p).-1.
+Lemma size_deriv (p : {poly K}) : size (p^`()%R) = (size p).-1.
 Proof.
-have [lt_sp_1 | le_sp_1] := ltnP (size p) 2.
-  move: (size1_polyC lt_sp_1) => ->.
-  by rewrite derivC size_poly0 size_polyC ; case: (_ != _).
-rewrite size_poly_eq // !prednK ; last first.
-  move: (ltn_predK le_sp_1) => H.
-  by move: le_sp_1 ; rewrite -{1}H -[X in _ < X]add1n -add1n leq_add2l.
+have [/size1_polyC -> | le_sp_1] := ltnP (size p) 2.
+  by rewrite derivC size_poly0 size_polyC; case: eqP.
+rewrite size_poly_eq // !prednK ; last by case: (size p) le_sp_1.
 rewrite -mulr_natr mulf_eq0 ; apply/norP ; split.
   by rewrite -lead_coefE lead_coef_eq0 -size_poly_gt0 (ltn_trans _ le_sp_1).
 move/(charf0P K) : char_K_is_zero => ->; rewrite -lt0n.
