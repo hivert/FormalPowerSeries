@@ -54,7 +54,7 @@ Construction of power series:
 - [trXn p]     == the polynomial [p] truncated at order [n] where [n]
                   is inferred from the context.
 - [trXnt n f]  == the power series [f] truncated at order [n].
-- [Tfps_of Pf] == the truncated power series associated to the polynomial
+- [MkTfps Pf]  == the truncated power series associated to the polynomial
                   [f] where [Pf] is a proof that [size f <= n.+1].
 
 Dealing with coefficients of power series:
@@ -321,12 +321,9 @@ split => [H | H i Hi].
 Qed.
 
 
-Definition Tfps_of (p : {poly R}) (p_small : size p <= n.+1)
-  : {tfps R n} := MkTfps p_small.
-
 Fact trXn_subproof p : size (Poly (take n.+1 p)) <= n.+1.
 Proof. by apply: (leq_trans (size_Poly _)); rewrite size_take geq_minl. Qed.
-Definition trXn_def p := Tfps_of (trXn_subproof p).
+Definition trXn_def p := MkTfps (trXn_subproof p).
 Fact trXn_key : unit. Proof. by []. Qed.
 Definition trXn := locked_with trXn_key trXn_def.
 Canonical trXn_unlockable := Eval hnf in [unlockable fun trXn].
@@ -336,7 +333,7 @@ Fact tfpsC_key : unit. Proof. by []. Qed.
 Definition tfpsC := locked_with tfpsC_key tfpsC_def.
 Canonical tfpsC_unlockable := Eval hnf in [unlockable fun tfpsC].
 
-Definition tfps_of_fun (f : nat -> R) := Tfps_of (size_poly _ f).
+Definition tfps_of_fun (f : nat -> R) := MkTfps (size_poly n.+1 f).
 
 Lemma trXnE p : tfps (trXn p) = Poly (take n.+1 p) :> {poly R}.
 Proof. by rewrite unlock. Qed.
@@ -456,16 +453,16 @@ Implicit Types (f g : {tfps R n}).
 
 Fact zero_tfps_subproof : size (0 : {poly R}) <= n.+1.
 Proof. by rewrite size_poly0. Qed.
-Definition zero_tfps := Tfps_of zero_tfps_subproof.
+Definition zero_tfps := MkTfps zero_tfps_subproof.
 
-Lemma add_tfps_subproof f g :
+Fact add_tfps_subproof f g :
   size (tfps f + tfps g) <= n.+1.
 Proof. by rewrite (leq_trans (size_add _ _)) // geq_max !size_tfps. Qed.
-Definition add_tfps f g := Tfps_of (add_tfps_subproof f g).
+Definition add_tfps f g := MkTfps (add_tfps_subproof f g).
 
-Lemma opp_tfps_subproof f : size (- tfps f) <= n.+1.
+Fact opp_tfps_subproof f : size (- tfps f) <= n.+1.
 Proof. by rewrite size_opp ?size_tfps. Qed.
-Definition opp_tfps f := Tfps_of (opp_tfps_subproof f).
+Definition opp_tfps f := MkTfps (opp_tfps_subproof f).
 
 Fact add_tfpsA : associative add_tfps.
 Proof. by move => f1 f2 f3; apply/tfps_inj/addrA. Qed.
@@ -530,7 +527,7 @@ Proof. by rewrite -tfpsC0; apply/inj_eq/tfpsC_inj. Qed.
 (* ringType structure *)
 Fact one_tfps_proof : size (1 : {poly R}) <= n.+1.
 Proof. by rewrite size_polyC (leq_trans (leq_b1 _)). Qed.
-Definition one_tfps : {tfps R n} := Tfps_of one_tfps_proof.
+Definition one_tfps : {tfps R n} := MkTfps one_tfps_proof.
 
 Definition mul_tfps f g := trXn n (tfps f * tfps g).
 Definition hmul_tfps f g := [tfps j <= n => f`_j * g`_j].
@@ -616,9 +613,9 @@ Proof. by rewrite -tfpsC1; apply/inj_eq/tfpsC_inj. Qed.
 
 
 (* lmodType structure *)
-Lemma scale_tfps_subproof (c : R) f : size (c *: val f) <= n.+1.
+Fact scale_tfps_subproof (c : R) f : size (c *: val f) <= n.+1.
 Proof. exact: leq_trans (size_scale_leq _ _) (size_tfps _). Qed.
-Definition scale_tfps (c : R) f := Tfps_of (scale_tfps_subproof c f).
+Definition scale_tfps (c : R) f := MkTfps (scale_tfps_subproof c f).
 
 Fact scale_tfpsA a b v : scale_tfps a (scale_tfps b v) = scale_tfps (a * b) v.
 Proof. by apply/tfpsP => i le_in /=; rewrite !coefZ mulrA. Qed.
@@ -942,12 +939,12 @@ Variable (R : ringType) (n : nat).
 Fact size_convr_subproof (f : {tfps R n}) :
   size (map_poly (fun c : R => c : R^c) (tfps f)) <= n.+1.
 Proof. by rewrite size_map_inj_poly ?size_tfps. Qed.
-Definition convr_tfps f : {tfps R^c n} := Tfps_of (size_convr_subproof f).
+Definition convr_tfps f : {tfps R^c n} := MkTfps (size_convr_subproof f).
 
 Fact size_iconvr_subproof (f : {tfps R^c n}) :
   size (map_poly (fun c : R^c => c : R) (tfps f)) <= n.+1.
 Proof. by rewrite size_map_inj_poly ?size_tfps. Qed.
-Definition iconvr_tfps f : {tfps R n} := Tfps_of (size_iconvr_subproof f).
+Definition iconvr_tfps f : {tfps R n} := MkTfps (size_iconvr_subproof f).
 
 Fact convr_tfps_is_additive : additive convr_tfps.
 Proof.
@@ -1217,7 +1214,7 @@ Fact map_tfps_subproof g : size (map_poly F (val g)) <= n.+1.
 Proof.
 by rewrite map_polyE (leq_trans (size_Poly _)) // size_map size_tfps.
 Qed.
-Definition map_tfps g := Tfps_of (map_tfps_subproof g).
+Definition map_tfps g := MkTfps (map_tfps_subproof g).
 
 Lemma coef_map_tfps i g : (map_tfps g)`_i = F (g`_i).
 Proof. by rewrite coef_map. Qed.
@@ -2030,12 +2027,12 @@ Proof. exact: linearB. Qed.
 
 Implicit Types (f g : {tfps R n}).
 
-Lemma size_prim_leq f : size (\int (tfps f)) <= n.+2.
+Fact size_prim_leq f : size (\int (tfps f)) <= n.+2.
 Proof.
 apply: (leq_trans (size_poly _ _) _); rewrite ltnS.
 exact: size_tfps.
 Qed.
-Definition prim_tfps f := Tfps_of (size_prim_leq f).
+Definition prim_tfps f := MkTfps (size_prim_leq f).
 
 Lemma coef_prim_tfps f i : (prim_tfps f)`_i = (\int (tfps f))`_i.
 Proof. by []. Qed.

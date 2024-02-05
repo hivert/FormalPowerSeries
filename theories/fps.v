@@ -170,14 +170,16 @@ HB.instance Definition _ :=
 
 End Canonical.
 
-Program Definition fps_invsys :=
-  InvSys (bonding := fun (i j : nat) (le_ij : (i <= j)%O) => fps_bond le_ij)
-         0%N _ _.
-Next Obligation. by rewrite unlock; exact: trXnt_id. Qed.
-Next Obligation.
+Fact fps_bond_id (i : nat) (Hii : (i <= i)%O) : fps_bond Hii =1 id.
+Proof. by rewrite unlock; exact: trXnt_id. Qed.
+Fact fps_bond_trans (i j k : nat) (Hij : (i <= j)%O) (Hjk : (j <= k)%O) :
+  fps_bond Hij \o fps_bond Hjk =1 fps_bond (le_trans Hij Hjk).
+Proof.
 by move=> f /=; rewrite unlock; apply: trXnt_trXnt; rewrite -leEnat.
 Qed.
-
+Definition fps_invsys :=
+  InvSys (bonding := fun (i j : nat) (le_ij : (i <= j)%O) => fps_bond le_ij)
+         0%N fps_bond_id fps_bond_trans.
 
 Lemma seriesfun_inj : injective (@seriesfun R).
 Proof. by move=> [f1] [f2] /= ->. Qed.
@@ -196,7 +198,7 @@ Proof. by rewrite unlock. Qed.
 
 Definition fpsproj n (f : {fps R}) : {tfps R n} := [tfps i <= n => f``_i].
 
-Lemma fpsprojP : cone fps_invsys fpsproj.
+Fact fpsprojP : cone fps_invsys fpsproj.
 Proof.
 rewrite /cone /= unlock /= => i j; rewrite leEnat => le_ij f /=.
 apply tfpsP=> k le_ki.
@@ -220,15 +222,14 @@ Definition fpsind of cone fps_invsys f := fun t =>
   FPSeries (fun i => (f i t)`_i).
 
 Hypothesis Hcone : cone fps_invsys f.
-Lemma fpsindP i t : 'pi_i (fpsind Hcone t) = f i t.
+Fact fpsindP i t : 'pi_i (fpsind Hcone t) = f i t.
 Proof.
 rewrite /fpsind /=; apply tfpsP => j le_ji /=.
 rewrite coef_tfps_of_fun le_ji coefs_FPSeries.
 rewrite -leEnat in le_ji; rewrite -(Hcone le_ji) /=.
 by rewrite unlock coef_trXnt leqnn.
 Qed.
-
-Lemma fpsindE (un : T -> {fps R}) :
+Fact fpsindE (un : T -> {fps R}) :
   (forall i, 'pi_i \o un =1 f i) -> un =1 (fpsind Hcone).
 Proof.
 move=> eqproj x; apply fpsprojE => i.
@@ -1958,11 +1959,9 @@ move=> Hm /= f fU; rewrite -exprVn derivX_fps derivV_fps //.
 rewrite !exprVn [_/_]mulrC mulrA mulrN mulNrn -!mulrnAr.
 rewrite -!exprVn -exprD -addSnnS addn1.
 by case: m Hm.
-(** Alternative proof using inverse limits
+(* Alternative proof using inverse limits
 move=> Hm /= f fU; apply invlimE => i.
-rewrite rmorphMNn rmorphM /= !proj_deriv_fps.
-(** Why the canonical doesn't work with rmorphV ??? *)
-rewrite -!exprVn !rmorphXn /= !(rmorphV [rmorphism of 'pi[{fps R}]_ _] fU) /=.
+rewrite rmorphMNn rmorphM /= !proj_deriv_fps -!exprVn !rmorphXn /= !rmorphV //=.
 rewrite !exprVn derivXn_tfps //=; last by move: fU => /proj_unit_fps/(_ i.+1).
 by rewrite -fps_bondE ilprojE. *)
 Qed.
