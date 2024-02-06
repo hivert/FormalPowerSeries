@@ -241,7 +241,11 @@ End UniversalProperty.
 HB.instance Definition _ :=
   isInvLim.Build _ _ _ _ fps_invsys {fps R} fpsprojP fpsindP fpsindE.
 HB.instance Definition _ :=
-  InvLim_isLalgInvLim.Build R _ _ _ _ fps_invsys {fps R}.
+  InvLim_isZmodInvLim.Build _ _ _ _ fps_invsys {fps R}.
+HB.instance Definition _ :=
+  ZmodInvLim_isRingInvLim.Build _ _ _ _ fps_invsys {fps R}.
+HB.instance Definition _ :=
+  RingInvLim_isLalgInvLim.Build R _ _ _ _ fps_invsys {fps R}.
 
 End Defs.
 
@@ -592,7 +596,7 @@ Variable R : unitRingType.
 Implicit Type f : {fps R}.
 
 HB.instance Definition _ :=
-  InvLim_isUnitRingInvLim.Build _ _ _ _ _ {fps R}.
+  RingInvLim_isUnitRingInvLim.Build _ _ _ _ _ {fps R}.
 
 Lemma unit_fpsE f : (f \is a GRing.unit) = (f``_0 \is a GRing.unit).
 Proof.
@@ -660,7 +664,7 @@ Section FpsComRing.
 Variable R : comRingType.
 
 HB.instance Definition _ :=
-  InvLim_isComRingInvLim.Build _ _ _ _ _ {fps R}.
+  RingInvLim_isComRingInvLim.Build _ _ _ _ _ {fps R}.
 
 Lemma test1 i : 'pi_i (1 : {fps R}) = 1.
 Proof. exact: rmorph1. Qed.
@@ -676,8 +680,7 @@ Section FpsComUnitRing.
 Variable R : comUnitRingType.
 
 (* Regenerate the instances *)
-HB.instance Definition _ :=
-  InvLim_isComRingInvLim.Build _ _ _ _ _ {fps R}.
+HB.instance Definition _ := GRing.Ring.on {fps R}.
 
 End FpsComUnitRing.
 
@@ -884,6 +887,7 @@ Proof. exact: (big_morph _ sleadM slead1). Qed.
 Fact series_idomainAxiom s t :
   s * t = 0 -> (s == 0 :> {fps R}) || (t == 0 :> {fps R}).
 Proof. by move/eqP; rewrite !valuatInfE valuatM addbar_eqI. Qed.
+
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build {fps R} series_idomainAxiom.
 
