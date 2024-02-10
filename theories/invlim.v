@@ -60,7 +60,7 @@ Variables (disp : unit) (I : porderType disp).
 (** For example : ringType / rmorphism.                                    *)
 Variable Obj : I -> Type.
 Variable bonding : (forall i j, i <= j -> Obj j -> Obj i).
-Record invsys : Type := InvSys {
+Record is_invsys : Type := IsInvSys {
       invsys_inh : I;
       invsys_id  : forall i (Hii : i <= i), (bonding Hii) =1 id;
       invsys_comp : forall i j k  (Hij : i <= j) (Hjk : j <= k),
@@ -70,10 +70,10 @@ Record invsys : Type := InvSys {
 (** Make sure the following definitions depend on the system and not only  *)
 (** on the morphisms. This is needed to triger the unification in the      *)
 (** notation {invlim S} and to get the inhabitant of I.                    *)
-Definition isthread of invsys := fun thr : forall i, Obj i =>
+Definition isthread of is_invsys := fun thr : forall i, Obj i =>
   forall i j, forall (Hij : i <= j), bonding Hij (thr j) = thr i.
 
-Definition cone of invsys := fun T (mors : forall i, T -> Obj i) =>
+Definition cone of is_invsys := fun T (mors : forall i, T -> Obj i) =>
   forall i j, forall (Hij : i <= j), bonding Hij \o mors j =1 mors i.
 
 Lemma coneE Sys T (mors : forall i, T -> Obj i) : cone Sys mors ->
@@ -97,7 +97,7 @@ HB.mixin Record isInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> Type)
     (bonding : forall i j, i <= j -> Obj j -> Obj i)
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of Choice ilT := {
     invlim_proj : forall i, ilT -> Obj i;
     invlim_ind  : forall (T : Type) (f : forall i, T -> Obj i),
@@ -116,7 +116,7 @@ HB.structure Definition InvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> Type)
     (bonding : forall i j, i <= j -> Obj j -> Obj i)
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
     ilT of isInvLim disp I Obj bonding Sys ilT
     & Choice ilT
@@ -129,7 +129,7 @@ Section InternalTheory.
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : invLimType Sys.
 
 Local Notation "\pi" := (invlim_proj (s := ilT)).
@@ -158,7 +158,7 @@ Section Theory.
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : invLimType Sys.
 
 Lemma invlimE (x y : ilT) : (forall i, 'pi_i x = 'pi_i y) -> x = y.
@@ -205,7 +205,7 @@ Section InvLimitDirected.
 Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : invLimType Sys.
 
 Lemma invlim_geE b (x y : ilT) :
@@ -225,7 +225,7 @@ Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> eqType.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
 
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : invLimType Sys.
 Implicit Type x y : ilT.
 
@@ -262,7 +262,6 @@ End InvLimitEqType.
 
 
 
-
 (****************************************************************************)
 (**  Interface for inverse limits in various algebraic categories           *)
 (**                                                                         *)
@@ -273,23 +272,78 @@ Open Scope ring_scope.
 
 
 #[key="ilT"]
+HB.mixin Record isNmoduleInvLim
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> nmodType)
+    (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT & GRing.Nmodule ilT := {
+  ilproj_is_semi_additive :
+    forall i, semi_additive ('pi[ilT]_i)
+  }.
+#[short(type="nmodInvLimType")]
+HB.structure Definition NmodInvLim
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> nmodType)
+    (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  := {
+    ilT of InvLim disp Sys ilT
+    & isNmoduleInvLim disp I Obj bonding Sys ilT
+    & GRing.Nmodule ilT
+  }.
+
+Section NmodInvLimTheory.
+
+Variables (disp : unit) (I : porderType disp).
+Variable Obj : I -> nmodType.
+Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
+Variable Sys : is_invsys bonding.
+
+Variable ilT : nmodInvLimType Sys.
+Implicit Type x y : ilT.
+
+#[export] HB.instance Definition _ i :=
+  GRing.isSemiAdditive.Build ilT (Obj i) _ (ilproj_is_semi_additive i).
+
+(** The universal induced map is a N-module morphism *)
+Section UniversalProperty.
+
+Variable (T : nmodType) (f : forall i, {additive T -> Obj i}).
+Hypothesis Hcone : cone Sys f.
+
+Fact ilind_is_semi_additive : semi_additive ('ind[ilT] Hcone).
+Proof.
+by split => [| /= t u]; apply invlimE=> j; rewrite raddf /= !piindE raddf.
+Qed.
+#[export] HB.instance Definition _ :=
+  GRing.isSemiAdditive.Build T ilT _ ilind_is_semi_additive.
+
+End UniversalProperty.
+
+Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
+Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
+
+End NmodInvLimTheory.
+
+
+#[key="ilT"]
 HB.mixin Record isZmoduleInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.Zmodule ilT := {
-  ilproj_is_additive :
-    forall i, additive ('pi[ilT]_i)
-  }.
+    (Sys : is_invsys bonding)
+    (ilT : Type) of NmodInvLim disp Sys ilT & GRing.Zmodule ilT := {
+    (* Capture zmodType on Obj*)
+   }.
 #[short(type="zmodInvLimType")]
 HB.structure Definition ZmodInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of InvLim disp Sys ilT
+    ilT of NmodInvLim disp Sys ilT
     & isZmoduleInvLim disp I Obj bonding Sys ilT
     & GRing.Zmodule ilT
   }.
@@ -299,13 +353,10 @@ Section ZmodInvLimTheory.
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> zmodType.
 Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Variable ilT : zmodInvLimType Sys.
 Implicit Type x y : ilT.
-
-HB.instance Definition _ i :=
-  GRing.isAdditive.Build ilT (Obj i) _ (ilproj_is_additive i).
 
 (** The universal induced map is a Z-module morphism *)
 Section UniversalProperty.
@@ -314,58 +365,52 @@ Variable (T : zmodType) (f : forall i, {additive T -> Obj i}).
 Hypothesis Hcone : cone Sys f.
 
 Fact ilind_is_additive : additive ('ind[ilT] Hcone).
-Proof.
-by move=> t u; apply invlimE=> j; rewrite raddfB /= !piindE raddfB.
-Qed.
-HB.instance Definition _ :=
+Proof. exact: raddfB. Qed.
+#[export] HB.instance Definition _ :=
   GRing.isAdditive.Build T ilT _ ilind_is_additive.
 
 End UniversalProperty.
-
-Lemma il_neq0 x : x != 0 -> exists i, 'pi_i x != 0.
-Proof. by move/invlimPn=> [i]; rewrite raddf0 => Hi; exists i. Qed.
-
 End ZmodInvLimTheory.
 
 
 #[key="ilT"]
-HB.mixin Record isRingInvLim
+HB.mixin Record isSemiRingInvLim
     (disp : unit) (I : porderType disp)
-    (Obj : I -> ringType)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.Ring ilT := {
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT & GRing.SemiRing ilT := {
   ilproj_is_multiplicative :
     forall i, multiplicative ('pi[ilT]_i)
   }.
-#[short(type="ringInvLimType")]
-HB.structure Definition RingInvLim
+#[short(type="semiRingInvLimType")]
+HB.structure Definition SemiRingInvLim
     (disp : unit) (I : porderType disp)
-    (Obj : I -> ringType)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of ZmodInvLim disp Sys ilT
-    & isRingInvLim disp I Obj bonding Sys ilT
-    & GRing.Ring ilT
+    ilT of NmodInvLim disp Sys ilT
+    & isSemiRingInvLim disp I Obj bonding Sys ilT
+    & GRing.SemiRing ilT
   }.
 
-Section RingInvLimTheory.
+Section SemiRingInvLimTheory.
 
 Variables (disp : unit) (I : porderType disp).
-Variable Obj : I -> ringType.
+Variable Obj : I -> semiRingType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-Variable ilT : ringInvLimType Sys.
+Variable Sys : is_invsys bonding.
+Variable ilT : semiRingInvLimType Sys.
 Implicit Type x y : ilT.
 
-HB.instance Definition _ i :=
+#[export] HB.instance Definition _ i :=
   GRing.isMultiplicative.Build ilT (Obj i) _ (ilproj_is_multiplicative i).
 
 (** The universal induced map is a ring morphism *)
 Section UniversalProperty.
 
-Variable (T : ringType) (f : forall i, {rmorphism T -> Obj i}).
+Variable (T : semiRingType) (f : forall i, {rmorphism T -> Obj i}).
 Hypothesis Hcone : cone Sys f.
 
 Fact ilind_is_multiplicative : multiplicative ('ind[ilT] Hcone).
@@ -373,7 +418,7 @@ Proof.
 by split => [/= t x|]; apply invlimE=> i;
   rewrite !piindE ?rmorph1 ?rmorphM //= !piindE.
 Qed.
-HB.instance Definition _ :=
+#[export] HB.instance Definition _ :=
   GRing.isMultiplicative.Build T ilT _ ilind_is_multiplicative.
 
 End UniversalProperty.
@@ -381,28 +426,67 @@ End UniversalProperty.
 Lemma il_neq1 x : x != 1 -> exists i, 'pi_i x != 1.
 Proof. by move/invlimPn=> [i]; rewrite rmorph1 => Hi; exists i. Qed.
 
-End RingInvLimTheory.
+End SemiRingInvLimTheory.
+
+
+(* No capture needed since Ring is the join of SemiRing & Zmodule *)
+#[short(type="ringInvLimType")]
+HB.structure Definition RingInvLim
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> ringType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  := {
+    ilT of SemiRingInvLim disp Sys ilT
+    & ZmodInvLim disp Sys ilT
+  }.
 
 
 #[key="ilT"]
-HB.mixin Record isComRingInvLim
+HB.mixin Record isComSemiRingInvLim
     (disp : unit) (I : porderType disp)
-    (Obj : I -> comRingType)
+    (Obj : I -> comSemiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.ComRing ilT := {
-    (* Capture comRingType on Obj*)
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT := {
+    (* Capture comSemiRingType on Obj*)
   }.
+#[short(type="comSemiRingInvLimType")]
+HB.structure Definition ComSemiRingInvLim
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> comSemiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  := {
+    ilT of SemiRingInvLim disp Sys ilT
+    & isComSemiRingInvLim disp I Obj bonding Sys ilT
+    & GRing.ComSemiRing ilT
+  }.
+
+
+(* No capture needed since ComRing is the join of Ring & ComSemiRing*)
 #[short(type="comRingInvLimType")]
 HB.structure Definition ComRingInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of GRing.ComRing ilT
-    & RingInvLim disp Sys ilT
-    & isComRingInvLim disp I Obj bonding Sys ilT
+    ilT of RingInvLim disp Sys ilT
+    & ComSemiRingInvLim disp Sys ilT
+  }.
+
+
+
+#[short(type="Unit_RingInvLimType")]
+HB.structure Definition Unit_RingInvLim
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> ringType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  := {
+    ilT of RingInvLim disp Sys ilT
+    & GRing.UnitRing ilT
   }.
 
 
@@ -411,8 +495,8 @@ HB.mixin Record isUnitRingInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.UnitRing ilT := {
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT := {
     (* Capture unitRingType on Obj*)
   }.
 #[short(type="unitRingInvLimType")]
@@ -420,12 +504,13 @@ HB.structure Definition UnitRingInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of GRing.UnitRing ilT
-    & RingInvLim disp Sys ilT
+    ilT of RingInvLim disp Sys ilT
     & isUnitRingInvLim disp I Obj bonding Sys ilT
+    & GRing.UnitRing ilT
   }.
+
 
 Section InvLimUnitRingTheory.
 
@@ -433,13 +518,14 @@ Variables
     (disp : unit) (I : porderType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding).
+    (Sys : is_invsys bonding).
 Variable ilT : unitRingInvLimType Sys.
 
 Lemma ilunitP (x : ilT) :
   reflect (forall i, 'pi_i x \is a GRing.unit) (x \is a GRing.unit).
 Proof.
-apply (iffP idP) => [xunit i | H]; first exact: rmorph_unit.
+apply (iffP idP) => [xunit i | H].
+   exact: (rmorph_unit ('pi[ilT]_i : {rmorphism ilT -> Obj i}) xunit).
 have invthr : isthread Sys (fun i => ('pi_i x)^-1).
   by move=> i j ilej; rewrite /= rmorphV ?(ilprojE x) // H.
 apply/unitrP; exists (ilthr invthr).
@@ -451,18 +537,16 @@ Qed.
 End  InvLimUnitRingTheory.
 
 
-(* No capture needed since comUnitRingType is a join *)
+(* No capture needed since ComUnitRing is the join of ComRing & UnitRing *)
 #[short(type="comUnitRingInvLimType")]
 HB.structure Definition ComUnitRingInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> comUnitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of GRing.ComUnitRing ilT
-    & RingInvLim disp Sys ilT
-    & isComRingInvLim disp I Obj bonding Sys ilT
-    & isUnitRingInvLim disp I Obj bonding Sys ilT
+    ilT of ComRingInvLim _ Sys ilT
+    & UnitRingInvLim _ Sys ilT
   }.
 
 
@@ -471,8 +555,8 @@ HB.mixin Record isIDomainInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.IntegralDomain ilT := {
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT := {
     (* Capture idomainType on Obj*)
   }.
 #[short(type="idomainInvLimType")]
@@ -480,11 +564,11 @@ HB.structure Definition IDomainInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of GRing.IntegralDomain ilT
-    & ComUnitRingInvLim disp Sys ilT
+    ilT of ComUnitRingInvLim disp Sys ilT
     & isIDomainInvLim disp I Obj bonding Sys ilT
+    & GRing.IntegralDomain ilT
   }.
 
 
@@ -493,8 +577,8 @@ HB.mixin Record isFieldInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.Field ilT := {
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT := {
     (* Capture fieldType on Obj*)
   }.
 #[short(type="fieldInvLimType")]
@@ -502,11 +586,11 @@ HB.structure Definition FieldRingInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of GRing.Field ilT
-    & IDomainInvLim disp Sys ilT
+    ilT of IDomainInvLim disp Sys ilT
     & isFieldInvLim disp I Obj bonding Sys ilT
+    & GRing.Field ilT
   }.
 
 
@@ -516,7 +600,7 @@ HB.mixin Record isLmodInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
     (ilT : Type) of InvLim disp Sys ilT & GRing.Lmodule R ilT := {
   ilproj_is_linear :
     forall i, linear ('pi[ilT]_i)
@@ -527,7 +611,7 @@ HB.structure Definition LmodInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
     ilT of ZmodInvLim _ Sys ilT
     & isLmodInvLim R disp I Obj bonding Sys ilT
@@ -540,11 +624,11 @@ Variable (R : ringType).
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> lmodType R.
 Variable bonding : forall i j, i <= j -> {linear Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Variable ilT : lmodInvLimType Sys.
 
-HB.instance Definition _ i :=
+#[export] HB.instance Definition _ i :=
   GRing.isLinear.Build R ilT (Obj i) _ _ (ilproj_is_linear i).
 
 (** The universal induced map is a L-module morphism *)
@@ -558,7 +642,7 @@ Proof.
 move=> t u v; apply invlimE => i.
 by rewrite !raddfD /= !piindE !linearZ /= piindE.
 Qed.
-HB.instance Definition _ :=
+#[export] HB.instance Definition _ :=
   GRing.isLinear.Build R T ilT _ _ (ilind_is_linear).
 
 End UniversalProperty.
@@ -570,8 +654,8 @@ HB.mixin Record isLalgebraInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.Lalgebra R ilT := {
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT := {
     (* Capture lalgType R on Obj*)
   }.
 #[short(type="lalgInvLimType")]
@@ -580,12 +664,12 @@ HB.structure Definition LalgebraInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of GRing.Lalgebra R ilT
-    & RingInvLim _ Sys ilT
+    ilT of RingInvLim _ Sys ilT
     & LmodInvLim _ Sys ilT
     & isLalgebraInvLim R disp I Obj bonding Sys ilT
+    & GRing.Lalgebra R ilT
   }.
 
 Section LAlgInvLimTheory.
@@ -594,11 +678,11 @@ Variable (R : ringType).
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> lalgType R.
 Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : lalgInvLimType Sys.
 
 (* Rebuilt the various instances on a lalgtype. *)
-HB.instance Definition _ i := GRing.Linear.on 'pi[ilT]_i.
+#[export] HB.instance Definition _ i := GRing.Linear.on 'pi[ilT]_i.
 (* Check fun i => 'pi[ilT]_i : {lrmorphism ilT -> Obj i}. *)
 
 Section UniversalProperty.
@@ -607,7 +691,7 @@ Variable (T : lalgType R) (f : forall i, {lrmorphism T -> Obj i}).
 Hypothesis Hcone : cone Sys f.
 
 (* Rebuild the various instances on a lalgtype. *)
-HB.instance Definition _ i := GRing.Linear.on ('ind[ilT] Hcone).
+#[export] HB.instance Definition _ i := GRing.Linear.on ('ind[ilT] Hcone).
 (* Check 'ind[ilT] Hcone : {lrmorphism T -> ilT}. *)
 
 End UniversalProperty.
@@ -619,8 +703,8 @@ HB.mixin Record isAlgebraInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
-    (Sys : invsys bonding)
-    (ilT : Type) of InvLim disp Sys ilT & GRing.Lmodule R ilT := {
+    (Sys : is_invsys bonding)
+    (ilT : Type) of InvLim disp Sys ilT := {
     (* Capture algType R on Obj*)
   }.
 #[short(type="algInvLimType")]
@@ -629,11 +713,11 @@ HB.structure Definition AlgebraInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   := {
-    ilT of GRing.Algebra R ilT
-    & LalgebraInvLim _ Sys ilT
+    ilT of LalgebraInvLim _ Sys ilT
     & isAlgebraInvLim R disp I Obj bonding Sys ilT
+    & GRing.Algebra R ilT
   }.
 
 (* What about comAlgType, unitAlgType, comUnitAlgType... ??? *)
@@ -648,28 +732,24 @@ HB.structure Definition AlgebraInvLim
 (****************************************************************************)
 
 
-HB.factory Record InvLim_isZmodInvLim
+HB.factory Record InvLim_isNmodInvLim
     (disp : unit) (I : porderType disp)
-    (Obj : I -> zmodType)
+    (Obj : I -> nmodType)
     (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (disp : unit) (I : porderType disp)
-    (Obj : I -> zmodType)
+    (Obj : I -> nmodType)
     (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
-    (Sys : invsys bonding)
-  ilT of InvLim_isZmodInvLim _ _ _ _ Sys ilT.
+    (Sys : is_invsys bonding)
+  ilT of InvLim_isNmodInvLim _ _ _ _ Sys ilT.
 
 Implicit Type x y : ilT.
 
 Fact ilzeroP : isthread Sys (fun i => 0 : Obj i).
 Proof. by move=> i j Hij; rewrite raddf0. Qed.
 Definition ilzero : ilT := ilthr ilzeroP.
-
-Fact iloppP x : isthread Sys (fun i => - ('pi_i x)).
-Proof. by move=> i j Hij; rewrite raddfN (ilprojE x). Qed.
-Definition ilopp x : ilT := ilthr (iloppP x).
 
 Fact iladdP x y : isthread Sys (fun i => 'pi_i x + 'pi_i y).
 Proof. by move=> i j Hij; rewrite raddfD (ilprojE x) (ilprojE y). Qed.
@@ -681,34 +761,63 @@ Fact iladdC : commutative iladd.
 Proof. by move=> x y; apply invlimE=> i; rewrite !ilthrP addrC. Qed.
 Fact iladd0r : left_id ilzero iladd.
 Proof. by move=> x; apply invlimE=> i; rewrite !ilthrP add0r. Qed.
-Fact iladdNr : left_inverse ilzero ilopp iladd.
-Proof. by move=> x; apply invlimE=> i; rewrite !ilthrP addNr. Qed.
 HB.instance Definition _ :=
-    GRing.isZmodule.Build ilT iladdA iladdC iladd0r iladdNr.
+    GRing.isNmodule.Build ilT iladdA iladdC iladd0r.
 
-Fact ilproj_is_additive i : additive 'pi[ilT]_i.
-Proof. by move=> /= x y /=; rewrite !ilthrP. Qed.
+Fact ilproj_is_semi_additive i : semi_additive 'pi[ilT]_i.
+Proof. by split=> [|/= x y]; rewrite !ilthrP. Qed.
 HB.instance Definition _ :=
-  isZmoduleInvLim.Build _ _ _ _ _ ilT ilproj_is_additive.
+  isNmoduleInvLim.Build _ _ _ _ _ ilT ilproj_is_semi_additive.
 
 HB.end.
 
 
-HB.factory Record InvLim_isRingInvLim
+HB.factory Record InvLim_isZmodInvLim
     (disp : unit) (I : porderType disp)
-    (Obj : I -> ringType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Obj : I -> zmodType)
+    (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (disp : unit) (I : porderType disp)
-    (Obj : I -> ringType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
-  ilT of InvLim_isRingInvLim _ _ _ _ Sys ilT.
+    (Obj : I -> zmodType)
+    (bonding : forall i j, i <= j -> {additive Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  ilT of InvLim_isZmodInvLim _ _ _ _ Sys ilT.
+
+Implicit Type x y : ilT.
 
 HB.instance Definition _ :=
-  InvLim_isZmodInvLim.Build _ _ _ _ Sys ilT.
+  InvLim_isNmodInvLim.Build _ _ _ _ Sys ilT.
+
+Fact iloppP x : isthread Sys (fun i => - ('pi_i x)).
+Proof. by move=> i j Hij; rewrite raddfN (ilprojE x). Qed.
+Definition ilopp x : ilT := ilthr (iloppP x).
+Fact iladdNr : left_inverse 0 ilopp +%R.
+Proof. by move=> x; apply invlimE=> i; rewrite !ilthrP addNr. Qed.
+HB.instance Definition _ :=
+    GRing.Nmodule_isZmodule.Build ilT iladdNr.
+HB.instance Definition _ :=
+  isZmoduleInvLim.Build _ _ _ _ _ ilT.
+
+HB.end.
+
+
+HB.factory Record InvLim_isSemiRingInvLim
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  ilT of InvLim _ Sys ilT := {}.
+HB.builders Context
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  ilT of InvLim_isSemiRingInvLim _ _ _ _ Sys ilT.
+
+HB.instance Definition _ :=
+  InvLim_isNmodInvLim.Build _ _ _ _ Sys ilT.
 
 Fact iloneP : isthread Sys (fun i => 1 : Obj i).
 Proof. by move=> i j Hij; rewrite rmorph1. Qed.
@@ -728,65 +837,92 @@ Fact ilmulDl : left_distributive ilmul +%R.
 Proof. by move=> x y z; apply invlimE=> i; rewrite !ilthrP mulrDl. Qed.
 Fact ilmulDr : right_distributive ilmul +%R.
 Proof. by move=> x y z; apply invlimE=> i; rewrite !ilthrP mulrDr. Qed.
+Fact ilmul0r : left_zero 0 ilmul.
+Proof. by move=> x; apply invlimE=> i; rewrite !ilthrP mul0r. Qed.
+Fact ilmulr0 : right_zero 0 ilmul.
+Proof. by move=> x; apply invlimE=> i; rewrite !ilthrP mulr0. Qed.
 Fact ilone_neq0 : ilone != 0.
 Proof.
 apply/negP => /eqP/(congr1 (fun x => 'pi_(invsys_inh Sys) x)) /= /eqP.
 by rewrite !ilthrP; exact/negP/oner_neq0.
 Qed.
 HB.instance Definition _ :=
-  GRing.Zmodule_isRing.Build ilT
-    ilmulA ilmul1r ilmulr1 ilmulDl ilmulDr ilone_neq0.
+  GRing.Nmodule_isSemiRing.Build ilT
+    ilmulA ilmul1r ilmulr1 ilmulDl ilmulDr ilmul0r ilmulr0 ilone_neq0.
 
 Fact ilproj_is_multiplicative i : multiplicative ('pi[ilT]_i).
 Proof.
 by split => /= [x y|]; rewrite [LHS]ilthrP.
 Qed.
 HB.instance Definition _ :=
-    isRingInvLim.Build _ _ _ _ _ ilT ilproj_is_multiplicative.
+    isSemiRingInvLim.Build _ _ _ _ _ ilT ilproj_is_multiplicative.
 
 HB.end.
 
 
-HB.factory Record InvLim_isComRingInvLim
+HB.factory Record InvLim_isRingInvLim
     (disp : unit) (I : porderType disp)
-    (Obj : I -> comRingType)
+    (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (disp : unit) (I : porderType disp)
-    (Obj : I -> comRingType)
+    (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
-  ilT of InvLim_isComRingInvLim _ _ _ _ Sys ilT.
+    (Sys : is_invsys bonding)
+  ilT of InvLim_isRingInvLim _ _ _ _ Sys ilT.
+
+HB.instance Definition _ :=
+  InvLim_isZmodInvLim.Build _ _ _ _ Sys ilT.
+HB.instance Definition _ :=
+  InvLim_isSemiRingInvLim.Build _ _ _ _ Sys ilT.
+
+HB.end.
+
+
+HB.factory Record InvLim_isComSemiRingInvLim
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> comSemiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  ilT of InvLim _ Sys ilT := {}.
+HB.builders Context
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> comSemiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
+    (Sys : is_invsys bonding)
+  ilT of InvLim_isComSemiRingInvLim _ _ _ _ Sys ilT.
 
 Implicit Type x y : ilT.
 
 HB.instance Definition _ :=
-  InvLim_isRingInvLim.Build _ _ _ _ Sys ilT.
+  InvLim_isSemiRingInvLim.Build _ _ _ _ Sys ilT.
 
 Fact ilmulC x y : x * y = y * x.
 Proof. by apply invlimE=> i; rewrite !rmorphM mulrC. Qed.
 HB.instance Definition _ :=
-  GRing.Ring_hasCommutativeMul.Build ilT ilmulC.
+  GRing.SemiRing_hasCommutativeMul.Build ilT ilmulC.
 HB.instance Definition _ :=
-  isComRingInvLim.Build _ _ _ _ _ ilT.
+  isComSemiRingInvLim.Build _ _ _ _ _ ilT.
 
 HB.end.
 
+
+(** ComRingInvLim is just a join *)
 
 
 HB.factory Record InvLim_isUnitRingInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (disp : unit) (I : porderType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim_isUnitRingInvLim _ _ _ _ Sys ilT.
 
 Implicit Type x y : ilT.
@@ -804,7 +940,6 @@ Qed.
 Definition ilinv x : ilT :=
   if pselect (forall i, 'pi_i x \is a GRing.unit) is left Pf
   then ilthr (inv_isunitP Pf) else x.
-
 
 Fact ilmulVr : {in ilunit, left_inverse 1 ilinv *%R}.
 Proof.
@@ -837,20 +972,20 @@ HB.instance Definition _ :=
 HB.end.
 
 
-(** InvLimitComUnitRing. ??? *)
+(** ComUnitRingInvLim is just a join *)
 
 
 HB.factory Record InvLim_isIDomainInvLim
     (disp : unit) (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (disp : unit) (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim_isIDomainInvLim _ _ _ _ Sys ilT.
 
 Implicit Type x y : ilT.
@@ -858,7 +993,7 @@ Implicit Type x y : ilT.
 HB.instance Definition _ :=
   InvLim_isUnitRingInvLim.Build _ _ _ _ Sys ilT.
 HB.instance Definition _ :=
-  InvLim_isComRingInvLim.Build _ _ _ _ Sys ilT.
+  InvLim_isComSemiRingInvLim.Build _ _ _ _ Sys ilT.
 
 Fact ilmul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
 Proof.
@@ -886,13 +1021,13 @@ HB.factory Record InvLim_isFieldInvLim
     (disp : unit) (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (disp : unit) (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim_isFieldInvLim _ _ _ _ Sys ilT.
 
 HB.instance Definition _ :=
@@ -921,14 +1056,14 @@ HB.factory Record InvLim_isLmoduleInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (R : ringType)
     (disp : unit) (I : porderType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim_isLmoduleInvLim R _ _ _ _ Sys ilT.
 
 HB.instance Definition _ :=
@@ -970,14 +1105,14 @@ HB.factory Record InvLim_isLalgInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (R : ringType)
     (disp : unit) (I : porderType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim_isLalgInvLim R _ _ _ _ Sys ilT.
 
 Implicit Type (x y : ilT) (r : R).
@@ -993,7 +1128,8 @@ by apply invlimE=> i /=; rewrite ilthrP !rmorphM /= ilthrP scalerAl.
 Qed.
 HB.instance Definition _ :=
   GRing.Lmodule_isLalgebra.Build R ilT ilscaleAl.
-(* Check (ilT : lalgInvLimType Sys). *)
+HB.instance Definition _ :=
+  isLalgebraInvLim.Build R _ _ _ _ Sys ilT.
 
 HB.end.
 
@@ -1003,14 +1139,14 @@ HB.factory Record InvLim_isAlgebraInvLim
     (disp : unit) (I : porderType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim _ Sys ilT := {}.
 HB.builders Context
     (R : ringType)
     (disp : unit) (I : porderType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i})
-    (Sys : invsys bonding)
+    (Sys : is_invsys bonding)
   ilT of InvLim_isAlgebraInvLim R _ _ _ _ Sys ilT.
 
 Implicit Type (x y : ilT) (r : R).
@@ -1043,7 +1179,7 @@ Section Implem.
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Record invlim := MkInvLim {
                      invlimthr :> forall i, Obj i;
@@ -1067,7 +1203,7 @@ Section InverseLimitTheory.
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj j -> Obj i.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Implicit Type x y : {invlim Sys}.
 
@@ -1118,122 +1254,131 @@ End InverseLimitTheory.
 
 Open Scope ring_scope.
 
-Section Zmodule.
+Section Instances.
+
 Variables (disp : unit) (I : porderType disp).
+
+Section Nmodule.
+Variable Obj : I -> nmodType.
+Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
+Variable Sys : is_invsys bonding.
+HB.instance Definition _ := InvLim_isNmodInvLim.Build _ _ _ _ Sys {invlim Sys}.
+End Nmodule.
+
+Section Zmodule.
 Variable Obj : I -> zmodType.
 Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ := InvLim_isZmodInvLim.Build _ _ _ _ Sys {invlim Sys}.
 End Zmodule.
 
+Section SemiRing.
+Variable Obj : I -> semiRingType.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
+Variable Sys : is_invsys bonding.
+HB.instance Definition _ :=
+  InvLim_isSemiRingInvLim.Build _ _ _ _ Sys {invlim Sys}.
+End SemiRing.
+
 Section Ring.
-Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> ringType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ := InvLim_isRingInvLim.Build _ _ _ _ Sys {invlim Sys}.
 End Ring.
 
+Section ComSemiRing.
+Variable Obj : I -> comSemiRingType.
+Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
+Variable Sys : is_invsys bonding.
+HB.instance Definition _ :=
+  InvLim_isComSemiRingInvLim.Build _ _ _ _ Sys {invlim Sys}.
+End ComSemiRing.
+
 Section ComRing.
-Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> comRingType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-HB.instance Definition _ :=
-  InvLim_isComRingInvLim.Build _ _ _ _ Sys {invlim Sys}.
+Variable Sys : is_invsys bonding.
+HB.instance Definition _ := InvLim.on {invlim Sys}.
+Let test : comRingInvLimType _ := {invlim Sys}.
 End ComRing.
 
 Section UnitRing.
-Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> unitRingType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ :=
   InvLim_isUnitRingInvLim.Build _ _ _ _ Sys {invlim Sys}.
 End UnitRing.
 
 Section ComUnitRing.
-Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> comUnitRingType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-HB.instance Definition _ := GRing.ComRing.on {invlim Sys}.
+Variable Sys : is_invsys bonding.
+HB.instance Definition _ := InvLim.on {invlim Sys}.
+Let test : comUnitRingInvLimType _ := {invlim Sys}.
 End ComUnitRing.
 
 Section Linear.
-Variables (disp : unit) (I : porderType disp).
 Variables (R : ringType).
 Variable Obj : I -> lmodType R.
 Variable bonding : forall i j, i <= j -> {linear Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ :=
   InvLim_isLmoduleInvLim.Build R _ _ _ _ Sys {invlim Sys}.
 End Linear.
 
 Section Lalg.
-Variables (disp : unit) (I : porderType disp).
 Variables (R : ringType).
 Variable Obj : I -> lalgType R.
 Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ :=
   InvLim_isLalgInvLim.Build R _ _ _ _ Sys {invlim Sys}.
 End Lalg.
 
 Section Alg.
-Variables (disp : unit) (I : porderType disp).
-Variables (R : comRingType).
+Variables (R : ringType).
 Variable Obj : I -> algType R.
 Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ :=
   InvLim_isAlgebraInvLim.Build R _ _ _ _ Sys {invlim Sys}.
+Let test : algInvLimType _ := {invlim Sys}.
 End Alg.
 
-Section UnitAlg.
-Variables (disp : unit) (I : porderType disp).
-Variables (R : comRingType).
-Variable Obj : I -> unitAlgType R.
-Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-HB.instance Definition _ := GRing.Algebra.on {invlim Sys}.
-End UnitAlg.
+End Instances.
 
 Section IDomain.
 Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> idomainType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ :=
   InvLim_isIDomainInvLim.Build _ _ _ _ Sys {invlim Sys}.
+Let test : idomainInvLimType _ := {invlim Sys}.
 End IDomain.
 
 Section Field.
 Variables (disp : unit) (I : dirType disp).
 Variable Obj : I -> fieldType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 HB.instance Definition _ :=
   InvLim_isFieldInvLim.Build _ _ _ _ Sys {invlim Sys}.
+Let test : fieldInvLimType _ := {invlim Sys}.
 End Field.
 
 
-Section TestAlg.
-Variable (R : comRingType).
+Section TestUnitAlg.
+Variables (R : ringType).
 Variables (disp : unit) (I : porderType disp).
-Variable Obj : I -> algType R.
+Variable Obj : I -> unitAlgType R.
 Variable bonding : forall i j, i <= j -> {lrmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-Let test : algType R := {invlim Sys}.
-End TestAlg.
-
-Section TestField.
-Variables (disp : unit) (I : dirType disp).
-Variable Obj : I -> fieldType.
-Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
-Let test : fieldType := {invlim Sys}.
-End TestField.
+Variable Sys : is_invsys bonding.
+Let test1 : algInvLimType _ := {invlim Sys}.
+Let test2 : unitRingInvLimType _ := {invlim Sys}.
+End TestUnitAlg.
 
 
 (***************************************************************************)
@@ -1243,10 +1388,10 @@ Section Valuation.
 
 Variable Obj : nat -> zmodType.
 Variable bonding : forall i j : nat, (i <= j)%N -> {additive Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Variable ilT : zmodInvLimType Sys.
-Implicit Type (x y : ilT).
+Implicit Types (i n : nat) (x y : ilT).
 
 Definition valuat x : natbar :=
   if altP (x =P 0) is AltFalse Pf then Nat (ex_minn (il_neq0 Pf))
@@ -1264,18 +1409,18 @@ case: ex_minnP => v Hv vmin; apply ValNat => [|i iv]; first exact: Hv.
 by apply/contraTeq: iv; rewrite -leqNgt; apply vmin.
 Qed.
 
-Lemma lt_valuatP x n : reflect ('pi_n x = 0) (Nat n < valuat x).
+Lemma ltn_valuatP x n : reflect ('pi_n x = 0) (Nat n < valuat x).
 Proof.
 apply (iffP idP); case: valuatP => [v Hv vmin /= |->].
 - by rewrite ltEnatbar; apply vmin.
 - by rewrite raddf0.
-- apply contra_eqT; rewrite ltEnatbar -leqNgt => vlen.
-  apply/contra: Hv => /eqP/(congr1 (bonding vlen)).
+- apply contra_eqT; rewrite ltEnatbar -leqNgt => vleq.
+  apply/contra: Hv => /eqP/(congr1 (bonding vleq)).
   by rewrite (ilprojE x) raddf0 => ->.
 - by [].
 Qed.
 
-Lemma le_valuatP x n :
+Lemma leq_valuatP x n :
   reflect (forall i, (i < n)%N -> 'pi_i x = 0) (Nat n <= valuat x).
 Proof.
 apply (iffP idP).
@@ -1283,18 +1428,18 @@ apply (iffP idP).
   + by rewrite leEnatbar => nlev i /leq_trans/(_ nlev); apply vmin.
   + by rewrite raddf0.
 - case: n => // n; first exact: le0bar.
-  move=> /(_ n)/(_ (ltnSn _)) /lt_valuatP.
+  move=> /(_ n)/(_ (ltnSn _)) /ltn_valuatP.
   by case: (valuat x)=> // v; rewrite ltEnatbar leEnatbar.
 Qed.
 
 Lemma proj_gt_valuat x n : (Nat n >= valuat x) = ('pi_n x != 0).
-Proof. by apply negb_inj; rewrite negbK -ltNge; apply/lt_valuatP/eqP. Qed.
+Proof. by apply negb_inj; rewrite negbK -ltNge; apply/ltn_valuatP/eqP. Qed.
 
 Lemma valuatNatE x n :
   'pi_n x != 0 -> (forall i, (i < n)%N -> 'pi_i x = 0) -> valuat x = Nat n.
 Proof.
 move=> Hn nmin; apply le_anti; rewrite proj_gt_valuat Hn /=.
-exact/le_valuatP.
+exact/leq_valuatP.
 Qed.
 
 Lemma valuat0 : valuat 0 = Inf.
@@ -1303,14 +1448,35 @@ Proof. by case: valuatP => [v | //]; rewrite raddf0 eqxx. Qed.
 Lemma valuat0P x : (valuat x == Inf) = (x == 0).
 Proof.
 apply/eqP/eqP=> [valx|->]; last exact: valuat0.
-by apply/invlimE=> i; rewrite raddf0; apply/lt_valuatP; rewrite valx.
+by apply/invlimE=> i; rewrite raddf0; apply/ltn_valuatP; rewrite valx.
+Qed.
+
+Lemma le_valuatP x y :
+  reflect (forall i, 'pi_i x = 0 -> 'pi_i y = 0) (valuat x <= valuat y).
+Proof.
+case Hvx: (valuat x) => [vx|].
+- apply (iffP (leq_valuatP _ _)) => Hv i Hx; apply: Hv.
+  + by move/ltn_valuatP: Hx; rewrite Hvx ltEnatbar.
+  + by apply/ltn_valuatP; rewrite Hvx ltEnatbar.
+- rewrite le1x valuat0P; apply (iffP idP) => [/eqP -> i _| H].
+    by rewrite raddf0.
+  apply/eqP/invlimE => /= i; rewrite raddf0; apply H.
+  by move/eqP: Hvx => /[!valuat0P] /eqP -> /[!raddf0].
+Qed.
+
+Lemma eq_valuatP x y :
+  reflect (forall i, 'pi_i x = 0 <-> 'pi_i y = 0) (valuat x == valuat y).
+Proof.
+rewrite eq_le; apply (iffP andP) => [[/le_valuatP vxy /le_valuatP vyx i] | H].
+  split; [exact: vxy | exact: vyx].
+by split; apply/le_valuatP => i; rewrite H.
 Qed.
 
 Lemma valuatN x : valuat (- x) = valuat x.
 Proof.
-case: (valuatP x) => [vN HvN vnmiN /= | ->]; last by rewrite oppr0 valuat0.
-apply valuatNatE; first by rewrite raddfN oppr_eq0.
-by move=> i /vnmiN; rewrite raddfN /= => ->; rewrite oppr0.
+apply/eqP/eq_valuatP => i.
+rewrite raddfN /= -{1}oppr0; split=> [/eqP |-> //].
+by rewrite eqr_opp => /eqP.
 Qed.
 
 Lemma valuatD x1 x2 :
@@ -1320,12 +1486,10 @@ wlog v1lev2 : x1 x2 / valuat x1 <= valuat x2.
   move=> Hlog; case (leP (valuat x1) (valuat x2)) => [|/ltW]/Hlog //.
   by rewrite addrC minC.
 rewrite (min_idPl v1lev2); move: v1lev2.
-case: (valuatP x1)=> [v1 Hv1 v1min|->]; last by rewrite add0r.
-case: (valuatP x2)=> [v2 Hv2 v2min|->]; last by rewrite addr0 (valuatNatE Hv1).
-rewrite leEnatbar => le12.
-apply/le_valuatP => i Hi; rewrite raddfD /= v1min ?v2min ?addr0 //.
-exact: leq_trans Hi le12.
+move/le_valuatP => H12; apply/le_valuatP => i /[dup]/H12 p10 p20.
+by rewrite raddfD /= p10 p20 addr0.
 Qed.
+
 Lemma valuat_sum I r P (F : I ->  ilT) :
   \meet_(i <- r | P i) valuat (F i) <= valuat (\sum_(i <- r | P i) F i).
 Proof.
@@ -1346,6 +1510,9 @@ rewrite ltEnatbar => v12.
 apply valuatNatE=> [|n nv1]; rewrite raddfD /= v2min ?addr0 // ?v1min //.
 exact: ltn_trans nv1 v12.
 Qed.
+Lemma valuatDl s1 s2 :
+  valuat s1 < valuat s2 -> valuat (s2 + s1) = valuat s1.
+Proof. by rewrite addrC; apply valuatDr. Qed.
 
 Lemma valuatBr s1 s2 :
   valuat s1 < valuat s2 -> valuat (s1 - s2) = valuat s1.
@@ -1357,32 +1524,28 @@ Proof. by rewrite -(valuatN s2) addrC => /valuatDr. Qed.
 End Valuation.
 
 
-Section ValuationLmodRing.
+Section ValuationLmodOverRing.
 
 Variable R : ringType.
 Variable Obj : nat -> lmodType R.
 Variable bonding : forall i j : nat, (i <= j)%N -> {linear Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Variable ilT : lmodInvLimType Sys.
 Implicit Types (r : R) (x y : ilT).
 
 Lemma valuat_scale r x : valuat x <= valuat (r *: x).
-Proof.
-case: (valuatP x)=> [v Hv vmin|->]; last by rewrite scaler0 valuat0.
-apply/le_valuatP => i {}/vmin pix0.
-by rewrite linearZ /= pix0 scaler0.
-Qed.
+Proof. by apply/le_valuatP => i /[!linearZ] /= -> /[!scaler0]. Qed.
 
-End ValuationLmodRing.
+End ValuationLmodOverRing.
 
 
-Section ValuationLmodUnitRing.
+Section ValuationLmodOverUnitRing.
 
 Variable R : unitRingType.
 Variable Obj : nat -> lmodType R.
 Variable bonding : forall i j : nat, (i <= j)%N -> {linear Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Variable ilT : lmodInvLimType Sys.
 Implicit Types (r : R) (x y : ilT).
@@ -1394,13 +1557,14 @@ move=> runit; apply le_anti; rewrite valuat_scale /=.
 by rewrite -{2}(scale1r x) -(mulVr runit) -scalerA valuat_scale.
 Qed.
 
-End ValuationLmodUnitRing.
+End ValuationLmodOverUnitRing.
+
 
 Section ValuationRing.
 
 Variable Obj : nat -> ringType.
 Variable bonding : forall i j : nat, (i <= j)%N -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 
 Variable ilT : ringInvLimType Sys.
 Implicit Type (x y : ilT).
@@ -1409,15 +1573,10 @@ Lemma valuat1 : valuat (1 : ilT) = Nat 0.
 Proof. by apply valuatNatE => [|i //]; rewrite rmorph1 oner_neq0. Qed.
 
 Lemma valuatMl x1 x2 : valuat x1 <= valuat (x1 * x2).
-Proof.
-case: (valuatP x1)=> [v1 Hv1 v1min|->]; last by rewrite mul0r valuat0 lebarI.
-by apply/le_valuatP => i /v1min; rewrite rmorphM /= => ->; rewrite mul0r.
-Qed.
+Proof. by apply/le_valuatP => i /[!rmorphM] /= ->; rewrite mul0r. Qed.
 Lemma valuatMr x1 x2 : valuat x2 <= valuat (x1 * x2).
 Proof.
-case: (valuatP x2)=> [v2 Hv2 v2min|->]; last by rewrite mulr0 valuat0 lebarI.
-by apply/le_valuatP => i /v2min; rewrite rmorphM /= => ->; rewrite mulr0.
-Qed.
+Proof. by apply/le_valuatP => i /[!rmorphM] /= ->; rewrite mulr0. Qed.
 
 Lemma valuatM x1 x2 : Order.max (valuat x1) (valuat x2) <= valuat (x1 * x2).
 Proof. by rewrite leUx valuatMl valuatMr. Qed.
@@ -1432,12 +1591,44 @@ Qed.
 End ValuationRing.
 
 
+(* Only need join RingInvLim & UnitRing *)
+Section ValuationUnitRing.
+
+Variable Obj : nat -> ringType.
+Variable bonding : forall i j : nat, (i <= j)%N -> {rmorphism Obj j -> Obj i}.
+Variable Sys : is_invsys bonding.
+
+Variable ilT : Unit_RingInvLimType Sys.
+Implicit Type (x y : ilT).
+
+Lemma valuatV x : x \is a GRing.unit -> valuat x = Nat 0.
+Proof.
+move=> xunit; apply/eqP; rewrite -lex0 /=.
+have <- : valuat (x * x^-1) = \bot by rewrite divrr // valuat1.
+exact: valuatMl.
+Qed.
+
+Lemma valuatVM x y : x \is a GRing.unit -> valuat (x * y) = valuat y.
+Proof.
+move=> xunit; apply/eqP; rewrite eq_le valuatMr andbT.
+by rewrite -{2}(mulKr xunit y) valuatMr.
+Qed.
+
+Lemma valuatMV x y : x \is a GRing.unit -> valuat (y * x) = valuat y.
+Proof.
+move=> xunit; apply/eqP; rewrite eq_le valuatMl andbT.
+by rewrite -{2}(mulrK xunit y) valuatMl.
+Qed.
+
+End ValuationUnitRing.
+
+
 Section CommHugeOp.
 
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j : I, i <= j -> Obj j -> Obj i.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : invLimType Sys.
 
 Variable (C : choiceType).
@@ -1535,7 +1726,7 @@ Section Summable.
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> zmodType.
 Variable bonding : forall i j, i <= j -> {additive Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : zmodInvLimType Sys.
 
 Variable (C : choiceType).
@@ -1596,7 +1787,7 @@ Section Prodable.
 Variables (disp : unit) (I : porderType disp).
 Variable Obj : I -> comRingType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj j -> Obj i}.
-Variable Sys : invsys bonding.
+Variable Sys : is_invsys bonding.
 Variable ilT : comRingInvLimType Sys.
 
 Variable (C : choiceType).

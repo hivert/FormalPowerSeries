@@ -178,7 +178,7 @@ Proof.
 by move=> f /=; rewrite unlock; apply: trXnt_trXnt; rewrite -leEnat.
 Qed.
 Definition fps_invsys :=
-  InvSys (bonding := fun (i j : nat) (le_ij : (i <= j)%O) => fps_bond le_ij)
+  IsInvSys (bonding := fun (i j : nat) (le_ij : (i <= j)%O) => fps_bond le_ij)
          0%N fps_bond_id fps_bond_trans.
 
 Lemma seriesfun_inj : injective (@seriesfun R).
@@ -341,9 +341,9 @@ Lemma coefs_sum I (r : seq I) (s : pred I) (F : I -> {fps R}) k :
 Proof. exact: (raddf_sum (coefs k)). Qed.
 
 
-Fact compat_fpsC : cone (fps_invsys R) (@tfpsC R).
+Fact cone_fpsC : cone (fps_invsys R) (@tfpsC R).
 Proof. by move=> i j le_ij c /=; rewrite fps_bondE trXntC. Qed.
-Definition fpsC : R^o -> {fps R} := 'ind compat_fpsC.
+Definition fpsC : R^o -> {fps R} := 'ind cone_fpsC.
 Local Notation "c %:S" := (fpsC c).
 
 Lemma proj_fpsC i c : 'pi_i c%:S = c%:S%tfps.
@@ -353,9 +353,9 @@ Lemma coefsC c i : c%:S``_i = (if i == 0%N then c else 0).
 Proof. by rewrite coefs_projE piindE coeftC. Qed.
 
 HB.instance Definition _ :=
-  GRing.isAdditive.Build _ _ fpsC (ilind_is_additive _ compat_fpsC).
+  GRing.isAdditive.Build _ _ fpsC (ilind_is_additive _ cone_fpsC).
 HB.instance Definition _ :=
-  GRing.isMultiplicative.Build _ _ fpsC (ilind_is_multiplicative _ compat_fpsC).
+  GRing.isMultiplicative.Build _ _ fpsC (ilind_is_multiplicative _ cone_fpsC).
 
 Lemma fpsCK : cancel fpsC (coefs 0%N).
 Proof. by move=> c; rewrite /= coefsC. Qed.
@@ -393,9 +393,9 @@ Proof. rewrite -fpsC0; apply/inj_eq/fpsC_inj. Qed.
 Lemma fpsC_eq1 (c : R) : (c%:S == 1 :> {fps R}) = (c == 1).
 Proof. rewrite -fpsC1; apply/inj_eq/fpsC_inj. Qed.
 
-Fact compat_poly : cone (fps_invsys R) (@trXn R).
+Fact cone_poly : cone (fps_invsys R) (@trXn R).
 Proof. by  move=> i j le_ij p; rewrite /= fps_bondE /trXnt /= trXn_trXn. Qed.
-Definition fps_poly : {poly R} -> {fps R} := 'ind compat_poly.
+Definition fps_poly : {poly R} -> {fps R} := 'ind cone_poly.
 
 Lemma proj_fps_poly i p : 'pi_i (fps_poly p) = trXn i p.
 Proof. exact: piindE. Qed.
@@ -415,13 +415,13 @@ Qed.
 
 HB.instance Definition _ :=
   GRing.isAdditive.Build
-    _ _ fps_poly (ilind_is_additive _ compat_poly).
+    _ _ fps_poly (ilind_is_additive _ cone_poly).
 HB.instance Definition _ :=
   GRing.isMultiplicative.Build
-    _ _ fps_poly (ilind_is_multiplicative _ compat_poly).
+    _ _ fps_poly (ilind_is_multiplicative _ cone_poly).
 HB.instance Definition _ :=
   GRing.isLinear.Build
-    R _ _ _ fps_poly (ilind_is_linear _ compat_poly).
+    R _ _ _ fps_poly (ilind_is_linear _ cone_poly).
 
 Lemma fps_poly0 : fps_poly 0 = 0.
 Proof. exact: raddf0. Qed.
@@ -591,12 +591,13 @@ Section FpsUnitRing.
 Variable R : unitRingType.
 Implicit Type f : {fps R}.
 
+HB.instance Definition _ := RingInvLim.on {fps R}.
 HB.instance Definition _ :=
   InvLim_isUnitRingInvLim.Build _ _ _ _ _ {fps R}.
 
 Lemma unit_fpsE f : (f \is a GRing.unit) = (f``_0 \is a GRing.unit).
 Proof.
-apply/ilunitP/idP => [/(_ 0%N) | Hu i].
+apply/(ilunitP f)/idP => [/(_ 0%N) | Hu i].
 - by rewrite coefs_projE -unit_tfpsE.
 - by rewrite unit_tfpsE coeft_proj.
 Qed.
@@ -655,31 +656,10 @@ Definition coefs_simpl :=
     coefs1, coefsZ, coef_fpsX, coef_fpsXn, coef_fpsXM, coef_fpsXnM).
 
 
-Section FpsComRing.
-
-Variable R : comRingType.
-
-HB.instance Definition _ :=
-  InvLim_isComRingInvLim.Build _ _ _ _ _ {fps R}.
-
-Lemma test1 i : 'pi_i (1 : {fps R}) = 1.
-Proof. exact: rmorph1. Qed.
-
-Lemma test2 i c (x : {fps R}) : 'pi_i (c *: x) = c *: ('pi_i x).
-Proof. by rewrite linearZ. Qed.
-
-End FpsComRing.
-
-
-Section FpsComUnitRing.
-
-Variable R : comUnitRingType.
-
-(* Regenerate the instances *)
-HB.instance Definition _ :=
-  InvLim_isComRingInvLim.Build _ _ _ _ _ {fps R}.
-
-End FpsComUnitRing.
+(* Generate the instances *)
+HB.instance Definition _ (R : comRingType) :=
+  InvLim_isComSemiRingInvLim.Build _ _ _ _ _ {fps R}.
+HB.instance Definition _ (R : comUnitRingType) := InvLim.on {fps R}.
 
 
 Section Valuation.
@@ -909,11 +889,11 @@ apply/tfpsP => j le_ji.
 by rewrite coeft_proj // coef_map_fps coef_map_tfps coeft_proj.
 Qed.
 
-Lemma compat_map_fps :
+Lemma cone_map_fps :
   cone (fps_invsys L) (fun i => map_tfps F \o 'pi[{fps K}]_i).
 Proof. by move=> g i j le_ij /=; rewrite -!proj_map_fps /= ilprojE. Qed.
 
-Lemma map_fps_indE : map_fps = 'ind compat_map_fps.
+Lemma map_fps_indE : map_fps = 'ind cone_map_fps.
 Proof.
 by apply: funext => g; apply: ilind_uniq => i {}g /=; apply: proj_map_fps.
 Qed.
@@ -1226,7 +1206,7 @@ apply tfpsP => j le_ji.
 by rewrite coef_deriv_tfps !coeft_proj // coef_deriv_fps.
 Qed.
 
-Lemma compat_deriv_fps :
+Lemma cone_deriv_fps :
   cone (fps_invsys R)
        (fun i => (@deriv_tfps _ _) \o 'pi[{fps R}]_i.+1).
 Proof.
@@ -1234,7 +1214,7 @@ move=> g i j le_ij /=.
 by rewrite -proj_deriv_fps /= ilprojE -proj_deriv_fps.
 Qed.
 
-Lemma deriv_fps_indE : deriv_fps = 'ind compat_deriv_fps.
+Lemma deriv_fps_indE : deriv_fps = 'ind cone_deriv_fps.
 Proof.
 by apply: funext => g; apply: ilind_uniq => i {}g /=; apply: proj_deriv_fps.
 Qed.
@@ -1440,14 +1420,14 @@ Section Composition.
 Variables (R : ringType).
 Implicit Types (f g : {fps R}).
 
-Fact compat_comp_fps g :
+Fact cone_comp_fps g :
   cone (fps_invsys R)
        (fun i => (comp_tfps ('pi_i g)) \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_comp -?leEnat // -!fps_bondE !ilprojE.
 Qed.
-Definition comp_fps g : {fps R} -> {fps R} := 'ind (compat_comp_fps g).
+Definition comp_fps g : {fps R} -> {fps R} := 'ind (cone_comp_fps g).
 
 Local Notation "f \oS g" := (comp_fps g f).
 
@@ -1504,7 +1484,7 @@ by rewrite proj_comp_fps proj_fpsC comp_tfpsC.
 Qed.
 
 Fact comp_fps_is_linear g : linear (comp_fps g).
-Proof. exact: ilind_is_linear _ (compat_comp_fps g). Qed.
+Proof. exact: ilind_is_linear _ (cone_comp_fps g). Qed.
 HB.instance Definition _ g :=
   GRing.isLinear.Build _ _ _ _ (comp_fps g) (comp_fps_is_linear g).
 
@@ -1560,7 +1540,7 @@ Implicit Types (f g h : {fps R}).
 Local Open Scope fps_scope.
 
 Fact comp_fps_is_multiplicative f : multiplicative (comp_fps f).
-Proof. exact: ilind_is_multiplicative _ (compat_comp_fps f). Qed.
+Proof. exact: ilind_is_multiplicative _ (cone_comp_fps f). Qed.
 HB.instance Definition _ g :=
   GRing.isMultiplicative.Build
     _ _ (comp_fps g) (comp_fps_is_multiplicative g).
@@ -1591,7 +1571,7 @@ Section Lagrange.
 Variables R : comUnitRingType.
 Implicit Type (f g : {fps R}).
 
-Fact compat_lagrfix :
+Fact cone_lagrfix :
   cone (fps_invsys R)
        (fun i => if i is i'.+1
                  then (@lagrfix R i') \o 'pi[{fps R}]_i'
@@ -1605,7 +1585,7 @@ case: i j => [|i] [|j] //; first by rewrite trXnt0.
 rewrite ltnS => le_ij.
 by rewrite trXnt_lagrfix // -!fps_bondE !ilprojE.
 Qed.
-Definition lagrfix : {fps R} -> {fps R} := 'ind compat_lagrfix.
+Definition lagrfix : {fps R} -> {fps R} := 'ind cone_lagrfix.
 
 Lemma proj0_lagrfix f : 'pi_0%N (lagrfix f) = 0.
 Proof. exact: piindE. Qed.
@@ -1842,22 +1822,22 @@ Proof. by rewrite /log proj_comp_fps !proj_simpl proj_logs. Qed.
 Lemma proj_expr_fps i c f : 'pi_i (expr_fps c f) = expr_tfps c ('pi_i f).
 Proof. by rewrite /expr_fps proj_exp projZ proj_log. Qed.
 
-Lemma compat_exp :
+Lemma cone_exp :
   cone (fps_invsys R) (fun i => tfps.exp \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_exp -?leEnat // -!fps_bondE !ilprojE.
 Qed.
-Lemma exp_indE : exp = 'ind compat_exp.
+Lemma exp_indE : exp = 'ind cone_exp.
 Proof. by apply: funext=> g; apply: ilind_uniq=> i {}g /=; apply: proj_exp. Qed.
 
-Lemma compat_log :
+Lemma cone_log :
   cone (fps_invsys R) (fun i => tfps.log \o 'pi[{fps R}]_i).
 Proof.
 move=> i j le_ij f /=; rewrite fps_bondE.
 by rewrite trXnt_log -?leEnat // -!fps_bondE !ilprojE.
 Qed.
-Lemma log_indE : log = 'ind compat_log.
+Lemma log_indE : log = 'ind cone_log.
 Proof. by apply: funext=> g; apply: ilind_uniq=> i {}g /=; apply: proj_log. Qed.
 
 

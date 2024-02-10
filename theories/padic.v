@@ -141,7 +141,7 @@ Fact padic_bond_trans i j k (Hij : (i <= j)%O) (Hjk : (j <= k)%O) :
   =1 padic_bond p_pr (le_trans Hij Hjk).
 Proof. exact: comp_Zmn (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
 Definition padic_invsys :=
-  InvSys (bonding := fun (i j : nat) (H : (i <= j)%O) => padic_bond p_pr H)
+  IsInvSys (bonding := fun (i j : nat) (H : (i <= j)%O) => padic_bond p_pr H)
          0%N padic_bond_id padic_bond_trans.
 
 Variables (i j : nat) (H : (i <= j)%O).
