@@ -2,6 +2,8 @@
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
 -arg -w -arg -redundant-canonical-projection
+-arg -w -arg -deprecated-since-8.19
+-arg -w -arg -projection-no-head-constant
 theories/directed.v
 theories/invlim.v
 theories/dirlim.v
