@@ -116,8 +116,9 @@ Proof.
 apply: (leq_trans (prime_gt1 p_pr)).
 by rewrite -{1}(expn1 p) leq_exp2l // prime_gt1.
 Qed.
-Lemma expgt0 l : (0 < p ^ (l.+1))%N.
-Proof. exact: ltn_trans _ (expgt1 l). Qed.
+
+Lemma expgt0 l : (0 < p ^ l)%N.
+Proof. by rewrite expn_gt0 prime_gt0. Qed.
 
 Lemma truncexp l : (Zp_trunc (p ^ l.+1)).+2 = (p ^ l.+1)%N.
 Proof. by rewrite Zp_cast // expgt1. Qed.
@@ -158,10 +159,52 @@ HB.instance Definition _ :=
 
 End PadicInvSys.
 
-
-(** ** The p-adic integers integral domain *)
 Definition padic_int (p : nat) (p_pr : prime p) := {invlim padic_invsys p_pr}.
 
+
+Section PadicIntr.
+
+Variables (p : nat) (p_pr : prime p).
+Local Notation Zp := (padic_int p_pr).
+
+Lemma nat_padic0E (n : nat) : (n%:~R == 0 :> Zp) = (n == 0%N).
+Proof.
+apply/eqP/eqP => [|-> //] H.
+move/(congr1 'pi_n): H; rewrite raddf0 rmorph_nat Zp_nat.
+move/(congr1 \val) => /= <-; rewrite modn_small //.
+by rewrite truncexp // (ltnW (ltn_expl n.+1 (prime_gt1 p_pr))).
+Qed.
+Lemma int_padic0E (z : int) : (z%:~R == 0 :> Zp) = (z == 0%N).
+Proof.
+apply/idP/idP => [| /eqP-> //].
+case: (intP z) => // n; first by rewrite nat_padic0E.
+by rewrite raddfN /= !oppr_eq0 nat_padic0E.
+Qed.
+Lemma int_padic_inj : injective (intr : int -> Zp).
+Proof.
+by move=> i j /eqP; rewrite -subr_eq0 -rmorphB /= int_padic0E subr_eq0 => /eqP.
+Qed.
+Lemma nat_padic_inj : injective (intr : nat -> Zp).
+Proof.
+have /eq_inj : intr \o Posz =1 (intr : nat -> Zp) by [].
+by apply; apply (inj_comp int_padic_inj) => i j /eqP/[!eqz_nat]/eqP.
+Qed.
+
+Lemma valuat_nat_padic n : (n > 0)%N -> valuat (n%:~R : Zp) = Nat (logn p n).
+Proof.
+move/(pfactor_coprime p_pr) => [r copr {1}->]; move: (logn _ _) => {}n.
+apply valuatNatE => [| i ltin].
+  rewrite -val_eqE /= rmorph_nat Zp_nat /= truncexp //.
+  rewrite expnS -muln_modl muln_eq0 negb_or -[X in _ && X]lt0n expgt0 // andbT.
+  by rewrite -/(dvdn _ _) -prime_coprime.
+apply/eqP; rewrite -val_eqE /= rmorph_nat Zp_nat /= truncexp //.
+by rewrite -(subnK ltin) expnD mulnA modnMl.
+Qed.
+
+End PadicIntr.
+
+
+(** ** The p-adic integers integral domain *)
 Section PadicTheory.
 
 Variables (p : nat) (p_pr : prime p).
