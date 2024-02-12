@@ -477,7 +477,7 @@ HB.structure Definition ComRingInvLim
   }.
 
 
-(** Just the join of UnitRing and RingInvLim *) 
+(** Just the join of UnitRing and RingInvLim *)
 #[short(type="Unit_RingInvLimType")]
 HB.structure Definition Unit_RingInvLim
     (disp : unit) (I : porderType disp)

@@ -711,12 +711,11 @@ Variant valuatXn_spec s : natbar -> Type :=
 
 Lemma valuatXnP s : valuatXn_spec s (valuat s).
 Proof.
-case: valuatP => [v Hv vmin /= |-> //].
-- apply: (ValXnNat (t := \fps s``_(v + i) .X^i)).
-  + by rewrite coefs_FPSeries addn0.
-  + apply/fpsP => n; rewrite coef_fpsXnM; case: ltnP; first exact: vmin.
-    by rewrite coefs_FPSeries => /subnKC ->.
-- by apply ValXnInf; apply fpsP => n; rewrite coefs0.
+case: valuatP => [v Hv vmin /= |->]; last exact: ValXnInf.
+apply: (ValXnNat (t := \fps s``_(v + i) .X^i)).
+- by rewrite coefs_FPSeries addn0.
+- apply/fpsP => n; rewrite coef_fpsXnM; case: ltnP; first exact: vmin.
+  by rewrite coefs_FPSeries => /subnKC ->.
 Qed.
 
 Lemma valuatXnE s n : s``_0 != 0 -> valuat (''X ^+ n * s) = Nat n.
