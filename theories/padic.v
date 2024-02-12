@@ -169,10 +169,10 @@ Implicit Type x y : padic_int p_pr.
 
 Lemma padic_unit x : (x \is a GRing.unit) = ('pi_0%N x != 0).
 Proof.
-apply/asboolP/idP => [/(_ 0%N) | /= Hx i].
+apply/ilunitP/idP  => [/(_ 0%N) | /= Hx i].
 - by apply/memPn: ('pi_0%N x); rewrite unitr0.
 - have:= leq0n i; rewrite -leEnat => Hi.
-  move: (ilprojE x Hi) Hx; rewrite {Hi} /padic_bond /Zmn => <-.
+  move: (ilprojE x Hi) Hx; rewrite /= {Hi} /padic_bond /Zmn => <-.
   move: ('pi_i x); rewrite {x} expn1 -(pdiv_id p_pr) => /= m.
   rewrite -{2}(natr_Zp m) unitZpE ?expgt1 ?pdiv_id //.
   rewrite /inZp /= -(natr_Zp (Ordinal _)) /= -unitfE unitFpE //.
@@ -193,9 +193,9 @@ move: ('pi_(i + j)%N x) ('pi_(i + j)%N y) => {x y} [x Hx] [y Hy].
 rewrite /inZp /= -(natr_Zp (Ordinal _)) /=.
 rewrite truncexp // (Zp_nat_mod (expgt1 p_pr i)) => xmod.
 have {}xmod : (x %% p^(i.+1) != 0)%N.
-  move: xmod; apply contra => /eqP Heq.
+  apply/contra: xmod => /eqP Heq.
   by rewrite Zp_nat; apply/eqP/val_inj; rewrite /= truncexp.
-move=> /(congr1 val); rewrite /= (truncexp p_pr (i + j)) => /eqP xymod.
+move/(congr1 val); rewrite /= (truncexp p_pr (i + j)) => /eqP xymod.
 apply val_inj; rewrite /= {1}truncexp // => {Hx Hy}.
 have xn0 : (0 < x)%N.
   by apply/contraR: xmod; rewrite -leqNgt leqn0 => /eqP ->; rewrite mod0n.
@@ -208,12 +208,10 @@ move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
 by apply contraLR; rewrite -!leqNgt; exact: leq_add.
 Qed.
 
-HB.instance Definition _ := GRing.ComUnitRing.on (padic_int p_pr).
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build (padic_int p_pr) padic_mul_eq0.
 
 End PadicTheory.
-
 
 
 Section Tests.
