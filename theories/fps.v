@@ -752,8 +752,6 @@ Qed.
 Lemma slead1 : slead 1 = 1.
 Proof. by rewrite /slead valuat1 coefs1. Qed.
 
-Lemma valuatInfE s : (s == 0 :> {fps R}) = (valuat s == Inf).
-Proof. by rewrite valuat0P. Qed.
 Lemma slead0E s : (s == 0 :> {fps R}) = (slead s == 0).
 Proof.
 rewrite /slead; case: valuatP => [n Hn _|->]; last by rewrite !eqxx.
@@ -767,7 +765,7 @@ rewrite /slead valuatN; case: (valuat s); rewrite ?oppr0 // => n.
 by rewrite coefsN.
 Qed.
 
-Lemma valuatXnM s n : valuat (''X ^+ n * s) = addbar (Nat n) (valuat s).
+Lemma valuatXnM s n : valuat (''X ^+ n * s) = Nat n + valuat s.
 Proof.
 case: (valuatXnP s) => [v t Ht|]->{s}; last by rewrite mulr0 valuat0.
 by rewrite /= mulrA -exprD valuatXnE.
@@ -778,7 +776,7 @@ rewrite /slead valuatXnM; case: (valuat s) => //= v.
 by rewrite coef_fpsXnM ltnNge leq_addr /= addKn.
 Qed.
 
-Lemma valuatXM s : valuat (''X * s) = addbar (Nat 1) (valuat s).
+Lemma valuatXM s : valuat (''X * s) = Nat 1 + valuat s.
 Proof. by rewrite -valuatXnM expr1. Qed.
 Lemma sleadXM s : slead (''X * s) = slead s.
 Proof.
@@ -787,7 +785,7 @@ by rewrite coef_fpsXM add1n.
 Qed.
 
 Lemma valuatXn n : valuat (''X ^+ n : {fps R}) = Nat n.
-Proof. by rewrite -(mulr1 (''X ^+ n)) valuatXnM valuat1 /= addn0. Qed.
+Proof. by rewrite -(mulr1 (''X ^+ n)) valuatXnM valuat1 /= addr0. Qed.
 Lemma sleadXn n : slead (''X ^+ n  : {fps R}) = 1.
 Proof. by rewrite /slead valuatXn coef_fpsXn eqxx. Qed.
 
@@ -813,8 +811,7 @@ Lemma sleadBl s1 s2 :
   (valuat s2 < valuat s1)%O -> slead (s1 - s2) = - slead s2.
 Proof. by move/sleadBr => <-; rewrite -sleadN opprD addrC opprK. Qed.
 
-Lemma valuatMge s1 s2 :
-  (addbar (valuat s1) (valuat s2) <= valuat (s1 * s2))%O.
+Lemma valuatMge s1 s2 : (valuat s1 + valuat s2 <= valuat (s1 * s2))%O.
 Proof.
 case: (valuatXnP s1) => [v1 t1 Ht1|]->{s1}; last by rewrite mul0r valuat0.
 case: (valuatXnP s2) => [v2 t2 Ht2|]->{s2}; last by rewrite mulr0 valuat0.
@@ -833,19 +830,17 @@ Variable R : idomainType.
 
 Implicit Types (a b c : R) (s t : {fps R}).
 
-Lemma valuatM s1 s2 :
-  valuat (s1 * s2) = addbar (valuat s1) (valuat s2).
+Lemma valuatM : {morph valuat (ilT:={fps R}) : s1 s2 / s1 * s2 >-> s1 + s2}.
 Proof.
+move=> s1 s2.
 case: (valuatXnP s1)=> [v1 t1 Hv1|]->{s1} /=; last by rewrite !mul0r valuat0.
 case: (valuatXnP s2)=> [v2 t2 Hv2|]->{s2} /=; last by rewrite !mulr0 valuat0.
 rewrite mulrA (commr_fpsXn v2) mulrA -exprD addnC -mulrA.
 apply: valuatXnE; rewrite coefsM big_ord_recr big_ord0 /= add0r subn0.
 by rewrite mulf_eq0 negb_or Hv1 Hv2.
 Qed.
-
 Lemma valuat_prod (I : Type ) (s : seq I) (P : pred I) (F : I -> {fps R}) :
-  valuat (\prod_(i <- s | P i) F i) =
-  \big[addbar/Nat 0]_(i <- s | P i) valuat (F i).
+  valuat (\prod_(i <- s | P i) F i) = \sum_(i <- s | P i) valuat (F i).
 Proof. exact: (big_morph _ valuatM (valuat1 _)). Qed.
 
 Lemma sleadM : {morph (@slead R) : s1 s2 / s1 * s2}.
@@ -853,7 +848,7 @@ Proof.
 move=> s1 s2; rewrite /slead valuatM.
 case: (valuatXnP s1)=> [v1 t1 Hv1|]->{s1} /=; last by rewrite !mul0r.
 case: (valuatXnP s2)=> [v2 t2 Hv2->{s2}| _]; last by rewrite !mulr0.
-rewrite mulrA (commr_fpsXn v2) mulrA -exprD addnC -mulrA.
+rewrite -raddfD /= mulrA (commr_fpsXn v2) mulrA -exprD addnC -mulrA.
 by rewrite !coef_fpsXnM !ltnn !subnn coefsM big_ord_recr big_ord0 /= add0r subn0.
 Qed.
 Lemma slead_prod (I : Type ) (s : seq I) (P : pred I) (F : I -> {fps R}) :
@@ -862,7 +857,7 @@ Proof. exact: (big_morph _ sleadM slead1). Qed.
 
 Fact series_idomainAxiom s t :
   s * t = 0 -> (s == 0 :> {fps R}) || (t == 0 :> {fps R}).
-Proof. by move/eqP; rewrite !valuatInfE valuatM addbar_eqI. Qed.
+Proof. by move/eqP; rewrite -!valuat0P valuatM addbar_eqI. Qed.
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build {fps R} series_idomainAxiom.
 

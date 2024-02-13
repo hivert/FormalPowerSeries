@@ -1473,6 +1473,9 @@ apply/eqP/eqP=> [valx|->]; last exact: valuat0.
 by apply/invlimE=> i; rewrite raddf0; apply/ltn_valuatP; rewrite valx.
 Qed.
 
+Lemma valuat_eq0P x : (valuat x == Nat 0) = ('pi_0%N x != 0).
+Proof. by rewrite eq_le le0bar andbT proj_gt_valuat. Qed.
+
 Lemma le_valuatP x y :
   reflect (forall i, 'pi_i x = 0 -> 'pi_i y = 0) (valuat x <= valuat y).
 Proof.

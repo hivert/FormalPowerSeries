@@ -86,12 +86,12 @@ Proof. by []. Qed.
 HB.instance Definition _ :=
   GRing.isSemiAdditive.Build _ _ Nat Nat_semi_additive.
 
-Lemma addbar_eq0 u v : (addbar u v == Nat 0) = (u == Nat 0) && (v == Nat 0).
+Lemma addbar_eq0 u v : (u + v == Nat 0)%R = (u == Nat 0) && (v == Nat 0).
 Proof.
 by case: u v => [m|] [n|] //=; rewrite !Nat_eqE /= ?addn_eq0 ?andbF.
 Qed.
 
-Lemma addbar_eqI u v : (addbar u v == Inf) = (u == Inf) || (v == Inf).
+Lemma addbar_eqI u v : (u + v == Inf)%R = (u == Inf) || (v == Inf).
 Proof. by case: u v => [m|] [n|]. Qed.
 
 (** ** Ordering *)
