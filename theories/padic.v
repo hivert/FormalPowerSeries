@@ -108,71 +108,75 @@ Definition padic_bond (p : nat) of (prime p) :=
 Section PadicInvSys.
 
 Variable (p : nat).
-Local Notation Z j := 'Z_(p ^ j.+1).
-
 Hypothesis (p_pr : prime p).
-Lemma expgt1 l : (1 < p ^ (l.+1))%N.
+
+
+Lemma primeX_gt0 l : (0 < p ^ l)%N.
+Proof. by rewrite expn_gt0 prime_gt0. Qed.
+Lemma primeX_gt1 l : (1 < p ^ (l.+1))%N.
 Proof.
 apply: (leq_trans (prime_gt1 p_pr)).
 by rewrite -{1}(expn1 p) leq_exp2l // prime_gt1.
 Qed.
+Hint Resolve primeX_gt0 primeX_gt1 : core.
 
-Lemma expgt0 l : (0 < p ^ l)%N.
-Proof. by rewrite expn_gt0 prime_gt0. Qed.
-
-Lemma truncexp l : (Zp_trunc (p ^ l.+1)).+2 = (p ^ l.+1)%N.
-Proof. by rewrite Zp_cast // expgt1. Qed.
+Lemma ZpX_cast l : (Zp_trunc (p ^ l.+1)).+2 = (p ^ l.+1)%N.
+Proof. by rewrite Zp_cast. Qed.
 
 Lemma expN1lt n : (p ^ n.+1 - 1 < p ^ n.+1)%N.
 Proof.
-have:= expgt1 n; case: (p ^ _)%N => // k _.
+have:= primeX_gt1 n; case: (p ^ _)%N => // k _.
 by rewrite subSS subn0 ltnS.
 Qed.
 
-Lemma expdiv n i j : (i <= j)%O -> (n ^ i.+1 %| n ^ j.+1)%N.
-Proof.
-rewrite leEnat -ltnS => Hij;
-by rewrite -(subnK Hij) expnD dvdn_mull.
-Qed.
+Lemma dvdnX n i j : (i <= j)%N -> (n ^ i %| n ^ j)%N.
+Proof. by move=> /subnK <-; rewrite expnD dvdn_mull. Qed.
 
 Fact padic_bond_id i (Hii : (i <= i)%O) : padic_bond p_pr Hii =1 id.
 Proof. by move=> x; apply valZpK. Qed.
 Fact padic_bond_trans i j k (Hij : (i <= j)%O) (Hjk : (j <= k)%O) :
   padic_bond p_pr Hij \o padic_bond p_pr Hjk
   =1 padic_bond p_pr (le_trans Hij Hjk).
-Proof. exact: comp_Zmn (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+Proof. exact/comp_Zmn/dvdnX. Qed.
 Definition padic_invsys :=
   IsInvSys (bonding := fun (i j : nat) (H : (i <= j)%O) => padic_bond p_pr H)
          0%N padic_bond_id padic_bond_trans.
+Definition padic_int := {invlim padic_invsys}.
 
 Variables (i j : nat) (H : (i <= j)%O).
 
 Fact bond_is_additive : additive (padic_bond p_pr H).
-Proof. exact: Zmn_is_additive (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+Proof. exact/Zmn_is_additive/dvdnX. Qed.
 HB.instance Definition _ :=
-  GRing.isAdditive.Build (Z j) (Z i) _  bond_is_additive.
+  GRing.isAdditive.Build ('Z_(p ^ j.+1)) ('Z_(p ^ i.+1)) _  bond_is_additive.
 
 Fact bond_is_multiplicative : multiplicative (padic_bond p_pr H).
-Proof. exact: Zmn_is_multiplicative (expgt1 i) (expgt1 j) (expdiv _ _). Qed.
+Proof. exact/Zmn_is_multiplicative/dvdnX. Qed.
 HB.instance Definition _ :=
-  GRing.isMultiplicative.Build (Z j) (Z i) _  bond_is_multiplicative.
+  GRing.isMultiplicative.Build
+    ('Z_(p ^ j.+1)) ('Z_(p ^ i.+1)) _  bond_is_multiplicative.
 
 End PadicInvSys.
+#[global] Hint Resolve primeX_gt0 primeX_gt1 : core.
 
-Definition padic_int (p : nat) (p_pr : prime p) := {invlim padic_invsys p_pr}.
 
-
-Section PadicIntr.
+Section PadicTheory.
 
 Variables (p : nat) (p_pr : prime p).
 Local Notation Zp := (padic_int p_pr).
+
+Let prime_gt1 := prime_gt1 p_pr.
+Let primeX_gt0 := primeX_gt0 p_pr.
+Let primeX_gt1 := primeX_gt1 p_pr.
+
+Implicit Types (x y : padic_int p_pr) (i j n : nat).
 
 Lemma nat_padic0E (n : nat) : (n%:~R == 0 :> Zp) = (n == 0%N).
 Proof.
 apply/eqP/eqP => [|-> //] H.
 move/(congr1 'pi_n): H; rewrite raddf0 rmorph_nat Zp_nat.
 move/(congr1 \val) => /= <-; rewrite modn_small //.
-by rewrite truncexp // (ltnW (ltn_expl n.+1 (prime_gt1 p_pr))).
+by rewrite ZpX_cast // (ltnW (ltn_expl n.+1 _)).
 Qed.
 Lemma int_padic0E (z : int) : (z%:~R == 0 :> Zp) = (z == 0%N).
 Proof.
@@ -190,26 +194,110 @@ have /eq_inj : intr \o Posz =1 (intr : nat -> Zp) by [].
 by apply; apply (inj_comp int_padic_inj) => i j /eqP/[!eqz_nat]/eqP.
 Qed.
 
+Lemma padicp_nat i n : 'pi[Zp]_n i%:~R = (i %% p ^ n.+1)%N :> nat.
+Proof. by rewrite rmorph_nat /= Zp_nat /= ZpX_cast. Qed.
+
+Local Lemma proj_pXn n : 'pi[Zp]_n (p%:~R ^ n.+1) = 0.
+Proof. by apply val_inj; rewrite -exprnP -natrX /= padicp_nat modnn. Qed.
+
 Lemma valuat_nat_padic n : (n > 0)%N -> valuat (n%:~R : Zp) = Nat (logn p n).
 Proof.
 move/(pfactor_coprime p_pr) => [r copr {1}->]; move: (logn _ _) => {}n.
 apply valuatNatE => [| i ltin].
-  rewrite -val_eqE /= rmorph_nat Zp_nat /= truncexp //.
-  rewrite expnS -muln_modl muln_eq0 negb_or -[X in _ && X]lt0n expgt0 // andbT.
+  rewrite -val_eqE /= padicp_nat expnS.
+  rewrite -muln_modl muln_eq0 negb_or -[X in _ && X]lt0n primeX_gt0 // andbT.
   by rewrite -/(dvdn _ _) -prime_coprime.
-apply/eqP; rewrite -val_eqE /= rmorph_nat Zp_nat /= truncexp //.
+apply/eqP; rewrite -val_eqE /= padicp_nat.
 by rewrite -(subnK ltin) expnD mulnA modnMl.
 Qed.
 
-End PadicIntr.
+Fact div_pXn_subproof n x :
+  isthread (padic_invsys p_pr)
+           (fun i => inZp (('pi_(i + n) x) %/ p ^ n)%N).
+Proof.
+move => i j leij.
+have leijn1 : (i + n <= j + n)%O by rewrite leEnat leq_add2r -leEnat.
+rewrite -(ilprojE x leijn1) /padic_bond /= /Zmn; apply val_inj => /=.
+move: (val _) => y; rewrite !ZpX_cast //.
+rewrite !modn_dvdm ?dvdnX // !modn_divl -expnD.
+by rewrite modn_dvdm // dvdnX.
+Qed.
+Definition div_pXn n x : Zp := ilthr (div_pXn_subproof n x).
 
+Lemma mul_pXnK n : cancel ( *%R (p%:~R ^ n) ) (div_pXn n).
+Proof.
+move=> /= x; apply/invlimE => /= i; rewrite ilthrP.
+have -> : (p%:~R ^ n) = (p ^ n)%N%:~R :> Zp by rewrite !rmorphXn /=.
+rewrite !rmorphM rmorph_nat /=.
+have lei_in : (i <= (i + n)%N)%O by rewrite leEnat leq_addr.
+rewrite -(ilprojE x lei_in) /= /padic_bond /Zmn; apply val_inj => /=.
+move: (val ('pi_(i + n)%N x)) => {}x.
+rewrite val_Zp_nat // [(p ^ n %% _)%N]modn_small; first last.
+  by rewrite ltn_exp2l // ltnS leq_addl.
+rewrite !ZpX_cast // -addSn divn_modl; last exact/dvdnX/leq_addl.
+by rewrite mulKn // expnD mulnK // modn_mod.
+Qed.
 
-(** ** The p-adic integers integral domain *)
-Section PadicTheory.
+Lemma div_pXnK x n :
+  'pi_n x = 0 -> p%:~R ^ n.+1 * (div_pXn n.+1 x) = x.
+Proof.
+move=> pin0.
+have {pin0} div_pix i : (p ^ n.+1 %| 'pi_(i + n.+1)%N x)%N.
+  have len_in : (n <= (i.+1 + n)%N)%O by rewrite leEnat leq_addl.
+  have:= ilprojE x len_in; rewrite {}pin0 => /(congr1 val)/= /[!addSnnS].
+  by move: (val _) => {}x; rewrite ZpX_cast // /dvdn => ->.
+apply/invlimE => /= i.
+rewrite rmorphM rmorphXn rmorph_nat /= ilthrP.
+have lei_in : (i <= (i + n.+1)%N)%O by rewrite leEnat leq_addr.
+rewrite -(ilprojE x lei_in) /= /padic_bond /Zmn.
+move/(_ i): div_pix => /dvdnP[k ->].
+rewrite -[RHS]Zp_nat natrM !rmorphXn mulrC; congr (_ * _).
+by rewrite mulnK // Zp_nat.
+Qed.
 
-Variables (p : nat) (p_pr : prime p).
-Implicit Type x y : padic_int p_pr.
+Lemma padicp_eq0 x n : 'pi_n x = 0 -> {t : Zp | x = p%:~R ^ n.+1 * t}.
+Proof. by move=> /div_pXnK <-; exists (div_pXn n.+1 x). Qed.
 
+Lemma padicp_MpXn_eq0 x n : ('pi_n (p%:~R ^ n * x) == 0) = ('pi_0%N x == 0).
+Proof.
+apply/eqP/eqP.
+  move/padicp_eq0 => [y] /(congr1 (div_pXn n)).
+  rewrite exprSzr -mulrA !mul_pXnK => ->.
+  by rewrite rmorphM /= proj_pXn mul0r.
+move/padicp_eq0 => [y /[!expr1z] ->{x}].
+by rewrite mulrA -exprSzr rmorphM /= proj_pXn mul0r.
+Qed.
+
+Variant valuat_padic_spec x : natbar -> Type :=
+  | ValPadicNat n t of 'pi_n x != 0
+    & x = p%:~R ^+ n * t : valuat_padic_spec x (Nat n)
+  | ValPadicInf of x = 0 : valuat_padic_spec x Inf.
+
+Lemma valuatXnP x : valuat_padic_spec x (valuat x).
+Proof.
+case: valuatP => [[|v] Hv vmin /= |->]; last exact: ValPadicInf.
+  by apply: ValPadicNat; rewrite // expr0 mul1r.
+move/(_ _ (ltnSn v)): vmin => /padicp_eq0[t Hx].
+exact: (ValPadicNat (t := t)).
+Qed.
+
+Lemma valuatM x y : valuat (x * y) = valuat x + valuat y.
+Proof.
+have [/= vx a pix eqx | ->] := valuatXnP x; last by rewrite mul0r valuat0.
+have [/= vy b piy eqy | ->] := valuatXnP y; last by rewrite mulr0 valuat0.
+rewrite -raddfD /=; apply valuatNatE.
+  move: pix piy; rewrite {x}eqx {y}eqy mulrACA -exprD !padicp_MpXn_eq0 {vx vy}.
+  rewrite rmorphM /=; move: (_ a) (_ b) => {}a {}b.
+  (* Fixed bad mathcomp statement *)
+  have Fp_Zcast : Zp_trunc (pdiv p) = Zp_trunc p by have[]:= Fp_Zcast p_pr.
+  rewrite expn1 -Fp_Zcast in a b |- *.
+  exact: mulf_neq0.
+rewrite natrE=> i lti.
+rewrite eqx eqy mulrACA -exprD -(subnK lti) exprD !mulrA !rmorphM /=.
+by rewrite proj_pXn !(mulr0, mul0r).
+Qed.
+
+(** ** The p-adic integers is an integral domain *)
 Lemma padic_unit x : (x \is a GRing.unit) = ('pi_0%N x != 0).
 Proof.
 apply/ilunitP/idP  => [/(_ 0%N) | /= Hx i].
@@ -217,40 +305,17 @@ apply/ilunitP/idP  => [/(_ 0%N) | /= Hx i].
 - have:= leq0n i; rewrite -leEnat => Hi.
   move: (ilprojE x Hi) Hx; rewrite /= {Hi} /padic_bond /Zmn => <-.
   move: ('pi_i x); rewrite {x} expn1 -(pdiv_id p_pr) => /= m.
-  rewrite -{2}(natr_Zp m) unitZpE ?expgt1 ?pdiv_id //.
+  rewrite -{2}(natr_Zp m) unitZpE ?pdiv_id //.
   rewrite /inZp /= -(natr_Zp (Ordinal _)) /= -unitfE unitFpE //.
-  rewrite pdiv_id ?(@Zp_cast p) ?prime_gt1 // in m |- *.
+  rewrite pdiv_id ?(@Zp_cast p) // in m |- *.
   by rewrite coprime_modr; apply: coprimeXl.
 Qed.
 
-Fact padic_mul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
-Proof.
-case: (altP (x =P 0)) => //= /il_neq0 [/= i Hneq0] Hxy.
-apply/eqP/invlimE=> /= j.
-move: Hxy => /(congr1 'pi_(i+j)%N); rewrite !raddf0 rmorphM /=.
-move: Hneq0.
-have:= leq_addl i j; rewrite -leEnat => Hij; rewrite -(ilprojE y Hij).
-have:= leq_addr j i; rewrite -leEnat => Hji; rewrite -(ilprojE x Hji).
-rewrite /padic_bond /Zmn {Hij Hji}.
-move: ('pi_(i + j)%N x) ('pi_(i + j)%N y) => {x y} [x Hx] [y Hy].
-rewrite /inZp /= -(natr_Zp (Ordinal _)) /=.
-rewrite truncexp // (Zp_nat_mod (expgt1 p_pr i)) => xmod.
-have {}xmod : (x %% p^(i.+1) != 0)%N.
-  apply/contra: xmod => /eqP Heq.
-  by rewrite Zp_nat; apply/eqP/val_inj; rewrite /= truncexp.
-move/(congr1 val); rewrite /= (truncexp p_pr (i + j)) => /eqP xymod.
-apply val_inj; rewrite /= {1}truncexp // => {Hx Hy}.
-have xn0 : (0 < x)%N.
-  by apply/contraR: xmod; rewrite -leqNgt leqn0 => /eqP ->; rewrite mod0n.
-case: (ltnP 0%N y)=> [yn0|]; first last.
-  by rewrite leqn0 => /eqP ->; rewrite mod0n.
-have xyn0 : (0 < x * y)%N by rewrite muln_gt0 xn0 yn0.
-apply/eqP; rewrite -/(dvdn _ _) pfactor_dvdn //.
-move: xymod; rewrite -/(dvdn _ _) pfactor_dvdn // lognM //.
-move: xmod;  rewrite -/(dvdn _ _) pfactor_dvdn // -leqNgt => logx.
-by apply contraLR; rewrite -!leqNgt; exact: leq_add.
-Qed.
+Lemma padic_unit_valuat x : (x \is a GRing.unit) = (valuat x == Nat 0).
+Proof. by rewrite padic_unit valuat_eq0P. Qed.
 
+Fact padic_mul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
+Proof. by move/eqP; rewrite -!valuat0P valuatM addbar_eqI. Qed.
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build (padic_int p_pr) padic_mul_eq0.
 
@@ -264,17 +329,17 @@ Fact padicN1_thread :
   isthread (padic_invsys p_pr) (fun n => inord (p ^ n.+1 - 1)).
 Proof.
 move=> m n mlen /=; rewrite /padic_bond /Zmn; apply val_inj => /=.
-rewrite !inordK truncexp // ?expN1lt //.
-rewrite modB; try exact: expgt0; try exact: expdiv.
-by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
+rewrite !inordK ZpX_cast // ?expN1lt //.
+rewrite modB; try exact: primeX_gt0; try exact: dvdnX.
+by rewrite (modn_small (primeX_gt1 _ _)) // modn_small // expN1lt.
 Qed.
 Definition ZpN1 : padic_int p_pr := ilthr padicN1_thread.
 
 Lemma ZpN1E : ZpN1 = -1.
 Proof.
 apply/invlimE => /= n; rewrite rmorphN rmorph1 ilthrP.
-apply val_inj; rewrite /= inordK ?truncexp // ?expN1lt //.
-by rewrite (modn_small (expgt1 _ _)) // modn_small // expN1lt.
+apply val_inj; rewrite /= inordK ?ZpX_cast // ?expN1lt //.
+by rewrite (modn_small (primeX_gt1 _ _)) // modn_small // expN1lt.
 Qed.
 
 End Tests.
