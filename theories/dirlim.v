@@ -430,24 +430,14 @@ Qed.
 End NmodDirLimTheory.
 
 
-#[key="dlT"]
-HB.mixin Record isZmoduleDirLim
-    (disp : unit) (I : porderType disp)
-    (Obj : I -> zmodType)
-    (bonding : forall i j : I, i <= j -> {additive Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-    (dlT : Type) of DirLim disp Sys dlT & GRing.Zmodule dlT := {
-    (* Capture zmodType on Obj*)
-  }.
 #[short(type="zmodDirLimType")]
 HB.structure Definition ZmodDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> zmodType)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> nmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
     dlT of NmodDirLim disp Sys dlT
-    & isZmoduleDirLim disp I Obj bonding Sys dlT
     & GRing.Zmodule dlT
   }.
 
@@ -464,7 +454,7 @@ HB.mixin Record isSemiRingDirLim
   }.
 #[short(type="semiRingDirLimType")]
 HB.structure Definition SemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -516,86 +506,52 @@ Qed.
 
 End SemiRingDirLimTheory.
 
-(* No capture needed since Ring is the join of SemiRing & Zmodule *)
+
 #[short(type="ringDirLimType")]
 HB.structure Definition RingDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> ringType)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
     dlT of SemiRingDirLim disp Sys dlT
-    & ZmodDirLim disp Sys dlT
+    & GRing.Ring dlT
   }.
 
 
-#[key="dlT"]
-HB.mixin Record isComSemiRingDirLim
-    (disp : unit) (I : porderType disp)
-    (Obj : I -> comSemiRingType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-    (dlT : Type) of DirLim disp Sys dlT := {
-    (* Capture comSemiRingType on Obj*)
-  }.
 #[short(type="comRingDirLimType")]
 HB.structure Definition ComSemiRingDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> comSemiRingType)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
     dlT of SemiRingDirLim disp Sys dlT
-    & isComSemiRingDirLim disp I Obj bonding Sys dlT
     & GRing.ComSemiRing dlT
   }.
 
 
-(* No capture needed since ComRing is the join of Ring & ComSemiRing*)
 #[short(type="comRingDirLimType")]
 HB.structure Definition ComRingDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> comRingType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-  := {
-    dlT of RingDirLim disp Sys dlT
-    & ComSemiRingDirLim disp Sys dlT
-  }.
-
-
-(** Just the join of UnitRing and RingInvLim *) 
-#[short(type="Unit_RingInvLimType")]
-HB.structure Definition Unit_RingDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> ringType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-  := {
-    ilT of RingDirLim disp Sys ilT
-    & GRing.UnitRing ilT
-  }.
-
-
-#[key="dlT"]
-HB.mixin Record isUnitRingDirLim
     (disp : unit) (I : porderType disp)
-    (Obj : I -> unitRingType)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
-    (dlT : Type) of DirLim disp Sys dlT := {
-    (* Capture unitRingType on Obj*)
+  := {
+    dlT of SemiRingDirLim disp Sys dlT
+    & GRing.ComRing dlT
   }.
+
+
 #[short(type="unitRingDirLimType")]
 HB.structure Definition UnitRingDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> unitRingType)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
-    dlT of RingDirLim disp Sys dlT
-    & isUnitRingDirLim disp I Obj bonding Sys dlT
-    & GRing.UnitRing dlT
+    ilT of SemiRingDirLim disp Sys ilT
+    & GRing.UnitRing ilT
   }.
 
 Section DirLimUnitRingTheory.
@@ -607,10 +563,9 @@ Variables
     (Sys : is_dirsys bonding).
 Variable dlT : unitRingDirLimType Sys.
 Implicit Type (x y z : dlT).
-
 Lemma dlunitP (x : dlT) :
   reflect
-    (exists i (u : Obj i), 'inj u = x /\ u \is a GRing.unit)
+    (exists i (u : Obj i), 'inj[dlT] u = x /\ u \is a GRing.unit)
     (x \is a GRing.unit).
 Proof.
 apply (iffP idP) => [/unitrP [xinv][] | [i][u [<-{x} uunit]]]; first last.
@@ -633,59 +588,38 @@ Qed.
 End  DirLimUnitRingTheory.
 
 
-(** No capture needed since ComUnitRing is the join of ComRing & UnitRing *)
 #[short(type="comUnitRingDirLimType")]
 HB.structure Definition ComUnitRingDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> comUnitRingType)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
-    dlT of ComRingDirLim _ Sys dlT
-    & UnitRingDirLim _ Sys dlT
+    ilT of SemiRingDirLim disp Sys ilT
+    & GRing.ComUnitRing ilT
   }.
 
 
-#[key="ilT"]
-HB.mixin Record isIDomainDirLim
-    (disp : unit) (I : porderType disp)
-    (Obj : I -> idomainType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-    (dlT : Type) of DirLim disp Sys dlT := {
-    (** Capture idomainType on Obj*)
-  }.
 #[short(type="idomainDirLimType")]
 HB.structure Definition IDomainDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> idomainType)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
-    dlT of ComUnitRingDirLim disp Sys dlT
-    & isIDomainDirLim disp I Obj bonding Sys dlT
+    dlT of SemiRingDirLim disp Sys dlT
     & GRing.IntegralDomain dlT
   }.
 
 
-#[key="ilT"]
-HB.mixin Record isFieldDirLim
-    (disp : unit) (I : porderType disp)
-    (Obj : I -> fieldType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-    (dlT : Type) of DirLim disp Sys dlT := {
-    (** Capture fieldType on Obj*)
-  }.
 #[short(type="fieldDirLimType")]
 HB.structure Definition FieldDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> fieldType)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
-    dlT of IDomainDirLim disp Sys dlT
-    & isFieldDirLim disp I Obj bonding Sys dlT
+    dlT of SemiRingDirLim disp Sys dlT
     & GRing.Field dlT
   }.
 
@@ -704,7 +638,7 @@ HB.mixin Record isLmodDirLim
 #[short(type="lmodDirLimType")]
 HB.structure Definition LmodDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -746,27 +680,16 @@ End UniversalProperty.
 End LmodDirLimTheory.
 
 
-#[key="dlT"]
-HB.mixin Record isLalgebraDirLim
-    (R : ringType)
-    (disp : unit) (I : porderType disp)
-    (Obj : I -> lalgType R)
-    (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-    (dlT : Type) of DirLim disp Sys dlT := {
-    (** Capture lalgType R on Obj*)
-  }.
 #[short(type="lalgDirLimType")]
 HB.structure Definition LalgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    (disp : unit) (I : porderType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
-    dlT of RingDirLim _ Sys dlT
-    & LmodDirLim _ Sys dlT
-    & isLalgebraDirLim R disp I Obj bonding Sys dlT
+    dlT of LmodDirLim _ Sys dlT
+    & SemiRingDirLim _ Sys dlT
     & GRing.Lalgebra R dlT
   }.
 
@@ -796,26 +719,15 @@ End UniversalProperty.
 End LAlgDirLimTheory.
 
 
-#[key="dlT"]
-HB.mixin Record isAlgebraDirLim
-    (R : ringType)
-    (disp : unit) (I : porderType disp)
-    (Obj : I -> algType R)
-    (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
-    (Sys : is_dirsys bonding)
-    (dlT : Type) of DirLim disp Sys dlT := {
-    (** Capture algType R on Obj*)
-  }.
 #[short(type="algDirLimType")]
 HB.structure Definition AlgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> algType R)
+    (disp : unit) (I : porderType disp)
+    (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   := {
     dlT of LalgebraDirLim _ Sys dlT
-    & isAlgebraDirLim R disp I Obj bonding Sys dlT
     & GRing.Algebra R dlT
   }.
 
@@ -932,8 +844,6 @@ by rewrite dloppE -raddfD /= addNr raddf0.
 Qed.
 HB.instance Definition _ :=
     GRing.Nmodule_isZmodule.Build dlT dladdNr.
-HB.instance Definition _ :=
-    isZmoduleDirLim.Build _ _ _ _ _ dlT.
 
 Fact dlinj_is_additive i : additive 'inj[dlT]_i.
 Proof.
@@ -1090,8 +1000,6 @@ by rewrite -!rmorphM mulrC.
 Qed.
 HB.instance Definition _ :=
   GRing.SemiRing_hasCommutativeMul.Build dlT dlmulC.
-HB.instance Definition _ :=
-  isComSemiRingDirLim.Build _ _ _ _ _ dlT.
 
 HB.end.
 
@@ -1172,8 +1080,6 @@ Qed.
 
 HB.instance Definition _ :=
   GRing.Ring_hasMulInverse.Build dlT dlmulVr dlmulrV dlunit_impl dlinv0id.
-HB.instance Definition _ :=
-  isUnitRingDirLim.Build _ _ _ _ _ dlT.
 
 HB.end.
 
@@ -1212,8 +1118,6 @@ by rewrite mulf_eq0 => /orP [] /eqP /(congr1 'inj[dlT]) H; [left|right];
 Qed.
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build dlT dlmul_eq0.
-HB.instance Definition _ :=
-  isIDomainDirLim.Build _ _ _ _ _ dlT.
 
 HB.end.
 
@@ -1243,8 +1147,6 @@ by apply/dlunitP; exists i; exists u.
 Qed.
 HB.instance Definition _ :=
     GRing.UnitRing_isField.Build dlT dirlim_field_axiom.
-HB.instance Definition _ :=
-  isFieldDirLim.Build _ _ _ _ _ dlT.
 
 HB.end.
 
@@ -1342,8 +1244,6 @@ by rewrite -[r *: _ u]linearZ /= -!rmorphM /= -linearZ /= -scalerAl.
 Qed.
 HB.instance Definition _ :=
   GRing.Lmodule_isLalgebra.Build R dlT dlscaleAl.
-HB.instance Definition _ :=
-  isLalgebraDirLim.Build R _ _ _ _ Sys dlT.
 
 HB.end.
 
@@ -1375,8 +1275,6 @@ by rewrite -[r *: _ v]linearZ /= -!rmorphM /= -linearZ /= -scalerAr.
 Qed.
 HB.instance Definition _ :=
   GRing.Lalgebra_isAlgebra.Build R dlT dlscaleAr.
-HB.instance Definition _ :=
-  isAlgebraDirLim.Build R _ _ _ _ _ dlT.
 
 HB.end.
 
