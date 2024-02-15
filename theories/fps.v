@@ -317,6 +317,10 @@ split => [Hco|-> //]; apply/fpsprojE => /= i; apply/tfpsP => j le_ji.
 by rewrite !(coeft_proj le_ji) Hco.
 Qed.
 
+Lemma fps_def s : s = \fps s``_i .X^i.
+Proof. by apply/fpsP => j; rewrite coefs_FPSeries. Qed.
+
+
 Definition coefs_head h i (s : {fps R}) :=
   let: tt := h in coef_series s i.
 Local Notation coefs i := (coefs_head tt i).
@@ -558,9 +562,18 @@ Proof.
 by apply invlimE => j; rewrite !proj_simp proj_fpsX expr_tfpscX.
 Qed.
 
+Lemma lreg_fpsX : GRing.lreg ''X.
+Proof.
+move=> /= s t eqX; apply fpsP => i.
+by have:= congr1 (coef_series^~ i.+1) eqX; rewrite !coef_fpsXM /=.
+Qed.
+Lemma rreg_fpsX : GRing.rreg ''X.
+Proof. by move=> /= s t; rewrite !commr_fpsX => /lreg_fpsX. Qed.
 
-Lemma fps_def s : s = \fps s``_i .X^i.
-Proof. by apply/fpsP => j; rewrite coefs_FPSeries. Qed.
+Lemma lreg_fpsXn i : GRing.lreg (''X ^+ i).
+Proof. exact/lregX/lreg_fpsX. Qed.
+Lemma rreg_fpsXn i : GRing.rreg (''X ^+ i).
+Proof. exact/rregX/rreg_fpsX. Qed.
 
 End CoeffSeries.
 
@@ -569,7 +582,7 @@ Arguments fps_poly {R}.
 Notation "c %:S" := (fpsC c).
 Notation "''X" := (locked (@fps_poly _ 'X)).
 
-(* I deactivated the coercion because it is too confusing 
+(* I deactivated the coercion because it is too confusing
 Coercion fps_poly_coerce (R : ringType) : polynomial R -> {fps R} := fps_poly.
 
 Lemma fps_polyXE (R : ringType) : ''X = 'X :> {fps R}.
@@ -864,6 +877,25 @@ HB.instance Definition _ :=
 End FPSIDomain.
 Arguments valuatM {R}.
 Arguments sleadM {R}.
+
+
+Section FPSField.
+
+Variable R : fieldType.
+
+Implicit Type g h : {fps R}.
+
+Lemma fpsf_unitE g : (g \is a GRing.unit) = (g``_0 != 0).
+Proof. by rewrite unit_fpsE unitfE. Qed.
+
+Lemma fpsf_XnfE g :
+  g != 0 -> exists n h, h \is a GRing.unit /\ g = ''X ^+ n * h .
+Proof.
+case: (valuatXnP g) => [n t t0 ->{g} _ |->]; last by rewrite eqxx.
+by exists n; exists t; rewrite unit_fpsE unitfE.
+Qed.
+
+End FPSField.
 
 
 Section MapFPS.
