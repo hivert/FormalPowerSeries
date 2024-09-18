@@ -1,4 +1,4 @@
--R theories/ Combi
+-R theories/ Combi/fps/
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
 -arg -w -arg -redundant-canonical-projection
