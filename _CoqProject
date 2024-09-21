@@ -1,18 +1,18 @@
--R theories/ Combi/fps/
+-R theories Combi
 -arg -w -arg -notation-overridden
 -arg -w -arg -ambiguous-paths
 -arg -w -arg -redundant-canonical-projection
 -arg -w -arg -deprecated-since-8.19
 -arg -w -arg -projection-no-head-constant
-theories/directed.v
-theories/invlim.v
-theories/dirlim.v
-theories/natbar.v
-# theories/infpoly.v
-theories/padic.v
-theories/fps.v
-theories/auxresults.v
-theories/tfps.v
-theories/catalan.v
-theories/catalan_fps.v
+theories/fps/directed.v
+theories/fps/invlim.v
+theories/fps/dirlim.v
+theories/fps/natbar.v
+# theories/fps/infpoly.v
+theories/fps/padic.v
+theories/fps/fps.v
+theories/fps/auxresults.v
+theories/fps/tfps.v
+theories/fps/catalan.v
+theories/fps/catalan_fps.v
 

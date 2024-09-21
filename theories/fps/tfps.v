@@ -740,7 +740,10 @@ Fact coeft0M f g : (f * g)`_0 = f`_0 * g`_0.
 Proof. exact: (rmorphM (coeftfps 0)). Qed.
 Fact coeft0X f i : (f ^+ i)`_0 = f`_0 ^+ i.
 Proof. exact: (rmorphXn (coeftfps 0)). Qed.
-
+Fact coeft0_prod I (r : seq I) (P : pred I) (F : I -> {tfps R n}) :
+  (\prod_(i <- r | P i) F i)`_0 = \prod_(i <- r | P i) (F i)`_0.
+Proof. exact: (rmorph_prod (coeftfps 0)). Qed.
+  
 End TFPSTheory.
 
 
