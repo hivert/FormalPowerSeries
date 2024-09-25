@@ -64,16 +64,7 @@ Proof. exact: linearP. Qed.
 HB.instance Definition _ :=
   GRing.isLinear.Build R {mpoly R[m]} {mpoly R[n]} _ _ cnvar_is_linear.
 
-
 Hypothesis (le_m_n : (m <= n)%N).
-Lemma tnth_cnvar_tuple_old (i : 'I_n) (lt_i_m : (i < m)%N) :
-  tnth cnvar_tuple (Ordinal lt_i_m) = 'X_i.
-Proof.
-rewrite (tnth_nth 0) /= nth_cat size_take size_map size_enum_ord.
-rewrite -/(minn m n) (minn_idPl le_m_n) lt_i_m nth_take //.
-rewrite (nth_map (Ordinal (leq_trans lt_i_m _))) ?size_enum_ord //; congr ('X_ _).
-by apply val_inj; rewrite /= nth_enum_ord.
-Qed.
 Lemma tnth_cnvar_tuple (i : 'I_m) :
   tnth cnvar_tuple i = 'X_(widen_ord le_m_n i).
 Proof.
@@ -143,27 +134,25 @@ Section Tests.
 
 Variable R : comRingType.
 
+(*
 Check {dirlim infpoly_sys R} : algType R.
 Check {dirlim infpoly_sys R} : dirLimType (infpoly_sys R).
 Check 'inj[{dirlim infpoly_sys R}]_1 : {mpoly R[1]} -> {dirlim infpoly_sys R}.
 Check 'X_0 : {mpoly R[1]}.
-
+*)
 (* TODO : why is Coq not able to infer `{dirlim infpoly_sys R}`
 
 Goal 'inj_1 'X_0 = 'inj_3 'X_0 :> {dirlim infpoly_sys R}.
 
  *)
-Goal 'inj[{dirlim infpoly_sys R}]_1 'X_0 = 'inj[{dirlim infpoly_sys R}]_3 'X_0.
-Proof.
-have le_1_3 : (1 <= 3 :> nat)%O by [].
-rewrite -(dlinjE _ le_1_3); congr ('inj).
-by rewrite cnvarbondX.
-Qed.
-
 Definition infpolyvar (i : nat) :=
   'inj[{dirlim infpoly_sys R}]_i.+1 'X_(Ordinal (ltnSn i)).
 
 Lemma infpolyvarE i n (le_i_n : (i < n)%N) :
   infpolyvar i = 'inj[{dirlim infpoly_sys R}]_n 'X_(Ordinal le_i_n).
 Proof.
+rewrite /infpolyvar -(dlinjE _ (le_i_n : i.+1 <= n)%O); congr 'inj.
+by rewrite cnvarbondX.
+Qed.
 
+End Tests.
