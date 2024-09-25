@@ -12,18 +12,18 @@
 (*                                                                            *)
 (*                  http://www.gnu.org/licenses/                              *)
 (******************************************************************************)
+From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
-From SsrMultinomials Require Import ssrcomplements freeg mpoly.
+From mathcomp Require Import ssrcomplements freeg mpoly.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
-Require Import natbar invlim.
+Require Import natbar directed invlim dirlim.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Import Order.Def.
 Import Order.Syntax.
 Import Order.Theory.
 
@@ -49,31 +49,39 @@ Definition cnvar_tuple : m.-tuple {mpoly R[n]} :=
   Tuple (cnvar_tupleP [tuple 'X_i | i < n] 0).
 Definition cnvar p := p \mPo cnvar_tuple.
 
-Fact cnvar_is_rmorphism : rmorphism cnvar.
-Proof. repeat split; [exact: rmorphB | exact: rmorphM | exact: rmorph1]. Qed.
-Canonical cnvar_additive := Additive cnvar_is_rmorphism.
-Canonical cnvar_rmorphism := RMorphism cnvar_is_rmorphism.
+Fact cnvar_is_additive : additive cnvar.
+Proof. exact: rmorphB. Qed.
+HB.instance Definition _ :=
+  GRing.isAdditive.Build {mpoly R[m]} {mpoly R[n]} _ cnvar_is_additive.
+
+Fact cnvar_is_multplicative : multiplicative cnvar.
+Proof.  split; [exact: rmorphM | exact: rmorph1]. Qed.
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build {mpoly R[m]} {mpoly R[n]} _ cnvar_is_multplicative.
 
 Fact cnvar_is_linear : linear cnvar.
-Proof. by rewrite /cnvar; exact: linearP. Qed.
-Canonical cnvar_linear := AddLinear cnvar_is_linear.
-Canonical cnvar_lrmorphism := [lrmorphism of cnvar].
+Proof. exact: linearP. Qed.
+HB.instance Definition _ :=
+  GRing.isLinear.Build R {mpoly R[m]} {mpoly R[n]} _ _ cnvar_is_linear.
 
-Hypothesis (nlem : (n <= m)%N).
-Lemma tnth_cnvar_tuple (i : 'I_m) (ilen : (i < n)%N) :
-  tnth cnvar_tuple i = 'X_(Ordinal ilen).
+
+Hypothesis (le_m_n : (m <= n)%N).
+Lemma tnth_cnvar_tuple_old (i : 'I_n) (lt_i_m : (i < m)%N) :
+  tnth cnvar_tuple (Ordinal lt_i_m) = 'X_i.
 Proof.
 rewrite (tnth_nth 0) /= nth_cat size_take size_map size_enum_ord.
-rewrite (ltnNge m n) nlem /= ilen.
-rewrite nth_take ?(leq_trans ilen) //.
-rewrite (nth_map (Ordinal ilen)) ?size_enum_ord //; congr ('X_ _).
+rewrite -/(minn m n) (minn_idPl le_m_n) lt_i_m nth_take //.
+rewrite (nth_map (Ordinal (leq_trans lt_i_m _))) ?size_enum_ord //; congr ('X_ _).
 by apply val_inj; rewrite /= nth_enum_ord.
 Qed.
-
-Lemma tnth_cnvar_tuple0 (i : 'I_m) : (n <= i)%N -> tnth cnvar_tuple i = 0.
+Lemma tnth_cnvar_tuple (i : 'I_m) :
+  tnth cnvar_tuple i = 'X_(widen_ord le_m_n i).
 Proof.
-move=> nlei; rewrite (tnth_nth 0) /= nth_cat size_take size_map size_enum_ord.
-by rewrite (ltnNge m n) nlem /= (ltnNge i n) nlei /= nth_nseq if_same.
+have lt_i_n := leq_trans (ltn_ord i) le_m_n.
+rewrite (tnth_nth 0) /= nth_cat size_take size_map size_enum_ord.
+rewrite -/(minn m n) (minn_idPl le_m_n) ltn_ord nth_take //.
+rewrite (nth_map (widen_ord le_m_n i)) ?size_enum_ord //; congr ('X_ _).
+by apply val_inj; rewrite /= nth_enum_ord.
 Qed.
 
 End Defs.
@@ -82,87 +90,80 @@ Lemma cnvar_id n : @cnvar n n =1 id.
 Proof.
 move=> p; rewrite /cnvar.
 suff -> : cnvar_tuple n n = [tuple 'X_i | i < n] by rewrite comp_mpoly_id.
-apply eq_from_tnth => i.
-rewrite tnth_cnvar_tuple // tnth_mktuple; congr ('X_ _).
-exact: val_inj.
+apply: val_inj => /=.
+rewrite size_map size_enum_ord subnn /= cats0 take_oversize //.
+by rewrite size_map size_enum_ord.
 Qed.
 
 Lemma cnvar_compat i j k :
-  (i <= j)%N -> (j <= k)%N -> (@cnvar i j) \o (@cnvar j k) =1 (@cnvar i k).
+  (i <= j)%N -> (j <= k)%N -> (@cnvar k j) \o (@cnvar j i) =1 (@cnvar k i).
 Proof.
-move=> ilej jlek p /=; have ilek := leq_trans ilej jlek.
+move=> le_i_j le_j_k p /=; have le_i_k := leq_trans le_i_j le_j_k.
 rewrite /cnvar !(comp_mpolyE p) raddf_sum /=; apply eq_bigr => m _.
 rewrite comp_mpolyZ; congr (_ *: _).
 rewrite rmorph_prod /=; apply eq_bigr => l _.
-rewrite !rmorphX /=; congr (_ ^+ _).
-case: (ltnP l i) => [llti | ilel].
-- rewrite !tnth_cnvar_tuple ?(leq_trans llti ilej) // => Hlj.
-  by rewrite comp_mpolyXU -tnth_nth !tnth_cnvar_tuple.
-- rewrite [RHS]tnth_cnvar_tuple0 //.
-  case: (ltnP l j) => [lltj|jlel].
-  + by rewrite tnth_cnvar_tuple // comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
-  + by rewrite tnth_cnvar_tuple0 // comp_mpoly0.
+rewrite !rmorphXn /=; congr (_ ^+ _).
+rewrite !tnth_cnvar_tuple comp_mpolyXU -tnth_nth tnth_cnvar_tuple; congr ('X_ _).
+exact: val_inj.
 Qed.
 
+Section DirectSys.
 
-Section InverseSys.
+Definition cnvarbond (m n : nat) of (m <= n)%O := @cnvar n m.
+Definition infpoly_sys :=
+  @IsDirSys _ _ _ cnvarbond 0%N (fun m _ => @cnvar_id m) cnvar_compat.
 
-Definition cnvarbond (i j : nat) of (i <= j)%O := @cnvar i j.
-Program Definition infpoly_sys := @InvSys _ _ _ cnvarbond 0%N _ _.
-Next Obligation. exact: cnvar_id. Qed.
-Next Obligation. exact: cnvar_compat. Qed.
+Variables (m n : nat) (le_m_n : (m <= n)%O).
 
+Fact cnvarbond_is_additive : additive (cnvarbond le_m_n).
+Proof. exact: rmorphB. Qed.
+HB.instance Definition _ :=
+  GRing.isAdditive.Build {mpoly R[m]} {mpoly R[n]} _ cnvarbond_is_additive.
 
-Variables (i j : nat) (H : (i <= j)%O).
-Fact cnvarbond_is_rmorphism : rmorphism (cnvarbond H).
-Proof. exact: cnvar_is_rmorphism. Qed.
-Canonical cnvarbond_additive := Additive cnvarbond_is_rmorphism.
-Canonical cnvarbond_rmorphism := RMorphism cnvarbond_is_rmorphism.
+Fact cnvarbond_is_multplicative : multiplicative (cnvarbond le_m_n).
+Proof.  split; [exact: rmorphM | exact: rmorph1]. Qed.
+HB.instance Definition _ :=
+  GRing.isMultiplicative.Build
+    {mpoly R[m]} {mpoly R[n]} _ cnvarbond_is_multplicative.
 
-Fact cnvarbond_is_linear : linear (cnvarbond H).
-Proof. exact: cnvar_is_linear. Qed.
-Canonical cnvarbond_linear := AddLinear cnvarbond_is_linear.
-Canonical cnvarbond_lrmorphism := [lrmorphism of (cnvarbond H)].
+Fact cnvarbond_is_linear : linear (cnvarbond le_m_n).
+Proof. exact: linearP. Qed.
+HB.instance Definition _ :=
+  GRing.isLinear.Build R {mpoly R[m]} {mpoly R[n]} _ _ cnvarbond_is_linear.
 
-End InverseSys.
+Lemma cnvarbondX (i : 'I_m) : (cnvarbond le_m_n) 'X_i = 'X_(widen_ord le_m_n i).
+Proof. by rewrite /cnvarbond /cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple. Qed.
 
+End DirectSys.
 
 End CNVars.
+
 
 Section Tests.
 
 Variable R : comRingType.
 
-Variables (i j : nat) (H : (i <= j)%O).
+Check {dirlim infpoly_sys R} : algType R.
+Check {dirlim infpoly_sys R} : dirLimType (infpoly_sys R).
+Check 'inj[{dirlim infpoly_sys R}]_1 : {mpoly R[1]} -> {dirlim infpoly_sys R}.
+Check 'X_0 : {mpoly R[1]}.
 
-(*
-Check [lrmorphism of (cnvarbond H)].
-Check [zmodType of {invlim infpoly_sys R}].
-Check [comRingType of {invlim infpoly_sys R}].
-Check [lmodType R of {invlim infpoly_sys R}].
-Check [algType R of {invlim infpoly_sys R}].
+(* TODO : why is Coq not able to infer `{dirlim infpoly_sys R}`
+
+Goal 'inj_1 'X_0 = 'inj_3 'X_0 :> {dirlim infpoly_sys R}.
+
  *)
-
-Goal forall (r : R) (x y : {invlim infpoly_sys R}),
-  'pi_2 (r *: (x * y)) = 'pi_2 y * 'pi_2 (r *: x).
-Proof. by move=> r x y; rewrite !linearZ /= mulrC -scalerAr rmorphM /=. Qed.
-
-End Tests.
-
-Section InfPolyTheory.
-Variable R : comRingType.
-
-Fact infpolyXP i :
-  isthread (infpoly_sys R)
-         (fun n => if ltnP i n is LtnNotGeq Pf then 'X_(Ordinal Pf) else 0).
+Goal 'inj[{dirlim infpoly_sys R}]_1 'X_0 = 'inj[{dirlim infpoly_sys R}]_3 'X_0.
 Proof.
-move=> m n mlen /=.
-case (ltnP i m) => [iltm|mlei]; case (ltnP i n) => [iltn|nlei].
-- by rewrite /cnvarbond/cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple.
-- by exfalso; have:= leq_trans iltm (leq_trans mlen nlei); rewrite ltnn.
-- by rewrite /cnvarbond/cnvar comp_mpolyXU -tnth_nth tnth_cnvar_tuple0.
-- by rewrite raddf0.
+have le_1_3 : (1 <= 3 :> nat)%O by [].
+rewrite -(dlinjE _ le_1_3); congr ('inj).
+by rewrite cnvarbondX.
 Qed.
-Definition infpolyX i : {invlim infpoly_sys _} := MkInvLim (infpolyXP i).
 
-End InfPolyTheory.
+Definition infpolyvar (i : nat) :=
+  'inj[{dirlim infpoly_sys R}]_i.+1 'X_(Ordinal (ltnSn i)).
+
+Lemma infpolyvarE i n (le_i_n : (i < n)%N) :
+  infpolyvar i = 'inj[{dirlim infpoly_sys R}]_n 'X_(Ordinal le_i_n).
+Proof.
+
