@@ -22,7 +22,7 @@ From mathcomp Require Import all_ssreflect ssralg.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order bigop.
 
-Require Import natbar directed.
+Require Import natbar directed dirlim_constr.
 
 
 Import GRing.Theory.
@@ -34,13 +34,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Reserved Notation "{ 'dirlim' S }" (at level 0, format "{ 'dirlim'  S }").
-Reserved Notation "''inj_' i" (at level 8, i at level 2, format "''inj_' i").
-Reserved Notation "''inj[' T ']'" (at level 8).
-Reserved Notation "''inj[' T ']_' i" (at level 8, i at level 2).
-Reserved Notation "''ind[' T ']'" (at level 8).
-
-
 
 (***************************************************************************)
 (** Direct systems and direct limits                                       *)
@@ -48,80 +41,95 @@ Reserved Notation "''ind[' T ']'" (at level 8).
 (***************************************************************************)
 Section DirectSystem.
 
-Variables (disp : unit) (I : porderType disp).
+Variables (disp : unit) (I : dirType disp).
 
-(** Objects and bonding morphisms of the direct system at left outside     *)
-(** the record below to allows the addition of more algebraic structure    *)
-(** For example : ringType / rmorphism.                                    *)
 Variable Ob : I -> Type.
 Variable bonding : (forall i j, i <= j -> Ob i -> Ob j).
-Record is_dirsys : Type := IsDirSys {
-      dirsys_inh : I;
-      dirsys_id  : forall i (Hii : i <= i), (bonding Hii) =1 id;
-      dirsys_comp : forall i j k  (Hij : i <= j) (Hjk : j <= k),
-          (bonding Hjk) \o (bonding Hij) =1 (bonding (le_trans Hij Hjk));
-  }.
-
-(** Make sure the following definitions depend on the system and not only  *)
-(** on the morphisms. This is needed to triger the unification in the      *)
-(** notation {invlim S} and to get the inhabitant of I.                    *)
-Definition cocone of is_dirsys  :=
-  fun T (mors : forall i, Ob i -> T) =>
-    forall i j, forall (Hij : i <= j), mors j \o bonding Hij =1 mors i.
 
 Lemma bondingE i j (Hij1 Hij2 : i <= j) : bonding Hij1 =1 bonding Hij2.
 Proof. by rewrite (Prop_irrelevance Hij1 Hij2). Qed.
 
-Lemma bonding_transE (Sys : is_dirsys) i j k (Hij : i <= j) (Hjk : j <= k) u :
-  (bonding Hjk) (bonding Hij u) = bonding (le_trans Hij Hjk) u.
-Proof. by move/dirsys_comp : Sys; apply. Qed.
-
-Lemma coconeE Sys T (mors : forall i, Ob i -> T) :
-  cocone Sys mors ->
-    forall i j (Hij : i <= j) u, mors j (bonding Hij u) = mors i u.
-Proof. by rewrite /cocone => H i j le_ij u; rewrite -(H i j le_ij). Qed.
+Definition mk_dirsys i id comp :=
+  @IsDirSys disp I Ob bonding i bondingE id comp.
 
 End DirectSystem.
 
-
-
-(***************************************************************************)
-(** Interface for direct limits                                            *)
-(*                                                                         *)
-(***************************************************************************)
-Open Scope ring_scope.
-
-
 #[key="dlT"]
-HB.mixin Record isDirLim
-    (disp : unit) (I : porderType disp)
+HB.factory Record isDirLim_classical
+    (disp : unit) (I : dirType disp)
     (Obj : I -> Type)
     (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : is_dirsys bonding)
   dlT of Choice dlT := {
-    dirlim_inj : forall i, Obj i -> dlT;
-    dirlim_ind : forall (T : Type) (f : forall i, Obj i -> T),
-      (cocone Sys f) -> dlT -> T;
+    dirlim_inj i : Obj i -> dlT;
+    dirlim_ind T (f : forall i, Obj i -> T) (Hcone : cocone Sys f) : dlT -> T;
     dlinjP : cocone Sys dirlim_inj;
-    dlind_commute : forall T (f : forall i, Obj i -> T) (Hcone : cocone Sys f),
+    dlind_commute T (f : forall i, Obj i -> T) (Hcone : cocone Sys f) :
       forall i, dirlim_ind T f Hcone \o dirlim_inj i =1 f i;
-    dlind_uniq : forall T (f : forall i, Obj i -> T) (Hcone : cocone Sys f),
+    dlind_uniq T (f : forall i, Obj i -> T) (Hcone : cocone Sys f) :
       forall (ind : dlT -> T),
         (forall i, ind \o dirlim_inj i =1 f i) ->
         ind =1 dirlim_ind T f Hcone
   }.
-
-#[short(type="dirLimType")]
-HB.structure Definition DirLim
-    (disp : unit) (I : porderType disp)
+HB.builders Context
+    (disp : unit) (I : dirType disp)
     (Obj : I -> Type)
     (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : is_dirsys bonding)
-  := {
-    dlT of isDirLim disp I Obj bonding Sys dlT
-    & Choice dlT
-  }.
+  dlT of isDirLim_classical disp I Obj bonding Sys dlT.
 
+Lemma cocone_dsyseq u :
+  cocone Sys (fun j (v : Obj j) => `[< dsysequal Sys u (DPair v) >]).
+Proof.
+move=> j k le_jk v /=.
+case: (boolP `[< dsysequal Sys u (DPair v) >]) => /asboolP.
+- move=> [l /= le_il le_jl Hbond]; apply/asboolP.
+  have [m le_km le_lm] := directedP k l.
+  apply: (Dsysequal (le_trans le_il le_lm)) => /=.
+  rewrite -(dirsys_comp Sys le_il le_lm) /= Hbond.
+  by rewrite !bonding_transE //; apply: bondingE.
+- move=> Hnthr; apply/asboolF => /= [] [l /= le_il le_kl].
+  rewrite bonding_transE // => Hbond; apply: Hnthr.
+  apply: (Dsysequal le_il) => /=; first exact: le_trans le_jk le_kl.
+  by move => le_jl; rewrite Hbond; apply: bondingE.
+Qed.
+
+Lemma dirlim_eq i (u : Obj i) j (v : Obj j) :
+  dirlim_inj u = dirlim_inj v ->
+  exists k (leik : i <= k) (lejk : j <= k),
+    bonding i k leik u = bonding j k lejk v.
+Proof.
+move=> eqinj.
+apply contrapT; rewrite -forallNP => Hbond.
+have Hcone := cocone_dsyseq (DPair v).
+have /= := @dlind_commute _ _ Hcone j v; rewrite -eqinj.
+have /= -> := (@dlind_commute _ _ Hcone i u).
+move=> H; have {H} [_] := (asbool_eq_equiv H).
+move/(_ (dsysequal_refl _ (DPair v))).
+move=> [k le_jk le_ik Habs].
+apply: (Hbond k); exists (le_ik); exists (le_jk); rewrite Habs.
+exact: bondingE.
+Qed.
+
+Lemma dirlim_surj (x : dlT) : exists i (u : Obj i), dirlim_inj u = x.
+Proof.
+rewrite not_existsP => H.
+pose f i := pred0 (T := Obj i).
+have Hcone : cocone Sys f by [].
+have /(@dlind_uniq _ _ Hcone)/(_ x) :
+  forall i, (pred0 (T := dlT)) \o dirlim_inj (i:=i) =1 f i by [].
+suff /(@dlind_uniq _ _ Hcone)/(_ x) <- :
+  forall i, (pred1 x) \o dirlim_inj (i:=i) =1 f i.
+  by rewrite /= eqxx.
+rewrite /f => i u /=; apply/negP => /eqP eq_inj.
+by apply/(H i); exists u.
+Qed.
+
+HB.instance Definition _ :=
+  isDirLim.Build disp I Obj bonding Sys dlT
+    dirlim_eq dirlim_surj dlinjP dlind_commute dlind_uniq.
+
+HB.end.
 
 
 Section InternalTheory.
@@ -145,15 +153,6 @@ Lemma injindE  T (f : forall i, Obj i -> T) (Hcone : cocone Sys f) i u :
 Proof. exact: dlind_commute. Qed.
 
 End InternalTheory.
-
-Arguments dlinjP {disp I Obj bonding} [Sys].
-
-Notation "''inj[' dlT ']_' i" := (dirlim_inj (s := dlT) i) (only parsing).
-Notation "''inj[' dlT ']'" := ('inj[dlT]_ _)  (only parsing).
-Notation "''inj_' i" := ('inj[ _ ]_ i).
-Notation "''inj'" := ('inj[ _ ]_ _).
-Notation "''ind[' T ']'" := (dirlim_ind (s := T) _ _)  (only parsing).
-Notation "''ind'" := ('ind[ _ ]).
 
 
 Section Theory.

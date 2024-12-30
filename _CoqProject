@@ -7,6 +7,7 @@
 theories/fps/directed.v
 theories/fps/invlim.v
 theories/fps/dirlim.v
+theories/fps/dirlim_constr.v
 theories/fps/natbar.v
 theories/fps/infpoly.v
 theories/fps/padic.v
