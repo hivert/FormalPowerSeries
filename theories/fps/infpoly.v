@@ -14,7 +14,7 @@
 (******************************************************************************)
 From HB Require Import structures.
 From mathcomp Require Import all_ssreflect all_algebra.
-From mathcomp Require Import ssrcomplements freeg mpoly.
+From mathcomp Require Import freeg mpoly.
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
