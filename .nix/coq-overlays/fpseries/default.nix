@@ -6,7 +6,7 @@
 
 { lib, mkCoqDerivation, which, coq
   , hierarchy-builder
-  , mathcomp-ssreflect, mathcomp-algebra, mathcomp-classical
+  , mathcomp-ssreflect, mathcomp-algebra, mathcomp-classical, multinomials
   ## declare extra dependencies here, to be used in propagateBuildInputs e.g.
   # , mathcomp, coq-elpi
   , version ? null }:
@@ -44,7 +44,7 @@ with lib; mkCoqDerivation {
   ## - OCaml packages (use `coq.ocamlPackages.xxx`, no need to require them at the beginning of the file)
   propagatedBuildInputs =
     [ hierarchy-builder
-      mathcomp-ssreflect mathcomp-algebra mathcomp-classical ];
+      mathcomp-ssreflect mathcomp-algebra mathcomp-classical multinomials ];
 
   ## Does the package contain OCaml code?
   # mlPlugin = false;

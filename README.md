@@ -58,6 +58,7 @@ To compile it I'm using the following opam packages:
 coq-hierarchy-builder     1.7.0
 coq-mathcomp-ssreflect    2.2.0
 coq-mathcomp-algebra      2.2.0
+coq-mathcomp-multinomials 2.2.0
 coq-mathcomp-classical    1.0.0
 ```
 
