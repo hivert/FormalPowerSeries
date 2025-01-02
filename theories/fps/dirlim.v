@@ -38,16 +38,6 @@ Unset Printing Implicit Defensive.
 (** Direct systems and direct limits                                       *)
 (*                                                                         *)
 (***************************************************************************)
-Section DirectSystem.
-
-Variables (disp : unit) (I : dirType disp).
-
-Variable Ob : I -> Type.
-Variable bonding : (forall i j, i <= j -> Ob i -> Ob j).
-
-Definition mk_dirsys i id comp := @IsDirSys disp I Ob bonding i id comp.
-
-End DirectSystem.
 
 #[key="dlT"]
 HB.factory Record isDirLim_classical

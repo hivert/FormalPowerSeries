@@ -856,6 +856,24 @@ Qed.
 
 HB.end.
 
+HB.factory Record DirLim_isZmoduleDirLim
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> zmodType)
+    (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> zmodType)
+    (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isZmoduleDirLim _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  DirLim_isNmoduleDirLim.Build _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  NmoduleDirLim_isZmoduleDirLim.Build _ _ _ _ Sys dlT.
+HB.end.
+
 
 HB.factory Record NmoduleDirLim_isSemiRingDirLim
     (disp : unit) (I : dirType disp)
@@ -952,6 +970,24 @@ HB.instance Definition _ :=
 
 HB.end.
 
+HB.factory Record DirLim_isSemiRingDirLim
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> semiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> semiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isSemiRingDirLim _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  DirLim_isNmoduleDirLim.Build _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  NmoduleDirLim_isSemiRingDirLim.Build _ _ _ _ Sys dlT.
+HB.end.
+
 
 HB.factory Record SemiRingDirLim_isRingDirLim
     (disp : unit) (I : dirType disp)
@@ -965,12 +1001,27 @@ HB.builders Context
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of SemiRingDirLim_isRingDirLim _ _ _ _ Sys dlT.
-
-Implicit Type x y : dlT.
-
 HB.instance Definition _ :=
   NmoduleDirLim_isZmoduleDirLim.Build _ _ _ _ Sys dlT.
+HB.end.
 
+
+HB.factory Record DirLim_isRingDirLim
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> ringType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> ringType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isRingDirLim _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  DirLim_isSemiRingDirLim.Build _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  SemiRingDirLim_isRingDirLim.Build _ _ _ _ Sys dlT.
 HB.end.
 
 
@@ -1000,6 +1051,25 @@ HB.instance Definition _ :=
 HB.end.
 
 
+HB.factory Record DirLim_isComSemiRingDirLim
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> comSemiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> comSemiRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isComSemiRingDirLim _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  DirLim_isSemiRingDirLim.Build _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  SemiRingDirLim_isComSemiRingDirLim.Build _ _ _ _ Sys dlT.
+HB.end.
+
+
 HB.factory Record RingDirLim_isComRingDirLim
     (disp : unit) (I : dirType disp)
     (Obj : I -> comRingType)
@@ -1012,12 +1082,27 @@ HB.builders Context
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of RingDirLim_isComRingDirLim _ _ _ _ Sys dlT.
-
-Implicit Type x y : dlT.
-
 HB.instance Definition _ :=
   SemiRingDirLim_isComSemiRingDirLim.Build _ _ _ _ Sys dlT.
+HB.end.
 
+
+HB.factory Record DirLim_isComRingDirLim
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> comRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> comRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isComRingDirLim _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  DirLim_isRingDirLim.Build _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  RingDirLim_isComRingDirLim.Build _ _ _ _ Sys dlT.
 HB.end.
 
 
@@ -1152,6 +1237,32 @@ HB.instance Definition _ := GRing.ComUnitRing_isIntegral.Build dlT dlmul_eq0.
 HB.end.
 
 
+HB.factory Record IDomainDirLim_isFieldDirLim
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> fieldType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of IDomainDirLim _ Sys dlT := {}.
+HB.builders Context
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> fieldType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of IDomainDirLim_isFieldDirLim _ _ _ _ Sys dlT.
+
+Fact dirlim_field_axiom : GRing.field_axiom dlT.
+Proof.
+move=> x; have [i u <-{x} Hu] := dirlimP x.
+have : u != 0 by move: Hu; apply contra => /eqP ->; rewrite raddf0.
+rewrite -unitfE => uunit.
+by apply/dlunitP; exists i; exists u.
+Qed.
+HB.instance Definition _ :=
+    GRing.UnitRing_isField.Build dlT dirlim_field_axiom.
+
+HB.end.
+
+
 HB.factory Record ZmoduleDirLim_isLmoduleDirLim
     (R : ringType)
     (disp : unit) (I : dirType disp)
@@ -1213,6 +1324,27 @@ HB.instance Definition _ :=
 HB.end.
 
 
+HB.factory Record DirLim_isLmoduleDirLim
+    (R : ringType)
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> lmodType R)
+    (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (R : ringType)
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> lmodType R)
+    (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isLmoduleDirLim R _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  DirLim_isZmoduleDirLim.Build _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  ZmoduleDirLim_isLmoduleDirLim.Build _ _ _ _ _ Sys dlT.
+HB.end.
+
+
 HB.factory Record LmoduleDirLim_isLalgebraDirLim
     (R : ringType)
     (disp : unit) (I : dirType disp)
@@ -1244,6 +1376,28 @@ HB.instance Definition _ :=
 HB.end.
 
 
+HB.factory Record DirLim_isLalgebraDirLim
+    (R : ringType)
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> lalgType R)
+    (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (R : ringType)
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> lalgType R)
+    (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isLalgebraDirLim R _ _ _ _ Sys dlT.
+
+HB.instance Definition _ :=
+  DirLim_isLmoduleDirLim.Build R _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  LmoduleDirLim_isLalgebraDirLim.Build R _ _ _ _ Sys dlT.
+HB.end.
+
+
 HB.factory Record LalgebraDirLim_isAlgebraDirLim
     (R : comRingType)
     (disp : unit) (I : dirType disp)
@@ -1272,29 +1426,25 @@ HB.instance Definition _ :=
 HB.end.
 
 
-HB.factory Record IDomainDirLim_isFieldDirLim
+HB.factory Record DirLim_isAlgebraDirLim
+    (R : comRingType)
     (disp : unit) (I : dirType disp)
-    (Obj : I -> fieldType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Obj : I -> algType R)
+    (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
-  dlT of IDomainDirLim _ Sys dlT := {}.
+  dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
+    (R : comRingType)
     (disp : unit) (I : dirType disp)
-    (Obj : I -> fieldType)
-    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Obj : I -> algType R)
+    (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
-  dlT of IDomainDirLim_isFieldDirLim _ _ _ _ Sys dlT.
-
-Fact dirlim_field_axiom : GRing.field_axiom dlT.
-Proof.
-move=> x; have [i u <-{x} Hu] := dirlimP x.
-have : u != 0 by move: Hu; apply contra => /eqP ->; rewrite raddf0.
-rewrite -unitfE => uunit.
-by apply/dlunitP; exists i; exists u.
-Qed.
+  dlT of DirLim_isAlgebraDirLim R _ _ _ _ Sys dlT.
 HB.instance Definition _ :=
-    GRing.UnitRing_isField.Build dlT dirlim_field_axiom.
-
+  DirLim_isLalgebraDirLim.Build R _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  LalgebraDirLim_isAlgebraDirLim.Build R _ _ _ _ Sys dlT.
 HB.end.
+
 
 Close Scope ring_scope.
