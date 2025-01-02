@@ -83,7 +83,6 @@ Proof. by rewrite /cocone => H i j le_ij u; rewrite -(H i j le_ij). Qed.
 
 
 Implicit Types (i j k : I) (u v : {i : I & Obj i}).
-Definition DPair i (u : Obj i) := (existT Obj i u).
 
 Inductive dsysequal (Sys : is_dirsys) u v : Prop :=
   | Dsysequal : forall k (le_ik : projT1 u <= k) (le_jk : projT1 v <= k),
@@ -94,7 +93,7 @@ Local Arguments Dsysequal {Sys u v k} (le_ik le_jk).
 Variable Sys : is_dirsys.
 
 Lemma dsysequal_bonding i j (le_ij : i <= j) (u : Obj i) :
-  dsysequal Sys (DPair u) (DPair (bonding le_ij u)).
+  dsysequal Sys (existT Obj i u) (existT Obj j (bonding le_ij u)).
 Proof.
 apply: (Dsysequal (k := j)) => /=.
 by rewrite bonding_transE //; apply: bondingE.
@@ -126,7 +125,7 @@ Variables (T : Type) (f : forall i, Obj i -> T).
 Hypothesis Hcone : cocone Sys f.
 
 Lemma dsysequalE i j (u : Obj i) (v : Obj j) :
-  dsysequal Sys (DPair u) (DPair v) -> f u = f v.
+  dsysequal Sys (existT Obj i u) (existT Obj j v) -> f u = f v.
 Proof.
 move=> [k le_ik le_jk Hbond].
 by rewrite -(coconeE Hcone le_ik) Hbond (coconeE Hcone).
@@ -237,7 +236,7 @@ Proof.
 suff : { p : {i & Obj i} | 'inj (projT2 p) == x }.
   by move=> [p /eqP Heq]; exists p.
 apply: sigW => /=; have [i[u] <-{x}]:= dirlim_surj x.
-by exists (DPair u).
+by exists (existT Obj i u).
 Qed.
 Lemma dirlimS2P x y :
   { p : {i & (Obj i * Obj i)%type} |
@@ -274,8 +273,9 @@ Variable Sys : is_dirsys bonding.
 Variable dlT : dirLimType Sys.
 Implicit Type (x y z : dlT).
 
-Lemma dirlimE i j (u : Obj i) (v : Obj j) :
-  reflect (dsysequal Sys (DPair u) (DPair v)) ('inj[dlT] u == 'inj[dlT] v).
+Lemma dirlimE i j (u : Obj i) (v : Obj j) : reflect
+    (dsysequal Sys (existT Obj i u) (existT Obj j v))
+    ('inj[dlT] u == 'inj[dlT] v).
 Proof.
 apply (iffP eqP).
   by move/(dirlim_eq i u j v) => [k] [ik] [jk] Heq; exists k ik jk.
@@ -1134,7 +1134,7 @@ move/dlunit_decP => H.
 suff : {p : {i & Obj i} |
   ('inj[dlT] (projT2 p) == x) && (projT2 p \is a GRing.unit)}.
   by move=> [p] /andP[/eqP H1 H2]; exists p.
-apply: sigW; move: H => /= [i][u][<-{x} Hunit]; exists (DPair u) => /=.
+apply: sigW; move: H => /= [i][u][<-{x} Hunit]; exists (existT Obj i u).
 by rewrite eq_refl Hunit.
 Qed.
 

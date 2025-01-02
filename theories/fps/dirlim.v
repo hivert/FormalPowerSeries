@@ -64,10 +64,10 @@ HB.builders Context
   dlT of isDirLim_classical disp I Obj bonding Sys dlT.
 
 Lemma cocone_dsyseq u :
-  cocone Sys (fun j (v : Obj j) => `[< dsysequal Sys u (DPair v) >]).
+  cocone Sys (fun j (v : Obj j) => `[< dsysequal Sys u (existT Obj j v) >]).
 Proof.
 move=> j k le_jk v /=.
-case: (boolP `[< dsysequal Sys u (DPair v) >]) => /asboolP.
+case: (boolP `[< dsysequal Sys u (existT Obj j v) >]) => /asboolP.
 - move=> [l /= le_il le_jl Hbond]; apply/asboolP.
   have [m le_km le_lm] := directedP k l.
   apply: (Dsysequal (le_trans le_il le_lm)) => /=.
@@ -86,12 +86,11 @@ Lemma dirlim_eq i (u : Obj i) j (v : Obj j) :
 Proof.
 move=> eqinj.
 apply contrapT; rewrite -forallNP => Hbond.
-have Hcone := cocone_dsyseq (DPair v).
-have /= := @dlind_commute _ _ Hcone j v; rewrite -eqinj.
-have /= -> := (@dlind_commute _ _ Hcone i u).
-move=> H; have {H} [_] := (asbool_eq_equiv H).
-move/(_ (dsysequal_refl _ (DPair v))).
-move=> [k le_jk le_ik Habs].
+have Hcone := cocone_dsyseq (existT Obj j v).
+have /= := dlind_commute Hcone v; rewrite -eqinj.
+have /= -> := dlind_commute Hcone u.
+move=> H; have {H} [_] := asbool_eq_equiv H.
+move=> /(_ (dsysequal_refl _ (existT Obj j v))) [k le_jk le_ik Habs].
 apply: (Hbond k); exists (le_ik); exists (le_jk); rewrite Habs.
 exact: bondingE.
 Qed.
@@ -130,7 +129,7 @@ Lemma dsyseqP u v : reflect (dsysequal Sys u v) (dsyseq Sys u v).
 Proof. exact: asboolP. Qed.
 
 Lemma dsyseq_bonding i j (le_ij : i <= j) (u : Obj i) :
-  dsyseq Sys (DPair u) (DPair (bonding le_ij u)).
+  dsyseq Sys (existT Obj i u) (existT Obj j (bonding le_ij u)).
 Proof.
 apply/dsyseqP; apply: (Dsysequal (k := j)) => /=.
 by rewrite bonding_transE //; apply: bondingE.
@@ -146,10 +145,10 @@ Canonical SysEq :=
   EquivRel (@dsyseq Sys) dsyseq_refl dsyseq_sym dsyseq_trans.
 
 Lemma cocone_dsyseq u :
-  cocone Sys (fun j (v : Obj j) => dsyseq Sys u (DPair v)).
+  cocone Sys (fun j (v : Obj j) => dsyseq Sys u (existT Obj j v)).
 Proof.
 move=> j k le_jk v /=.
-case: (boolP (dsyseq Sys u (DPair v))) => [/dsyseqP | /dsyseqP Hnthr].
+case: (boolP (dsyseq Sys u (existT Obj j v))) => [/dsyseqP | /dsyseqP Hnthr].
 - move=> [l /= le_il le_jl Hbond]; apply/asboolP.
   have [m le_km le_lm] := directedP k l.
   apply: (Dsysequal (le_trans le_il le_lm)) => /=.
@@ -165,7 +164,7 @@ Variable dlT : dirLimType Sys.
 Implicit Type (x y z : dlT).
 
 Lemma dsyseqE i j (u : Obj i) (v : Obj j) :
-  ('inj[dlT] u == 'inj[dlT] v) = (dsyseq Sys (DPair u) (DPair v)).
+  ('inj[dlT] u == 'inj[dlT] v) = (dsyseq Sys (existT Obj i u) (existT Obj j v)).
 Proof. exact/dirlimE/dsyseqP. Qed.
 
 End DirSysCongr.
@@ -221,7 +220,23 @@ HB.instance Definition _ :=
 HB.end.
 
 
-(** ComUnitRingInvLim is just a join *)
+HB.factory Record DirLim_isComUnitRingDirLim
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> comUnitRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim _ Sys dlT := {}.
+HB.builders Context
+    (disp : unit) (I : dirType disp)
+    (Obj : I -> comUnitRingType)
+    (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
+    (Sys : is_dirsys bonding)
+  dlT of DirLim_isComUnitRingDirLim _ _ _ _ Sys dlT.
+
+HB.instance Definition _ := DirLim_isUnitRingDirLim.Build _ _ _ _ Sys dlT.
+HB.instance Definition _ :=
+  SemiRingDirLim_isComSemiRingDirLim.Build _ _ _ _ Sys dlT.
+HB.end.
 
 
 HB.factory Record DirLim_isIDomainDirLim
@@ -240,9 +255,7 @@ HB.builders Context
 Implicit Type x y : dlT.
 
 HB.instance Definition _ :=
-  DirLim_isUnitRingDirLim.Build _ _ _ _ Sys dlT.
-HB.instance Definition _ :=
-  SemiRingDirLim_isComSemiRingDirLim.Build _ _ _ _ Sys dlT.
+  DirLim_isComUnitRingDirLim.Build _ _ _ _ Sys dlT.
 HB.instance Definition _ :=
   ComUnitRingDirLim_isIntegralDirLim.Build _ _ _ _ Sys dlT.
 
@@ -286,7 +299,7 @@ Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : is_dirsys bonding.
 
 Definition dirlim := {eq_quot (dsyseq Sys)}.
-Definition dlinj_impl i (u : Obj i) := \pi_dirlim (DPair u).
+Definition dlinj_impl i (u : Obj i) := \pi_dirlim (existT Obj i u).
 
 HB.instance Definition _ := Choice.on dirlim.
 
@@ -304,8 +317,8 @@ Variable Sys : is_dirsys bonding.
 Implicit Type (i j k : I) (x y : {dirlim Sys}).
 
 Lemma dsyseq_dlinj_impl i (u : Obj i) :
-  dsyseq Sys (DPair u) (repr (dlinj_impl Sys u)).
-Proof. by have [v /eqmodP] := piP {dirlim Sys} (DPair u). Qed.
+  dsyseq Sys (existT Obj i u) (repr (dlinj_impl Sys u)).
+Proof. by have [v /eqmodP] := piP {dirlim Sys} (existT Obj i u). Qed.
 
 (** Budlding the universal induced map *)
 Section UniversalProperty.
@@ -323,7 +336,7 @@ by case: (repr _) (dsyseq_dlinj_impl u).
 Qed.
 
 Lemma dlind_implE i j (u : Obj i) (v : Obj j) :
-  dsyseq Sys (DPair u) (DPair v) ->
+  dsyseq Sys (existT Obj i u) (existT Obj j v) ->
   dlind_impl Hcone (dlinj_impl Sys  u) = dlind_impl Hcone (dlinj_impl Sys  v).
 Proof. by rewrite !dlind_implP => /dsyseqP/(dsysequalE Hcone). Qed.
 
@@ -429,6 +442,24 @@ HB.instance Definition _ := GRing.ComRing.on {dirlim Sys}.
 Let test : comUnitRingDirLimType _ := {dirlim Sys}.
 End ComUnitRing.
 
+Section IDomain.
+Variable Obj : I -> idomainType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj i -> Obj j}.
+Variable Sys : is_dirsys bonding.
+HB.instance Definition _ :=
+  DirLim_isIDomainDirLim.Build _ _ _ _ Sys {dirlim Sys}.
+Let test : idomainDirLimType _ := {dirlim Sys}.
+End IDomain.
+
+Section Field.
+Variable Obj : I -> fieldType.
+Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj i -> Obj j}.
+Variable Sys : is_dirsys bonding.
+HB.instance Definition _ :=
+  DirLim_isFieldDirLim.Build _ _ _ _ Sys {dirlim Sys}.
+Let test : fieldDirLimType _ := {dirlim Sys}.
+End Field.
+
 Section Linear.
 Variables (R : ringType).
 Variable Obj : I -> lmodType R.
@@ -479,24 +510,6 @@ Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj i -> Obj j}.
 Variable Sys : is_dirsys bonding.
 HB.instance Definition _ := GRing.Algebra.on {dirlim Sys}.
 End ComUnitAlg.
-
-Section IDomain.
-Variable Obj : I -> idomainType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj i -> Obj j}.
-Variable Sys : is_dirsys bonding.
-HB.instance Definition _ :=
-  DirLim_isIDomainDirLim.Build _ _ _ _ Sys {dirlim Sys}.
-Let test : idomainDirLimType _ := {dirlim Sys}.
-End IDomain.
-
-Section Field.
-Variable Obj : I -> fieldType.
-Variable bonding : forall i j, (i <= j)%O -> {rmorphism Obj i -> Obj j}.
-Variable Sys : is_dirsys bonding.
-HB.instance Definition _ :=
-  DirLim_isFieldDirLim.Build _ _ _ _ Sys {dirlim Sys}.
-Let test : fieldDirLimType _ := {dirlim Sys}.
-End Field.
 
 End Instances.
 
