@@ -101,7 +101,7 @@ Definition lebar u v :=
   | Nat m, Nat n => m <= n
   | _, _ => false
   end.
-Definition lebar_display : unit. Proof. exact: tt. Qed.
+Definition lebar_display : Order.disp_t. Proof. by []. Qed.
 
 Fact lebar_refl : reflexive lebar.
 Proof. by case=> [m|] /=. Qed.
@@ -128,7 +128,7 @@ Proof. by []. Qed.
 Lemma ltEnatbar (n m : nat) : (Nat n < Nat m) = (n < m)%N.
 Proof. by rewrite lt_neqAle leEnatbar Nat_eqE ltn_neqAle. Qed.
 
-Lemma omorphNat_subproof : Order.order_morphism Nat.
+Lemma omorphNat_subproof : {homo Nat : x y / x <= y}.
 Proof. by move=> x y; rewrite leEnatbar leEnat. Qed.
 HB.instance Definition _ :=
   Order.isOrderMorphism.Build _ _ _ _ Nat omorphNat_subproof.

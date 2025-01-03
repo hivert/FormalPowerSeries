@@ -96,7 +96,8 @@ We prove the [Lagrange_Bürmann] theorem giving the coefficent of the Lagrange
 fixpoint and its compose series.
 *******************************************************************************)
 From HB Require Import structures.
-From mathcomp Require Import all_ssreflect all_algebra.
+From mathcomp Require Import all_ssreflect.
+From mathcomp Require Import ssralg poly ring_quotient (* avoid sesquilinear *).
 From mathcomp Require Import boolp classical_sets.
 From mathcomp Require Import order.
 
@@ -114,14 +115,15 @@ Local Open Scope ring_scope.
 
 Declare Scope fps_scope.
 Delimit Scope fps_scope with fps.
+Local Open Scope fps_scope.
 
 Reserved Notation "{ 'fps' R }"
          (at level 0, R at level 2, format "{ 'fps'  R }").
-Reserved Notation "c %:S" (at level 2, format "c %:S").
+Reserved Notation "c %:S" (at level 1, format "c %:S").
 Reserved Notation "\fps E .X^ i"
   (at level 36, E at level 36, i at level 50, format "\fps  E  .X^ i").
 Reserved Notation "''X" (at level 0).
-Reserved Notation "a ^`` ()" (at level 8, format "a ^`` ()").
+Reserved Notation "a ^`` ()" (at level 1, format "a ^`` ()").
 Reserved Notation "s ``_ i" (at level 3, i at level 2, left associativity,
                             format "s ``_ i").
 Reserved Notation "f \oS g" (at level 50).
@@ -261,7 +263,7 @@ Section CoeffSeries.
 
 Variable R : ringType.
 
-Implicit Types (a b c: R) (s t u : {fps R}) (p q : {poly R}) (i j : nat).
+Implicit Types (a b c : R) (s t u : {fps R}) (p q : {poly R}) (i j : nat).
 
 Lemma proj0 i : 'pi[{fps R}]_i 0 = 0.
 Proof. exact: raddf0. Qed.
@@ -329,6 +331,7 @@ Fact coefs_is_additive i : additive (coefs i).
 Proof. by move=> s t; rewrite /= !coefs_projE projB coefB. Qed.
 HB.instance Definition _ i :=
   GRing.isAdditive.Build {fps R} R _ (coefs_is_additive i).
+
 
 Lemma coefsD s t i : (s + t)``_i = s``_i + t``_i.
 Proof. exact: (raddfD (coefs i)). Qed.
@@ -604,7 +607,6 @@ Section FpsUnitRing.
 Variable R : unitRingType.
 Implicit Type f : {fps R}.
 
-HB.instance Definition _ := RingInvLim.on {fps R}.
 HB.instance Definition _ :=
   InvLim_isUnitRingInvLim.Build _ _ _ _ _ {fps R}.
 

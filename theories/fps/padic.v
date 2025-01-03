@@ -289,7 +289,7 @@ rewrite -raddfD /=; apply valuatNatE.
   move: pix piy; rewrite {x}eqx {y}eqy mulrACA -exprD !padicp_MpXn_eq0 {vx vy}.
   rewrite rmorphM /=; move: (_ a) (_ b) => {}a {}b.
   (* Fixed bad mathcomp statement *)
-  have Fp_Zcast : Zp_trunc (pdiv p) = Zp_trunc p by have[]:= Fp_Zcast p_pr.
+  have Fp_Zcast : Zp_trunc (pdiv p) = Zp_trunc p by have:= Fp_Zcast p_pr.
   rewrite expn1 -Fp_Zcast in a b |- *.
   exact: mulf_neq0.
 rewrite natrE=> i lti.
@@ -316,6 +316,8 @@ Proof. by rewrite padic_unit valuat_eq0P. Qed.
 
 Fact padic_mul_eq0 x y : x * y = 0 -> (x == 0) || (y == 0).
 Proof. by move/eqP; rewrite -!valuat0P valuatM addbar_eqI. Qed.
+
+HB.instance Definition _ := GRing.ComUnitRing.on (padic_int p_pr).
 HB.instance Definition _ :=
   GRing.ComUnitRing_isIntegral.Build (padic_int p_pr) padic_mul_eq0.
 

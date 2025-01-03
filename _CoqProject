@@ -4,6 +4,7 @@
 -arg -w -arg -redundant-canonical-projection
 -arg -w -arg -deprecated-since-8.19
 -arg -w -arg -projection-no-head-constant
+-arg -w -arg -notation-incompatible-prefix
 theories/fps/directed.v
 theories/fps/invlim.v
 theories/fps/dirlim.v
