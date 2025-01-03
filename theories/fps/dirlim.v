@@ -41,9 +41,8 @@ Unset Printing Implicit Defensive.
 
 #[key="dlT"]
 HB.factory Record isDirLim_classical
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> Type)
-    (bonding : forall i j, i <= j -> Obj i -> Obj j)
+    disp (I : dirType disp)
+    (Obj : I -> Type) (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : is_dirsys bonding)
   dlT of Choice dlT := {
     dirlim_inj i : Obj i -> dlT;
@@ -57,9 +56,8 @@ HB.factory Record isDirLim_classical
         ind =1 dirlim_ind T f Hcone
   }.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> Type)
-    (bonding : forall i j, i <= j -> Obj i -> Obj j)
+    disp (I : dirType disp)
+    (Obj : I -> Type) (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : is_dirsys bonding)
   dlT of isDirLim_classical disp I Obj bonding Sys dlT.
 
@@ -118,7 +116,7 @@ HB.end.
 
 Section DirSysCongr.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : is_dirsys bonding.
@@ -181,13 +179,13 @@ Open Scope ring_scope.
 
 
 HB.factory Record DirLim_isUnitRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -221,13 +219,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isComUnitRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comUnitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comUnitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -240,13 +238,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isIDomainDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -263,13 +261,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isFieldDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -293,7 +291,7 @@ Open Scope quotient_scope.
 
 Section Implem.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : is_dirsys bonding.
@@ -309,7 +307,7 @@ Notation "{ 'dirlim' S }" := (dirlim S).
 
 Section DirectLimitTheory.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : is_dirsys bonding.
@@ -377,7 +375,7 @@ Open Scope ring_scope.
 
 Section Instances.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 
 Section NModule.
 Variable Obj : I -> nmodType.
@@ -516,7 +514,7 @@ End Instances.
 
 Section TestComUnitAlg.
 Variable (R : comRingType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> comUnitAlgType R.
 Variable bonding : forall i j, (i <= j)%O -> {lrmorphism Obj i -> Obj j}.
 Variable Sys : is_dirsys bonding.

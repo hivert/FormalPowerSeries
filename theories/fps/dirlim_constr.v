@@ -34,10 +34,10 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Reserved Notation "{ 'dirlim' S }" (at level 0, format "{ 'dirlim'  S }").
-Reserved Notation "''inj_' i" (at level 8, i at level 2, format "''inj_' i").
-Reserved Notation "''inj[' T ']'" (at level 8).
-Reserved Notation "''inj[' T ']_' i" (at level 8, i at level 2).
-Reserved Notation "''ind[' T ']'" (at level 8).
+Reserved Notation "''inj_' i" (at level 0, i at level 2, format "''inj_' i").
+Reserved Notation "''inj[' T ']'" (at level 0).
+Reserved Notation "''inj[' T ']_' i" (at level 0, i at level 2).
+Reserved Notation "''ind[' T ']'" (at level 0).
 
 
 
@@ -47,7 +47,7 @@ Reserved Notation "''ind[' T ']'" (at level 8).
 (***************************************************************************)
 Section DirectSystem.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 
 (** Objects and bonding morphisms of the direct system at left outside     *)
 (** the record below to allows the addition of more algebraic structure    *)
@@ -145,9 +145,8 @@ Open Scope ring_scope.
 
 #[key="dlT"]
 HB.mixin Record isDirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> Type)
-    (bonding : forall i j, i <= j -> Obj i -> Obj j)
+    disp (I : dirType disp)
+    (Obj : I -> Type) (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : is_dirsys bonding)
   dlT of Choice dlT := {
     dirlim_inj i : Obj i -> dlT;
@@ -168,9 +167,8 @@ HB.mixin Record isDirLim
 
 #[short(type="dirLimType")]
 HB.structure Definition DirLim
-    (disp : unit) (I : dirType disp)
-    (Obj : I -> Type)
-    (bonding : forall i j, i <= j -> Obj i -> Obj j)
+    disp (I : dirType disp)
+    (Obj : I -> Type) (bonding : forall i j, i <= j -> Obj i -> Obj j)
     (Sys : is_dirsys bonding)
   := {
     dlT of isDirLim disp I Obj bonding Sys dlT
@@ -181,8 +179,8 @@ HB.structure Definition DirLim
 
 Section InternalTheory.
 
-Variables (disp : unit) (I : dirType disp).
-Variable Obj : I -> Type.
+Variables (disp : _) (I : dirType disp).
+Variables Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : is_dirsys bonding.
 Variable dlT : dirLimType Sys.
@@ -213,7 +211,7 @@ Notation "''ind'" := ('ind[ _ ]).
 
 Section DirLimDirected.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> choiceType.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : is_dirsys bonding.
@@ -266,7 +264,7 @@ End DirLimDirected.
 
 Section Is_DirsysCongr.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> Type.
 Variable bonding : forall i j, i <= j -> Obj i -> Obj j.
 Variable Sys : is_dirsys bonding.
@@ -309,7 +307,7 @@ Arguments dsysequal {disp I Obj bonding} (Sys) (u v).
 
 #[key="dlT"]
 HB.mixin Record isNmoduleDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> nmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -319,7 +317,7 @@ HB.mixin Record isNmoduleDirLim
   }.
 #[short(type="nmodDirLimType")]
 HB.structure Definition NmoduleDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> nmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -331,7 +329,7 @@ HB.structure Definition NmoduleDirLim
 
 Section NmoduleDirLimTheory.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> nmodType.
 Variable bonding : forall i j, i <= j -> {additive Obj i -> Obj j}.
 Variable Sys : is_dirsys bonding.
@@ -375,7 +373,7 @@ End NmoduleDirLimTheory.
 
 #[short(type="zmodDirLimType")]
 HB.structure Definition ZmoduleDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -386,7 +384,7 @@ HB.structure Definition ZmoduleDirLim
 
 Section ZmoduleDirLimTheory.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> zmodType.
 Variable bonding : forall i j, i <= j -> {additive Obj i -> Obj j}.
 Variable Sys : is_dirsys bonding.
@@ -413,7 +411,7 @@ End ZmoduleDirLimTheory.
 
 #[key="dlT"]
 HB.mixin Record isSemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -423,7 +421,7 @@ HB.mixin Record isSemiRingDirLim
   }.
 #[short(type="semiRingDirLimType")]
 HB.structure Definition SemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -435,7 +433,7 @@ HB.structure Definition SemiRingDirLim
 
 Section SemiRingDirLimTheory.
 
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> semiRingType.
 Variable bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j}.
 Variable Sys : is_dirsys bonding.
@@ -478,7 +476,7 @@ End SemiRingDirLimTheory.
 
 #[short(type="ringDirLimType")]
 HB.structure Definition RingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -489,7 +487,7 @@ HB.structure Definition RingDirLim
 
 #[short(type="comSemiRingDirLimType")]
 HB.structure Definition ComSemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comSemiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -500,7 +498,7 @@ HB.structure Definition ComSemiRingDirLim
 
 #[short(type="comRingDirLimType")]
 HB.structure Definition ComRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -512,7 +510,7 @@ HB.structure Definition ComRingDirLim
 
 #[short(type="unitRingDirLimType")]
 HB.structure Definition UnitRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -524,7 +522,7 @@ HB.structure Definition UnitRingDirLim
 Section DirLimUnitRingTheory.
 
 Variables
-    (disp : unit) (I : dirType disp)
+    (disp : _) (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding).
@@ -558,7 +556,7 @@ End  DirLimUnitRingTheory.
 
 #[short(type="comUnitRingDirLimType")]
 HB.structure Definition ComUnitRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comUnitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -570,7 +568,7 @@ HB.structure Definition ComUnitRingDirLim
 
 #[short(type="idomainDirLimType")]
 HB.structure Definition IDomainDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -582,7 +580,7 @@ HB.structure Definition IDomainDirLim
 
 #[short(type="fieldDirLimType")]
 HB.structure Definition FieldDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -595,7 +593,7 @@ HB.structure Definition FieldDirLim
 #[key="dlT"]
   HB.mixin Record isLmoduleDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -607,7 +605,7 @@ HB.structure Definition FieldDirLim
 #[short(type="lmodDirLimType")]
 HB.structure Definition LmoduleDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -620,7 +618,7 @@ HB.structure Definition LmoduleDirLim
 Section LmoduleDirLimTheory.
 
 Variable (R : ringType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> lmodType R.
 Variable bonding : forall i j, i <= j -> {linear Obj i -> Obj j}.
 Variable Sys : is_dirsys bonding.
@@ -651,7 +649,7 @@ End LmoduleDirLimTheory.
 #[short(type="lalgDirLimType")]
 HB.structure Definition LalgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -664,7 +662,7 @@ HB.structure Definition LalgebraDirLim
 Section LAlgebraDirLimTheory.
 
 Variable (R : ringType).
-Variables (disp : unit) (I : dirType disp).
+Variables (disp : _) (I : dirType disp).
 Variable Obj : I -> lalgType R.
 Variable bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j}.
 Variable Sys : is_dirsys bonding.
@@ -690,7 +688,7 @@ End LAlgebraDirLimTheory.
 #[short(type="algDirLimType")]
 HB.structure Definition AlgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -705,7 +703,7 @@ HB.structure Definition AlgebraDirLim
 #[short(type="comAlgDirLimType")]
 HB.structure Definition ComAlgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comAlgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -718,7 +716,7 @@ HB.structure Definition ComAlgebraDirLim
 #[short(type="comAlgDirLimType")]
 HB.structure Definition UnitAlgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> unitAlgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -730,7 +728,7 @@ HB.structure Definition UnitAlgebraDirLim
 
 HB.structure Definition ComUnitAlgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comUnitAlgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -751,13 +749,13 @@ HB.structure Definition ComUnitAlgebraDirLim
 (****************************************************************************)
 
 HB.factory Record DirLim_isNmoduleDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> nmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> nmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -819,13 +817,13 @@ HB.end.
 
 
 HB.factory Record NmoduleDirLim_isZmoduleDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of NmoduleDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -857,13 +855,13 @@ Qed.
 HB.end.
 
 HB.factory Record DirLim_isZmoduleDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> zmodType)
     (bonding : forall i j, i <= j -> {additive Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -876,13 +874,13 @@ HB.end.
 
 
 HB.factory Record NmoduleDirLim_isSemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of NmoduleDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -971,13 +969,13 @@ HB.instance Definition _ :=
 HB.end.
 
 HB.factory Record DirLim_isSemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> semiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -990,13 +988,13 @@ HB.end.
 
 
 HB.factory Record SemiRingDirLim_isRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of SemiRingDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1007,13 +1005,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> ringType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1026,13 +1024,13 @@ HB.end.
 
 
 HB.factory Record SemiRingDirLim_isComSemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comSemiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of SemiRingDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comSemiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1052,13 +1050,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isComSemiRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comSemiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comSemiRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1071,13 +1069,13 @@ HB.end.
 
 
 HB.factory Record RingDirLim_isComRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of RingDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1088,13 +1086,13 @@ HB.end.
 
 
 HB.factory Record DirLim_isComRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1107,7 +1105,7 @@ HB.end.
 
 
 HB.factory Record RingDirLim_isUnitRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1118,7 +1116,7 @@ HB.factory Record RingDirLim_isUnitRingDirLim
         (dlunit x)
   }.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> unitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1187,13 +1185,13 @@ HB.end.
 
 
 HB.factory Record UnitRingDirLim_isComUnitRingDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comUnitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of UnitRingDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> comUnitRingType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1208,13 +1206,13 @@ HB.end.
 
 
 HB.factory Record ComUnitRingDirLim_isIntegralDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of ComUnitRingDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> idomainType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1238,13 +1236,13 @@ HB.end.
 
 
 HB.factory Record IDomainDirLim_isFieldDirLim
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of IDomainDirLim _ Sys dlT := {}.
 HB.builders Context
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> fieldType)
     (bonding : forall i j, i <= j -> {rmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1265,14 +1263,14 @@ HB.end.
 
 HB.factory Record ZmoduleDirLim_isLmoduleDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of ZmoduleDirLim _ Sys dlT := {}.
 HB.builders Context
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1326,14 +1324,14 @@ HB.end.
 
 HB.factory Record DirLim_isLmoduleDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lmodType R)
     (bonding : forall i j, i <= j -> {linear Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1347,14 +1345,14 @@ HB.end.
 
 HB.factory Record LmoduleDirLim_isLalgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of LmoduleDirLim _ Sys dlT := {}.
 HB.builders Context
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1378,14 +1376,14 @@ HB.end.
 
 HB.factory Record DirLim_isLalgebraDirLim
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
     (R : ringType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> lalgType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1400,14 +1398,14 @@ HB.end.
 
 HB.factory Record LalgebraDirLim_isAlgebraDirLim
     (R : comRingType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of LalgebraDirLim _ Sys dlT := {}.
 HB.builders Context
     (R : comRingType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
@@ -1428,14 +1426,14 @@ HB.end.
 
 HB.factory Record DirLim_isAlgebraDirLim
     (R : comRingType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)
   dlT of DirLim _ Sys dlT := {}.
 HB.builders Context
     (R : comRingType)
-    (disp : unit) (I : dirType disp)
+    disp (I : dirType disp)
     (Obj : I -> algType R)
     (bonding : forall i j, i <= j -> {lrmorphism Obj i -> Obj j})
     (Sys : is_dirsys bonding)

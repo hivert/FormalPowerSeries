@@ -39,7 +39,7 @@ Definition directed (T : Type) (R : T -> T -> bool) :=
   forall x y : T, { z | R x z & R y z }.
 
 (** TODO : I'm not using anti-symmetry, i.e.: directed sets can be preorders *)
-HB.mixin Record Directed (d : unit) T of Order.POrder d T := {
+HB.mixin Record Directed d T of Order.POrder d T := {
   directedP : directed (T := T) <=%O
 }.
 #[short(type="dirType")]

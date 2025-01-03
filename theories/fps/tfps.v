@@ -123,7 +123,7 @@ Reserved Notation "[ 'tfps' s <= n => F ]"
   (at level 0, n at next level, s name, format "[ 'tfps' s <= n  =>  F ]").
 Reserved Notation "[ 'tfps' s => F ]"
   (at level 0, s name, format "[ 'tfps'  s  =>  F ]").
-Reserved Notation "c %:S" (at level 2, format "c %:S").
+Reserved Notation "c %:S" (at level 1, format "c %:S").
 Reserved Notation "\X" (at level 0).
 Reserved Notation "\Xo( n )" (at level 0).
 Reserved Notation "x ^^ n" (at level 29, left associativity).
